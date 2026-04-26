@@ -28,6 +28,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
  *  - DOI is found in ELocationID[@EIdType='doi'] or PubmedData.ArticleIdList.
  *  - ORCID is found in Author.Identifier[@Source='ORCID'].
  *  - Rate: 3 req/sec without key, 10 req/sec with key.
+ *  - Note: rawData serialization via json_encode drops namespace-qualified nodes (fine for Medline XML).
  */
 final class PubMedAdapter extends BaseProviderAdapter
 {
@@ -451,6 +452,9 @@ final class PubMedAdapter extends BaseProviderAdapter
      * PubMed uses XML-based normalization via normalizeXmlArticle().
      * This method satisfies the abstract contract but is never called
      * in the search() or fetchById() code paths.
+     *
+     * WARNING: This method MUST NEVER be reached. If called, it produces
+     * a phantom ScholarlyWork with no identifiers that will fail deduplication.
      *
      * @codeCoverageIgnore
      */
