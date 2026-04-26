@@ -1,5 +1,5 @@
 {
-    "name": "your-vendor/nexus-php",
+    "name": "nexus-scholar/core",
     "description": "Systematic Literature Review toolkit for PHP 8.3+",
     "type": "library",
     "license": "MIT",
@@ -14,14 +14,20 @@
         "php-vcr/php-vcr": "^1.7"
     },
     "autoload": {
-        "psr-4": { "Nexus\\": "src/" }
+        "psr-4": {
+            "Nexus\\": "src/"
+        }
     },
     "autoload-dev": {
-        "psr-4": { "Tests\\": "tests/" }
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
     },
     "extra": {
         "laravel": {
-            "providers": ["Nexus\\Laravel\\NexusServiceProvider"]
+            "providers": [
+                "Nexus\\Laravel\\NexusServiceProvider"
+            ]
         }
     },
     "config": {

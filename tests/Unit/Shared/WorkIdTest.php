@@ -30,6 +30,11 @@ it('strips_doi_colon_prefix_from_doi', function (): void {
     expect($id->value)->toBe('10.1234/abc');
 });
 
+it('does_not_strip_doi_characters_that_appear_in_the_prefix', function (): void {
+    $id = new WorkId(WorkIdNamespace::DOI, 'https://doi.org/10.1037/h0043158');
+    expect($id->value)->toBe('10.1037/h0043158'); // 'h' must NOT be stripped
+});
+
 it('lowercases_doi_value', function (): void {
     $id = new WorkId(WorkIdNamespace::DOI, '10.1234/ABC');
     expect($id->value)->toBe('10.1234/abc');
@@ -149,7 +154,7 @@ it('remains_immutable_after_add', function (): void {
     expect($newSet->count())->toBe(2);
 });
 
-it('merges_two_sets_without_removing_duplicates', function (): void {
+it('merges_two_sets_and_removes_duplicates', function (): void {
     $a = WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.1234/aaa')]);
     $b = WorkIdSet::fromArray([
         new WorkId(WorkIdNamespace::DOI, '10.1234/aaa'),
@@ -157,7 +162,7 @@ it('merges_two_sets_without_removing_duplicates', function (): void {
     ]);
 
     $merged = $a->merge($b);
-    expect($merged->count())->toBe(3); // duplicates allowed
+    expect($merged->count())->toBe(2);
 });
 
 it('counts_correctly', function (): void {

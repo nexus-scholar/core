@@ -180,16 +180,21 @@ it('elects_most_complete_work_as_representative', function (): void {
 // ── DeduplicateCorpusHandler ──────────────────────────────────────────────────
 
 it('clusters_two_works_with_same_doi_into_one_cluster', function (): void {
-    // Build two slices independently so CorpusSlice doesn't pre-merge them,
-    // then merge the slices to create a corpus with two entries.
-    $sliceA = CorpusSlice::fromWorks(makeDeduplicatable('10.1234/abc', 'Work A'));
-    $sliceB = CorpusSlice::fromWorks(makeDeduplicatable('10.1234/abc', 'Work B'));
-    $corpus = $sliceA->merge($sliceB);
-    // After merge, CorpusSlice will have merged them → 1 unique work
-    // Use the handler directly on the pre-merged corpus
-    // to verify it reports 1 cluster
+    $workA = makeDeduplicatable('10.1234/abc', 'Work A');
+    $workB = makeDeduplicatable('10.1234/abc', 'Work B');
+
+    // Bypass CorpusSlice's addWork deduplication by using reflection
+    $corpus = CorpusSlice::empty();
+    $reflection = new \ReflectionClass($corpus);
+    $property = $reflection->getProperty('works');
+    $property->setAccessible(true);
+    // Use arbitrary keys to force them into the array despite same primaryId
+    $property->setValue($corpus, ['a' => $workA, 'b' => $workB]);
+
+    // Now the handler receives exactly 2 identical-DOI works
     $result = makeHandler()->handle(new DeduplicateCorpus($corpus));
 
+    expect($result->inputCount)->toBe(2);
     expect($result->uniqueCount)->toBe(1);
     expect($result->clusters->count())->toBe(1);
 });

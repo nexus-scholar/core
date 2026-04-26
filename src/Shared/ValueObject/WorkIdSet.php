@@ -110,10 +110,24 @@ final class WorkIdSet
         return $this->ids;
     }
 
-    /** Returns a new instance combining both sets (duplicates are allowed). */
+    /** Returns a new instance combining both sets (duplicates are removed). */
     public function merge(WorkIdSet $other): self
     {
-        return new self(...$this->ids, ...$other->ids);
+        $merged = $this->ids;
+        foreach ($other->ids as $b) {
+            $exists = false;
+            foreach ($merged as $a) {
+                if ($a->equals($b)) {
+                    $exists = true;
+                    break;
+                }
+            }
+            if (! $exists) {
+                $merged[] = $b;
+            }
+        }
+
+        return new self(...$merged);
     }
 
     /** "doi:10.x|arxiv:2301.x" */

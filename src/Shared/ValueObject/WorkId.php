@@ -25,13 +25,7 @@ final class WorkId
 
         return match ($ns) {
             WorkIdNamespace::DOI => strtolower(
-                ltrim(
-                    ltrim(
-                        ltrim($raw, 'https://doi.org/'),
-                        'http://dx.doi.org/'
-                    ),
-                    'doi:'
-                )
+                preg_replace('/^(https?:\/\/(dx\.)?doi\.org\/|doi:)/i', '', $raw)
             ),
             WorkIdNamespace::ARXIV => strtolower(
                 preg_replace('/^arxiv:/i', '', $raw)
