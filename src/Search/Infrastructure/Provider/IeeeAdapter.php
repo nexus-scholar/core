@@ -80,6 +80,47 @@ final class IeeeAdapter extends BaseProviderAdapter
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
     }
 
+    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    {
+        if ($this->config->apiKey === null) {
+            return new \GuzzleHttp\Promise\FulfilledPromise([]); // IEEE requires an API key
+        }
+
+        $params = array_merge(
+            [
+                'apikey'      => $this->config->apiKey,
+                'querytext'   => $query->term->value,
+                'format'      => 'json',
+                'max_records' => min($query->maxResults, 200),
+                'sort_field'  => 'publication_year',
+                'sort_order'  => 'desc',
+            ],
+            $this->paginationParams($query),
+        );
+
+        // Year range
+        if ($query->yearRange !== null) {
+            if ($query->yearRange->from !== null) {
+                $params['start_year'] = $query->yearRange->from;
+            }
+
+            if ($query->yearRange->to !== null) {
+                $params['end_year'] = $query->yearRange->to;
+            }
+        }
+
+        return $this->requestAsync("{$this->config->baseUrl}/search/articles", $params)
+            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+                if (! $response->ok()) {
+                    return [];
+                }
+
+                $items = $this->extractItems($response->body);
+
+                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+            });
+    }
+
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         if ($this->config->apiKey === null) {

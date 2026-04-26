@@ -52,6 +52,25 @@ final class ArXivAdapter extends BaseProviderAdapter
         return array_map(fn (array $entry) => $this->normalize($entry, $query), $entries);
     }
 
+    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    {
+        $params = array_merge(
+            ['search_query' => "all:{$query->term->value}"],
+            $this->paginationParams($query),
+        );
+
+        return $this->requestAsync('http://export.arxiv.org/api/query', $params)
+            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+                if (! $response->ok()) {
+                    return [];
+                }
+
+                $entries = $this->parseAtomXml($response->rawBody);
+
+                return array_map(fn (array $entry) => $this->normalize($entry, $query), $entries);
+            });
+    }
+
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         if ($id->namespace !== WorkIdNamespace::ARXIV) {

@@ -121,6 +121,57 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
         return $collected;
     }
 
+    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    {
+        $params = [
+            'query'  => $this->toBulkQuery($query->term->value),
+            'fields' => self::FIELDS,
+        ];
+
+        if ($query->yearRange !== null) {
+            $from = $query->yearRange->from;
+            $to   = $query->yearRange->to;
+
+            if ($from !== null && $to !== null) {
+                $params['year'] = "{$from}-{$to}";
+            } elseif ($from !== null) {
+                $params['year'] = "{$from}-";
+            } elseif ($to !== null) {
+                $params['year'] = "-{$to}";
+            }
+        }
+
+        $headers = [];
+
+        if ($this->config->apiKey !== null) {
+            $headers['x-api-key'] = $this->config->apiKey;
+        }
+
+        return $this->requestAsync(
+            "{$this->config->baseUrl}/graph/v1/paper/search/bulk",
+            $params,
+            $headers
+        )->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+            if (! $response->ok()) {
+                return [];
+            }
+
+            $items = $this->extractItems($response->body);
+            $maxResults = $query->maxResults;
+            $collected = [];
+
+            foreach ($items as $raw) {
+                if (count($collected) >= $maxResults) {
+                    break;
+                }
+
+                $collected[] = $this->normalize($raw, $query);
+            }
+
+            return $collected;
+        });
+    }
+
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         $identifier = match ($id->namespace) {
