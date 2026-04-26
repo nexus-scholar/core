@@ -1,0 +1,22 @@
+
+-
+    request:
+        method: GET
+        url: 'https://api.openalex.org/works/w2741809807?mailto=test%40example.com'
+        headers:
+            Host: api.openalex.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 200
+            message: OK
+        headers:
+            Content-Type: application/json
+        body: '{"id":"https://openalex.org/W2741809807","doi":"https://doi.org/10.7717/peerj.4375","title":"The state of OA: a large-scale analysis of the prevalence and impact of Open Access articles","display_name":"The state of OA: a large-scale analysis of the prevalence and impact of Open Access articles","publication_year":2018,"publication_date":"2018-02-13","ids":{"openalex":"https://openalex.org/W2741809807","doi":"https://doi.org/10.5281/zenodo.18201069","mag":"2741809807","pmid":"https://pubmed.ncbi.nlm.nih.gov/29456894"},"language":"en","primary_location":{"id":"doi:10.7717/peerj.4375","is_oa":true,"landing_page_url":"https://doi.org/10.7717/peerj.4375","pdf_url":null,"source":{"id":"https://openalex.org/S1983995261","display_name":"PeerJ","issn_l":"2167-8359","issn":["2167-8359"],"is_oa":true,"is_in_doaj":true,"is_core":true,"type":"journal"},"license":"cc-by","version":"publishedVersion","is_accepted":true,"is_published":true},"type":"book-chapter","open_access":{"is_oa":true,"oa_status":"gold","oa_url":"https://doi.org/10.7717/peerj.4375","any_repository_has_fulltext":true},"authorships":[{"author_position":"first","author":{"id":"https://openalex.org/A5048491430","display_name":"Heather Piwowar","orcid":"https://orcid.org/0000-0003-1613-5981"},"institutions":[{"id":"https://openalex.org/I4200000001","display_name":"OpenAlex","ror":"https://ror.org/02nr0ka47","country_code":"CA","type":"nonprofit"}],"countries":["CA","US"],"is_corresponding":true,"raw_author_name":"Heather Piwowar","raw_affiliation_strings":["Impactstory, Sanford, NC, USA"]},{"author_position":"middle","author":{"id":"https://openalex.org/A5023888391","display_name":"Jason Priem","orcid":"https://orcid.org/0000-0001-6187-6610"},"institutions":[],"countries":["CA","US"],"is_corresponding":false,"raw_author_name":"Jason Priem","raw_affiliation_strings":["Impactstory, Sanford, NC, USA"]},{"author_position":"last","author":{"id":"https://openalex.org/A5014077037","display_name":"Stefanie Haustein","orcid":"https://orcid.org/0000-0003-0157-1430"},"institutions":[],"countries":["CA"],"is_corresponding":false,"raw_author_name":"Stefanie Haustein","raw_affiliation_strings":[]}],"cited_by_count":1193,"is_retracted":false,"is_paratext":false,"abstract_inverted_index":{"Despite":[0],"growing":[1],"interest":[2],"in":[3],"Open":[4],"Access":[5],"(OA)":[6],"to":[7],"scholarly":[8],"literature,":[9],"there":[10],"is":[11],"an":[12],"unmet":[13],"need":[14],"for":[15],"large-scale,":[16],"up-to-date,":[17],"and":[18],"reproducible":[19],"studies":[20]},"counts_by_year":[{"year":2023,"cited_by_count":152}]}'
+        curl_info:
+            url: 'https://api.openalex.org/works/w2741809807?mailto=test%40example.com'
+            content_type: application/json
+            http_code: 200
+    index: 0
