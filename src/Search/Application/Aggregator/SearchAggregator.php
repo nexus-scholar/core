@@ -5,38 +5,96 @@ declare(strict_types=1);
 namespace Nexus\Search\Application\Aggregator;
 
 use Nexus\Search\Domain\CorpusSlice;
-use Nexus\Search\Domain\Exception\ProviderUnavailable;
-use Nexus\Search\Domain\Port\AcademicProviderPort;
-use Nexus\Search\Domain\Port\DeduplicationPort;
 use Nexus\Search\Domain\Port\AdapterCollection;
+use Nexus\Search\Domain\Port\DeduplicationPort;
+use Nexus\Search\Domain\Port\SearchCachePort;
 use Nexus\Search\Domain\SearchQuery;
 use Psr\Log\LoggerInterface;
+use GuzzleHttp\Promise\Utils;
+use Throwable;
 
 final class SearchAggregator implements SearchAggregatorPort
 {
     public function __construct(
-        private readonly AdapterCollection  $adapters,
-        private readonly DeduplicationPort  $deduplication,
-        private readonly ?LoggerInterface   $logger = null,
+        private readonly AdapterCollection $adapters,
+        private readonly DeduplicationPort $deduplication,
+        private readonly SearchCachePort   $cache,
+        private readonly ?LoggerInterface  $logger = null,
+        private readonly int               $cacheTtl = 3600,
     ) {}
 
     public function aggregate(SearchQuery $query): AggregatedResult
     {
+        $startTime = hrtime(true);
+
+        // Build list of active adapters
+        $activeAdapters = $this->adapters->all();
+        $sortedAliases  = array_map(fn ($p) => $p->alias(), $activeAdapters);
+        sort($sortedAliases);
+
+        $cacheKey = $query->cacheKey($sortedAliases);
+
+        // 1. Check cache
+        $cached = $this->cache->get($cacheKey);
+        if ($cached !== null) {
+            $corpus = CorpusSlice::fromWorksUnsafe(...$cached);
+            
+            return new AggregatedResult(
+                corpus:        $corpus,
+                providerStats: [], // Cache hit means no fresh stats
+                totalRaw:      $corpus->count(),
+                fromCache:     true,
+                durationMs:    $this->elapsedMs($startTime),
+            );
+        }
+
+        // 2. Execute parallel search
+        $promises = [];
+        foreach ($activeAdapters as $adapter) {
+            $alias = $adapter->alias();
+            $providerStart = hrtime(true);
+            
+            $promises[$alias] = $adapter->searchAsync($query)->then(
+                function ($works) use ($providerStart) {
+                    return [
+                        'success' => true,
+                        'works'   => $works,
+                        'ms'      => $this->elapsedMs($providerStart),
+                    ];
+                },
+                function (Throwable $e) use ($providerStart) {
+                    return [
+                        'success' => false,
+                        'error'   => $e->getMessage(),
+                        'ms'      => $this->elapsedMs($providerStart),
+                    ];
+                }
+            );
+        }
+
+        $settled = Utils::settle($promises)->wait();
+
         $allWorks = [];
         $stats    = [];
 
-        foreach ($this->adapters->all() as $adapter) {
-            $start = hrtime(true);
+        foreach ($activeAdapters as $adapter) {
+            $alias  = $adapter->alias();
+            $result = $settled[$alias]['value'] ?? null; // Since we catch in the promise, state is always fulfilled
 
-            try {
-                $works         = $adapter->search($query);
-                $allWorks[]    = $works;
-                $latencyMs     = (hrtime(true) - $start) / 1_000_000;
-                $stats[]       = new ProviderStat($adapter->alias(), count($works), $latencyMs);
-            } catch (ProviderUnavailable $e) {
-                $latencyMs = (hrtime(true) - $start) / 1_000_000;
-                $stats[]   = new ProviderStat($adapter->alias(), 0, $latencyMs, $e->getMessage());
-                $this->logger?->warning("Aggregator skipped {$adapter->alias()}", ['reason' => $e->getMessage()]);
+            if ($result === null) {
+                // Should theoretically not happen unless settle is misused
+                $stats[] = new ProviderStat($alias, 0, $this->elapsedMs($startTime), "Unknown error settling promise");
+                continue;
+            }
+
+            if ($result['success']) {
+                $works = $result['works'];
+                array_push($allWorks, ...$works);
+                $stats[] = new ProviderStat($alias, count($works), $result['ms']);
+            } else {
+                $error = $result['error'];
+                $stats[] = new ProviderStat($alias, 0, $result['ms'], $error);
+                $this->logger?->warning("Aggregator skipped {$alias}", ['reason' => $error]);
             }
         }
 
@@ -45,17 +103,29 @@ final class SearchAggregator implements SearchAggregatorPort
                 corpus:        CorpusSlice::empty(),
                 providerStats: $stats,
                 totalRaw:      0,
+                fromCache:     false,
+                durationMs:    $this->elapsedMs($startTime),
             );
         }
 
-        $merged  = array_merge(...$allWorks);
-        $corpus  = CorpusSlice::fromWorksUnsafe(...$merged);
-        $deduped = $this->deduplication->deduplicate($corpus);
+        // 3. Deduplicate and construct final corpus
+        $rawCorpus = CorpusSlice::fromWorksUnsafe(...$allWorks);
+        $deduped   = $this->deduplication->deduplicate($rawCorpus);
+
+        // 4. Cache raw array form
+        $this->cache->put($cacheKey, $deduped->all(), $this->cacheTtl);
 
         return new AggregatedResult(
             corpus:        $deduped,
             providerStats: $stats,
-            totalRaw:      count($merged),
+            totalRaw:      count($allWorks),
+            fromCache:     false,
+            durationMs:    $this->elapsedMs($startTime),
         );
+    }
+
+    private function elapsedMs(float|int $startNs): int
+    {
+        return (int) round((hrtime(true) - $startNs) / 1_000_000);
     }
 }

@@ -50,7 +50,7 @@ final class CorpusSlice
      * Add a work, merging into an existing one if isSameWorkAs() returns true.
      * Falls back to spl_object_hash when the work has no primary ID.
      */
-    public function addWork(ScholarlyWork $work): void
+    private function addWork(ScholarlyWork $work): void
     {
         $key = $work->primaryId()?->toString() ?? spl_object_hash($work);
 
@@ -63,6 +63,15 @@ final class CorpusSlice
         }
 
         $this->works[$key] = $work;
+    }
+
+    public function withWork(ScholarlyWork $work): self
+    {
+        $new = new self(CorpusSliceId::generate());
+        $new->works = $this->works;
+        $new->addWork($work);
+        
+        return $new;
     }
 
     public function contains(ScholarlyWork $work): bool

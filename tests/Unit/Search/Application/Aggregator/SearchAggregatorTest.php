@@ -76,7 +76,14 @@ it('aggregates results from multiple providers and deduplicates them', function 
         }
     };
 
-    $aggregator = new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($adapter1, $adapter2, $adapter3), $dedup);
+    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
+        public function get(string $key): ?array { return null; }
+        public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
+        public function has(string $key): bool { return false; }
+        public function invalidateAll(): void {}
+    };
+
+    $aggregator = new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($adapter1, $adapter2, $adapter3), $dedup, $cache);
 
     $result = $aggregator->aggregate($query);
 
@@ -117,7 +124,14 @@ it('returns empty corpus when all providers fail', function () {
         public function deduplicate(CorpusSlice $corpus): CorpusSlice { return $corpus; }
     };
 
-    $result = (new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($failingAdapter), $dedup))->aggregate(
+    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
+        public function get(string $key): ?array { return null; }
+        public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
+        public function has(string $key): bool { return false; }
+        public function invalidateAll(): void {}
+    };
+
+    $result = (new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($failingAdapter), $dedup, $cache))->aggregate(
         new SearchQuery(new SearchTerm('test'))
     );
 

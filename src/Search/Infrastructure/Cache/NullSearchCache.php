@@ -7,8 +7,7 @@ namespace Nexus\Search\Infrastructure\Cache;
 use Nexus\Search\Domain\Port\SearchCachePort;
 
 /**
- * No-op cache implementation — always misses.
- * Use in: tests, standalone usage (without Laravel), dev mode.
+ * A no-op implementation of the SearchCachePort for environments without caching.
  */
 final class NullSearchCache implements SearchCachePort
 {
@@ -17,18 +16,18 @@ final class NullSearchCache implements SearchCachePort
         return null;
     }
 
-    public function put(string $key, array $results, int $ttlSeconds): void
+    public function put(string $key, array $works, int $ttlSeconds = 3600): void
     {
-        // intentional no-op
-    }
-
-    public function invalidateAll(): void
-    {
-        // intentional no-op
+        // No-op
     }
 
     public function has(string $key): bool
     {
         return false;
+    }
+
+    public function invalidateAll(): void
+    {
+        // No-op
     }
 }

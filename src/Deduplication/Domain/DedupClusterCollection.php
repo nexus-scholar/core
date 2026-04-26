@@ -54,15 +54,11 @@ final class DedupClusterCollection
     /**
      * Returns a CorpusSlice containing only the representative of each cluster.
      */
-    public function representativeCorpus(): CorpusSlice
+    public function toCorpusSlice(): CorpusSlice
     {
-        $slice = CorpusSlice::empty();
+        $reps = array_map(fn(DedupCluster $c) => $c->representative(), $this->clusters);
 
-        foreach ($this->clusters as $cluster) {
-            $slice->addWork($cluster->representative());
-        }
-
-        return $slice;
+        return CorpusSlice::fromWorks(...$reps);
     }
 
     /**

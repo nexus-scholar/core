@@ -17,5 +17,7 @@ final readonly class AggregatedResult
         public CorpusSlice $corpus,
         public array       $providerStats,
         public int         $totalRaw,
+        public bool        $fromCache = false,
+        public int         $durationMs = 0,
     ) {}
 }

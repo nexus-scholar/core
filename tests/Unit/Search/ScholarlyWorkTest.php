@@ -129,8 +129,8 @@ it('starts_empty', function (): void {
 it('adds_work_without_duplicating', function (): void {
     $slice = CorpusSlice::empty();
     $work  = makeWork('10.1234/abc');
-    $slice->addWork($work);
-    $slice->addWork($work);
+    $slice = $slice->withWork($work);
+    $slice = $slice->withWork($work);
     expect($slice->count())->toBe(1);
 });
 
@@ -150,8 +150,7 @@ it('merges_instead_of_duplicating_same_work', function (): void {
         abstract:       'Has abstract now',
     );
 
-    $slice->addWork($fromOA);
-    $slice->addWork($fromCR);
+    $slice = $slice->withWork($fromOA)->withWork($fromCR);
 
     expect($slice->count())->toBe(1);
     expect($slice->all()[0]->abstract())->toBe('Has abstract now');
@@ -160,13 +159,13 @@ it('merges_instead_of_duplicating_same_work', function (): void {
 it('contains_added_work', function (): void {
     $slice = CorpusSlice::empty();
     $work  = makeWork('10.1234/abc');
-    $slice->addWork($work);
+    $slice = $slice->withWork($work);
     expect($slice->contains($work))->toBeTrue();
 });
 
 it('does_not_contain_work_with_no_shared_ids', function (): void {
     $slice = CorpusSlice::empty();
-    $slice->addWork(makeWork('10.1234/aaa'));
+    $slice = $slice->withWork(makeWork('10.1234/aaa'));
     expect($slice->contains(makeWork('10.1234/bbb')))->toBeFalse();
 });
 
