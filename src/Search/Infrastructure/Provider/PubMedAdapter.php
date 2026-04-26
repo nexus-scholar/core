@@ -290,7 +290,7 @@ final class PubMedAdapter extends BaseProviderAdapter
             authors:        AuthorList::fromArray($authors),
             venue:          $venue,
             abstract:       $abstract,
-            rawData:        null, // PubMed raw is XML, not array-friendly
+            rawData:        $query->includeRawData ? $this->xmlNodeToArray($node) : null,
         );
     }
 
@@ -447,11 +447,20 @@ final class PubMedAdapter extends BaseProviderAdapter
         return $term;
     }
 
+    /**
+     * PubMed uses XML-based normalization via normalizeXmlArticle().
+     * This method satisfies the abstract contract but is never called
+     * in the search() or fetchById() code paths.
+     *
+     * @codeCoverageIgnore
+     */
     protected function normalize(array $raw, SearchQuery $query): ScholarlyWork
     {
-        // PubMed uses XML-based normalization — this method exists only to
-        // satisfy the abstract contract.  normalizeXmlArticle() is used instead.
-        throw new \LogicException('PubMedAdapter does not use array-based normalize().');
+        return ScholarlyWork::reconstitute(
+            ids:            WorkIdSet::empty(),
+            title:          $raw['title'] ?? 'Unknown Title',
+            sourceProvider: $this->alias(),
+        );
     }
 
     protected function paginationParams(SearchQuery $query): array
@@ -462,5 +471,21 @@ final class PubMedAdapter extends BaseProviderAdapter
     protected function extractItems(array $body): array
     {
         return [];
+    }
+
+    /**
+     * Convert a SimpleXMLElement to an associative array for rawData storage.
+     */
+    private function xmlNodeToArray(\SimpleXMLElement $node): array
+    {
+        $json = json_encode($node);
+
+        if ($json === false) {
+            return [];
+        }
+
+        $result = json_decode($json, true);
+
+        return is_array($result) ? $result : [];
     }
 }

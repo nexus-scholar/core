@@ -203,32 +203,4 @@ final class IeeeAdapter extends BaseProviderAdapter
     {
         return $body['articles'] ?? [];
     }
-
-    /**
-     * Parse author name in "Family, Given" or "Given Family" format.
-     *
-     * @return array{family: string, given: ?string}
-     */
-    private function parseAuthorName(string $name): array
-    {
-        if (str_contains($name, ',')) {
-            $parts = explode(',', $name, 2);
-
-            return [
-                'family' => trim($parts[0]),
-                'given'  => isset($parts[1]) && trim($parts[1]) !== '' ? trim($parts[1]) : null,
-            ];
-        }
-
-        $parts = preg_split('/\s+/', $name);
-
-        if (count($parts) === 1) {
-            return ['family' => $parts[0], 'given' => null];
-        }
-
-        return [
-            'family' => array_pop($parts),
-            'given'  => implode(' ', $parts),
-        ];
-    }
 }

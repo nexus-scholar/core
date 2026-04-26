@@ -175,8 +175,8 @@ final class DoajAdapter extends BaseProviderAdapter
     protected function paginationParams(SearchQuery $query): array
     {
         // DOAJ uses 1-indexed pages, pageSize max 100
-        $page     = (int) floor($query->offset / max($query->maxResults, 1)) + 1;
         $pageSize = min($query->maxResults, 100);
+        $page     = (int) floor($query->offset / max($pageSize, 1)) + 1;
 
         return [
             'page'     => $page,
@@ -187,35 +187,5 @@ final class DoajAdapter extends BaseProviderAdapter
     protected function extractItems(array $body): array
     {
         return $body['results'] ?? [];
-    }
-
-    /**
-     * Parse author name in "Family, Given" or "Given Family" format.
-     *
-     * @return array{family: string, given: ?string}
-     */
-    private function parseAuthorName(string $name): array
-    {
-        // "Family, Given" format
-        if (str_contains($name, ',')) {
-            $parts = explode(',', $name, 2);
-
-            return [
-                'family' => trim($parts[0]),
-                'given'  => isset($parts[1]) && trim($parts[1]) !== '' ? trim($parts[1]) : null,
-            ];
-        }
-
-        // "Given Family" format — last token is family name
-        $parts = preg_split('/\s+/', $name);
-
-        if (count($parts) === 1) {
-            return ['family' => $parts[0], 'given' => null];
-        }
-
-        return [
-            'family' => array_pop($parts),
-            'given'  => implode(' ', $parts),
-        ];
     }
 }

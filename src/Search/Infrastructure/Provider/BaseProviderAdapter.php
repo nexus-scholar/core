@@ -158,4 +158,37 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
         return is_string($current) && $current !== '' ? $current : null;
     }
+
+    /**
+     * Parse an author display name into family/given parts.
+     * Handles "Family, Given" (comma-delimited) and "Given Family" (space-delimited) formats.
+     *
+     * @return array{family: string, given: ?string}
+     */
+    protected function parseAuthorName(string $name): array
+    {
+        $name = trim($name);
+
+        // "Family, Given" format
+        if (str_contains($name, ',')) {
+            $parts = explode(',', $name, 2);
+
+            return [
+                'family' => trim($parts[0]),
+                'given'  => isset($parts[1]) && trim($parts[1]) !== '' ? trim($parts[1]) : null,
+            ];
+        }
+
+        // "Given Family" format — last token is family name
+        $parts = preg_split('/\s+/', $name);
+
+        if (count($parts) === 1) {
+            return ['family' => $parts[0], 'given' => null];
+        }
+
+        return [
+            'family' => array_pop($parts),
+            'given'  => implode(' ', $parts),
+        ];
+    }
 }
