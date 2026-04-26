@@ -1,0 +1,32 @@
+{
+    "name": "your-vendor/nexus-php",
+    "description": "Systematic Literature Review toolkit for PHP 8.3+",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "guzzlehttp/guzzle": "^7.8",
+        "composer/ca-bundle": "^1.5"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "mockery/mockery": "^1.6",
+        "php-vcr/php-vcr": "^1.7"
+    },
+    "autoload": {
+        "psr-4": { "Nexus\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Tests\\": "tests/" }
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["Nexus\\Laravel\\NexusServiceProvider"]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

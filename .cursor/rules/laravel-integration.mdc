@@ -1,0 +1,15 @@
+---
+description: Rules for connecting the Laravel application layer to the Nexus PHP core domain.
+globs: src/Laravel/**/*.php, tests/Feature/Laravel/**/*.php
+---
+# Laravel Integration Rules
+
+The `src/Laravel` directory is the ONLY place where framework-specific logic is allowed. Let this act as the Anti-Corruption Layer.
+
+1. **Service Providers**: Construct implementations and map them to Domain Interfaces (`Ports`) here.
+2. **Commands & Jobs**: Artisan commands and Laravel Queue Jobs are permitted here, but they should be thin wrappers that directly invoke Application Services.
+3. **Eloquent vs Domain**:
+   - `ScholarlyWork` or other domain objects are NEVER Eloquent models.
+   - Keep Eloquent models inside the `Laravel/Models` space if required.
+   - Map between Eloquent rows and domain entities inside repositories bridging the Domain Storage Ports.
+4. **No Shared Mutation**: The Service Container must provide immutable provider views or factory instances. Never swap or mutate a shared singleton at runtime for concurrent tenant/query use cases.

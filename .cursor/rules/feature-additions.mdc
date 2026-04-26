@@ -1,0 +1,23 @@
+---
+description: Mandatory checklists and rules for adding new features like providers, graphs, logic, or persistence.
+globs: src/**/*.php
+---
+# Feature Addition Mandates
+
+When expanding the Nexus system, follow these explicit rules:
+
+## Adding a Provider
+1. MUST implement `AcademicProviderPort`.
+2. MUST structure rate-limiting natively inside provider request flows. Cannot be bypassed.
+3. Include recorded integration fixtures and map raw payloads carefully.
+4. Support for `SnowballingProviderPort` must be consciously considered (decide if it applies).
+
+## Deduplication Logic
+1. Graph algorithms (like co-citation and clustering) cannot be naive pairwise `O(n²)`. Use inverted indices.
+2. Unicode safety is required for multilingual comparisons. No plain byte distance algorithms.
+3. Must clarify representative election impacts and explicitly test false positives & negatives.
+
+## Persistence Behaviors
+1. **Never** map rawData default persistence. This kills memory. Explicit flags required.
+2. Store **decisions** explicitly (provenance), not just mutated rows. Preserve dedup threshold strategies and metadata flags.
+3. Do not denormalize provider ownership directly in central work rows. 

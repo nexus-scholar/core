@@ -1,0 +1,13 @@
+---
+description: Architectural rules for the Domain Layer. Prevents framework leakage and enforces cleanly separated Domain-Driven Design constraints.
+globs: src/Shared/**/*.php, src/Search/**/*.php, src/Deduplication/**/*.php, src/CitationNetwork/**/*.php, src/Dissemination/**/*.php
+---
+# Domain Architecture Rules
+
+Core to the Nexus Scholarly package is strict Hexagonal/DDD Architecture isolation. 
+
+1. **No Framework Leakage**: You must absolutely NEVER import `Illuminate\*` or any context-specific framework classes into the Domain namespaces.
+2. **No Mutable Singleton Providers**: Do not register or mutate singletons at runtime. Provider registration happens once at boot time. Pick providers immersively via immutable views/filters.
+3. **Immutability & Pure Functions**: Lean toward returning new Value Objects instead of mutating state. Normalization steps (like DOI normalization) must be pure functions relying on `src/Shared/` kernel.
+4. **No Raw Infrastructure Instantiation**: Never try to do `new GuzzleClient()`, `new PDO()`, etc., directly in the domain. They must arrive through Ports (Interfaces).
+5. **Cache Keys**: Search query cache keys must ONLY be constructed internally within `SearchQuery` objects to ensure no dimensions are skipped (language, maxResults, offsets).
