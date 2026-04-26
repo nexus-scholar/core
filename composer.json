@@ -11,7 +11,8 @@
     "require-dev": {
         "pestphp/pest": "^3.0",
         "mockery/mockery": "^1.6",
-        "php-vcr/php-vcr": "^1.7"
+        "php-vcr/php-vcr": "^1.7",
+        "orchestra/testbench": "^11.1"
     },
     "autoload": {
         "psr-4": {

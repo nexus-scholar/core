@@ -60,7 +60,7 @@ final class NexusSearchCommand extends Command
             $statRows[] = [
                 $stat->alias,
                 $stat->resultCount,
-                $stat->durationMs . 'ms',
+                $stat->latencyMs . 'ms',
                 $status,
                 $stat->skipReason ?? '-',
             ];

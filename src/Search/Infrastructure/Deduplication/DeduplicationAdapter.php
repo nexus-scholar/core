@@ -19,6 +19,6 @@ final class DeduplicationAdapter implements DeduplicationPort
     {
         $result = $this->handler->handle(new DeduplicateCorpus($corpus));
 
-        return $result->clusters->representativeCorpus();
+        return $result->clusters->toCorpusSlice();
     }
 }

@@ -1,0 +1,205 @@
+version: 3
+project: tomatomap_slr
+
+# ===========================================================================
+# v3 DESIGN PRINCIPLES (Optimized & Model-Compliant)
+# ---------------------------------------------------------------------------
+# 1. Total OR terms per query strictly <= 6 (well below OpenAlex 10-term cap)
+# 2. Consolidated synonymous concepts to reduce API calls
+# 3. No include_any / exclude_any on queries — screener heuristics handle it
+# 4. max-results set to 50 directly in the query model
+# 5. Schema directly matches the Pydantic Query BaseModel
+# ===========================================================================
+
+queries:
+  # =========================================================================
+  # Track A: Core agriculture / horticulture evidence
+  # =========================================================================
+
+  - id: AG_WS01
+    text: >
+      ("weakly supervised" OR "box-supervised" OR "box supervised") AND "instance segmentation"
+      AND (agriculture OR plant OR crop OR tomato OR fruit)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: weakly_supervised_segmentation
+      priority: high
+
+  - id: AG_WS02
+    text: >
+      ("pseudo-label" OR "pseudo label") AND segmentation
+      AND (agriculture OR plant OR greenhouse OR tomato OR crop)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: weakly_supervised_segmentation
+      priority: high
+
+  - id: AG_SAM01
+    text: >
+      "Segment Anything" AND (agriculture OR "plant phenotyping" OR greenhouse OR tomato OR fruit OR leaf OR crop)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: foundation_models
+      priority: high
+
+  - id: AG_SAM02
+    text: >
+      ("SAM" OR "SAM 2") AND "pseudo-label" AND (plant OR agriculture OR fruit OR tomato OR crop)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: foundation_models
+      priority: medium
+
+  - id: AG_SOD01
+    text: >
+      ("Slicing Aided Hyper Inference" OR "SAHI") AND (agriculture OR fruit OR plant OR tomato OR crop)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: small_object_detection
+      priority: high
+
+  - id: AG_SOD02
+    text: >
+      "small object detection" AND (fruit OR tomato OR flower OR bud OR plant OR crop)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: small_object_detection
+      priority: high
+
+  - id: AG_AL01
+    text: >
+      "active learning" AND (annotation OR labeling OR "instance segmentation")
+      AND (agriculture OR plant OR phenotyping OR crop)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: active_learning
+      priority: high
+
+  - id: AG_BENCH01
+    text: >
+      tomato AND (dataset OR benchmark) AND ("instance segmentation" OR "object detection" OR segmentation OR detection OR phenotyping)
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: phenotyping_benchmarks
+      priority: high
+
+  - id: AG_BENCH02
+    text: >
+      "plant phenotyping" AND (dataset OR benchmark) AND ("instance segmentation" OR "deep learning")
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: phenotyping_benchmarks
+      priority: medium
+
+  # =========================================================================
+  # Track B: Transfer-method evidence (domain-agnostic)
+  # =========================================================================
+
+  - id: TR_WS01
+    text: >
+      "box-supervised instance segmentation" OR "mask auto-labeling" OR "mask auto labeling" OR "box-supervised segmentation"
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: weakly_supervised_segmentation
+      priority: high
+
+  - id: TR_WS02
+    text: >
+      ("teacher-student" OR "mean teacher") AND segmentation AND "pseudo-label"
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: weakly_supervised_segmentation
+      priority: high
+
+  - id: TR_SAM01
+    text: >
+      "Segment Anything" AND ("pseudo-label" OR "auto-label" OR "mask generation" OR annotation OR "fine-tuning")
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: foundation_models
+      priority: high
+
+  - id: TR_SOD01
+    text: >
+      ("Slicing Aided Hyper Inference" OR "SAHI" OR "Normalized Wasserstein Distance" OR "NWD") AND ("object detection" OR "small object detection" OR "small object")
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: small_object_detection
+      priority: medium
+
+  - id: TR_AL01
+    text: >
+      "active learning" AND ("instance segmentation" OR "object detection") AND annotation
+    year_min: 2024
+    year_max: 2026
+    language: "en"
+    max_results: 50
+    offset: 0
+    metadata:
+      theme: active_learning
+      priority: medium
+
+# ===========================================================================
+# SEED PAPERS — must appear in at least one provider for recall validation
+# ===========================================================================
+# AG_WS: "Panoptic One-Click Segmentation: Applied to Agricultural Data" (Zimmer 2023, RA-L)
+# AG_WS: "Box-supervised dynamical instance segmentation for in-field cotton" (Li 2023, CEAL)
+# AG_WS: "Weakly supervised learning through box annotations for pig instance segmentation" (Zhou 2025, Sci Rep)
+# AG_SAM: "Enhancing Agricultural Image Segmentation with an Agricultural SAM Adapter" (Li 2023, Sensors)
+# AG_SAM: "Leaf only SAM: A segment anything pipeline for zero-shot automated leaf segmentation" (Williams 2024)
+# AG_SOD: "Slicing aided large scale tomato fruit detection" (Tureckova 2022, Measurement)
+# AG_BENCH: "Determination of tomato leafminer damage using deep learning instance segmentation" (Uygun 2024)
+# TR_WS: "Vision Transformers are Good Mask Auto-Labelers" (Lan 2023, CVPR)
+# TR_SAM: "Segment Anything Model and FCDD for Plant Multi-Disease Detection" (Moupojou 2024, IEEE Access)

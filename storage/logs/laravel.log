@@ -1,0 +1,15 @@
+[2026-04-26 21:08:38] workbench.ERROR: The C:\Users\mouadh\Desktop\projects\nexus-scholarly\bootstrap\cache directory must be present and writable. {"exception":"[object] (Exception(code: 0): The C:\\Users\\mouadh\\Desktop\\projects\\nexus-scholarly\\bootstrap\\cache directory must be present and writable. at C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:179)
+[stacktrace]
+#0 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Foundation/PackageManifest.php(158): Illuminate/Foundation/PackageManifest->write()
+#1 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(132): Orchestra/Testbench/Foundation/PackageManifest->write()
+#2 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(108): Illuminate/Foundation/PackageManifest->build()
+#3 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Foundation/PackageManifest.php(103): Illuminate/Foundation/PackageManifest->getManifest()
+#4 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(90): Orchestra/Testbench/Foundation/PackageManifest->getManifest()
+#5 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(79): Illuminate/Foundation/PackageManifest->config()
+#6 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/RegisterFacades.php(26): Illuminate/Foundation/PackageManifest->aliases()
+#7 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Concerns/CreatesApplication.php(532): Illuminate/Foundation/Bootstrap/RegisterFacades->bootstrap()
+#8 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Concerns/CreatesApplication.php(287): Orchestra/Testbench/Foundation/Application->resolveApplicationBootstrappers()
+#9 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Foundation/Application.php(198): Orchestra/Testbench/Foundation/Application->createApplication()
+#10 C:/Users/mouadh/Desktop/projects/nexus-scholarly/test_cmd.php(5): Orchestra/Testbench/Foundation/Application::create()
+#11 {main}
+"} 

@@ -28,6 +28,7 @@ final class NexusServiceProvider extends ServiceProvider
 
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
         $this->app->singleton(RateLimiterPort::class, fn () => new NullRateLimiter());
+        $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, \Nexus\Search\Infrastructure\Cache\NullSearchCache::class);
 
         $this->app->singleton('nexus.provider_configs', function ($app) {
             $config = $app['config']->get('nexus');
@@ -45,10 +46,13 @@ final class NexusServiceProvider extends ServiceProvider
             return new DeduplicateCorpusHandler(
                 policies: [
                     new \Nexus\Deduplication\Infrastructure\DoiMatchPolicy(),
-                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(),
+                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::ARXIV),
+                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::OPENALEX),
+                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::S2),
+                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::PUBMED),
                     new \Nexus\Deduplication\Infrastructure\TitleFuzzyPolicy(
                         new \Nexus\Deduplication\Infrastructure\TitleNormalizer(),
-                        0.95
+                        95 // The constructor uses an integer threshold (e.g. 95)
                     ),
                 ],
                 electionPolicy: new \Nexus\Deduplication\Infrastructure\CompletenessElectionPolicy()
