@@ -2,7 +2,7 @@
 -
     request:
         method: GET
-        url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+        url: 'http://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
         headers:
             Host: ieeexploreapi.ieee.org
             Accept-Encoding: ''
@@ -10,58 +10,67 @@
             Accept: ''
     response:
         status:
-            code: 403
-            message: Forbidden
+            code: 200
+            message: OK
         headers:
-            Date: 'Sun, 26 Apr 2026 18:30:52 GMT'
-            Content-Type: text/xml
-            Content-Length: '27'
+            Date: 'Sun, 26 Apr 2026 18:38:45 GMT'
+            Content-Type: application/json;charset=utf-8
+            Transfer-Encoding: chunked
             Connection: keep-alive
             X-Mashery-Responder: prod-j-worker-sni-043fbac4990af41d4.use1.mashery.com
-            X-Error-Detail-Header: 'Account Inactive'
-            X-Mashery-Error-Code: ERR_403_DEVELOPER_INACTIVE
+            X-Frame-Options: SAMEORIGIN
+            Vary: 'Origin,Access-Control-Request-Method,Access-Control-Request-Headers'
+            Set-Cookie: ['JSESSIONID=56C2DA57B71B4B77788D1C55F6430EF0; Path=/api; Secure; HttpOnly;HttpOnly;Secure', 'AWSALBAPP-0=AAAAAAAAAACpSdCOqYaA5GlIa20u5jz1ujjZW3fDt2kSrmD/+M0TfHeYhjT8ZjougLNrKBR9pSe2+d8gR9ZvyH5aBGrTWivG6tqt+BIp4GfwWR/sCsE2FGR6rz+U0GkdwR3z6RbjncwzHVgpebpdvnjVE586x09s5RVYifP3NbKSrXQqdKEHom3nZmMHadMy6VWpYjzJWRpUeik47CgRrg==; Expires=Sun, 03 May 2026 18:38:45 GMT; Path=/; Secure', 'AWSALBAPP-1=_remove_; Expires=Sun, 03 May 2026 18:38:45 GMT; Path=/; Secure', 'AWSALBAPP-2=_remove_; Expires=Sun, 03 May 2026 18:38:45 GMT; Path=/; Secure', 'AWSALBAPP-3=_remove_; Expires=Sun, 03 May 2026 18:38:45 GMT; Path=/; Secure', 'WLSESSION=4244861450.47873.0000; expires=Mon, 27-Apr-2026 18:38:45 GMT; path=/; Httponly; Secure', 'TS016349ac=01f15fc87c4de65ab9ffc9b9643a8768abc637680c0ad99a2759e15781b9e61b1cafa747ee2485e94206710ddea02f0bc73089f786; Path=/; Domain=.ieeexplore.ieee.org', 'TS015c27a6=01f15fc87c4de65ab9ffc9b9643a8768abc637680c0ad99a2759e15781b9e61b1cafa747ee2485e94206710ddea02f0bc73089f786; path=/api', 'TSaf720a17029=0807dc117eab2800106e4e6348e6837af608bcface69e1f8264626e2bd2dd7cd9301db00902a35ad0e7d1a7f72fb96f1; Max-Age=30; Path=/']
+            X-XSS-Protection: '1'
+            Content-Security-Policy: upgrade-insecure-requests
+            X-Content-Type-Options: 'text/html; charset=UTF-8; nosniff'
+            Strict-Transport-Security: 'max-age=31536000; includeSubDomains'
+            X-Cache: 'Miss from cloudfront'
+            Via: '1.1 c69aecd4ec24ee644e0ae55912f09bfe.cloudfront.net (CloudFront)'
+            X-Amz-Cf-Pop: IAD89-P4
+            X-Amz-Cf-Id: '-ZkwKCIx0AoEm0x2KdGV6HI_LrAYQjlpNZTHb5kUJWPLhhR9T_jvtQ=='
             Server: 'Mashery Proxy'
-        body: '<h1>Developer Inactive</h1>'
+        body: '{"total_records":392332,"total_searched":7222780,"articles":[{"doi":"10.1109/Deep-ML.2019.00010","title":"An Application of a Deep Learning Algorithm for Automatic Detection of Unexpected Accidents Under Bad CCTV Monitoring Conditions in Tunnels","publisher":"IEEE","isbn":"978-1-7281-2915-0","rank":1,"authors":{"authors":[{"affiliation":"Department of Extreme Environment Research Center, Korea Institute of Civil Engineering and Building Technology (KICT) University of Science & Technology (UST), Gyeonggi-Do, The Republic of Korea","authorUrl":"https://ieeexplore.ieee.org/author/37087054321","id":37087054321,"full_name":"Kyu Beom Lee","author_order":1,"authorAffiliations":{"authorAffiliation":["Department of Extreme Environment Research Center, Korea Institute of Civil Engineering and Building Technology (KICT) University of Science & Technology (UST), Gyeonggi-Do, The Republic of Korea"]}},{"affiliation":"Department of Extreme Environment Research Center, Korea Institute of Civil Engineering and Building Technology (KICT) University of Science & Technology (UST), Gyeonggi-Do, The Republic of Korea","authorUrl":"https://ieeexplore.ieee.org/author/37087045273","id":37087045273,"full_name":"Hyu Soung Shin","author_order":2,"authorAffiliations":{"authorAffiliation":["Department of Extreme Environment Research Center, Korea Institute of Civil Engineering and Building Technology (KICT) University of Science & Technology (UST), Gyeonggi-Do, The Republic of Korea"]}}]},"access_type":"LOCKED","content_type":"Conferences","abstract":"In this paper, Object Detection and Tracking System (ODTS) in combination with a well-known deep learning network, Faster Regional Convolution Neural Network (Faster R-CNN), for Object Detection and Conventional Object Tracking algorithm will be introduced and applied for automatic detection and monitoring of unexpected events on CCTVs in tunnels, which are likely to (1) Wrong-Way Driving (WWD), (2) Stop, (3) Person out of vehicle in tunnel (4) Fire. ODTS accepts a video frame in time as an input to obtain Bounding Box (BBox) results by Object Detection and compares the BBoxs of the current and previous video frames to assign a unique ID number to each moving and detected object. This system makes it possible to track a moving object in time, which is not usual to be achieved in conventional object detection frameworks. A deep learning model in ODTS was trained with a dataset of event images in tunnels to Average Precision (AP) values of 0.8479, 0.7161 and 0.9085 for target objects: Car, Person, and Fire, respectively. Then, based on a trained deep learning model, the ODTS based Tunnel CCTV Accident Detection System was tested using four accident videos which including each accident. As a result, the system can detect all accidents within 10 seconds. The more important point is that the detection capacity of ODTS could be enhanced automatically without any changes in the program codes as the training dataset becomes rich.","article_number":"8876906","pdf_url":"https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8876906","html_url":"https://ieeexplore.ieee.org/document/8876906/","abstract_url":"https://ieeexplore.ieee.org/document/8876906/","publication_title":"2019 International Conference on Deep Learning and Machine Learning in Emerging Applications (Deep-ML)","conference_location":"Istanbul, Turkey","conference_dates":"26-28 Aug. 2019","publication_number":8870906,"is_number":8876888,"publication_year":2019,"publication_date":"26-28 Aug. 2019","start_page":"7","end_page":"11","citing_paper_count":70,"citing_patent_count":0,"download_count":13620,"insert_date":"20191021","index_terms":{"ieee_terms":{"terms":["Object detection","Accidents","Object tracking","Automobiles","Monitoring","Deep learning","Target tracking"]},"author_terms":{"terms":["Faster R-CNN for Object Detection","Object Tracking Algorithm","Object Detection and Tracking system","Detection for Unexpected Events","Tunnel CCTV Accident Detection System"]},"dynamic_index_terms":{"terms":["Deep Learning","Automatic Detection","Accident Detection","CCTV Monitoring","Detection System","Training Dataset","Training Data Set","Convolutional Neural Network","Deep Network","Identification Number","Deep Learning Models","Object Detection","Tracking System","Tracking Devices","Video Frames","Average Precision","Target Object","Change Programs","Object Tracking","Faster R-CNN","Training Deep Learning Models","Accidental Events","Consequences Of Accidents","Intersection Over Union Value","Intersection-over-union Values","Object Detection Network","Intersection Over Union","Jaccard Similarity","Jaccard Distance","Intersection-over-union","Jaccard Index","Frame Interval","Personal Objectives","Deep Learning-based System","Support Vector Machine","Vehicle Type","Number Of Objects"]}},"isbn_formats":{"isbns":[{"format":"Print on Demand(PoD) ISBN","value":"978-1-7281-2915-0","isbnType":"New-2005"},{"format":"Electronic ISBN","value":"978-1-7281-2914-3","isbnType":"New-2005"}]},"license":"IEEE"},{"doi":"10.1109/Deep-ML.2019.00011","title":"Evaluation of Deep Learning Techniques in Sentiment Analysis from Twitter Data","publisher":"IEEE","isbn":"978-1-7281-2915-0","rank":2,"authors":{"authors":[{"affiliation":"Yeditepe University, Istanbul, Turkey","authorUrl":"https://ieeexplore.ieee.org/author/38551462400","id":38551462400,"full_name":"Dionysis Goularas","author_order":1,"authorAffiliations":{"authorAffiliation":["Yeditepe University, Istanbul, Turkey"]}},{"affiliation":"Yeditepe University, Istanbul, Turkey","authorUrl":"https://ieeexplore.ieee.org/author/37087050188","id":37087050188,"full_name":"Sani Kamis","author_order":2,"authorAffiliations":{"authorAffiliation":["Yeditepe University, Istanbul, Turkey"]}}]},"access_type":"LOCKED","content_type":"Conferences","abstract":"This study presents a comparison of different deep learning methods used for sentiment analysis in Twitter data. In this domain, deep learning (DL) techniques, which contribute at the same time to the solution of a wide range of problems, gained popularity among researchers. Particularly, two categories of neural networks are utilized, convolutional neural networks(CNN), which are especially performant in the area of image processing and recurrent neural networks (RNN) which are applied with success in natural language processing (NLP) tasks. In this work we evaluate and compare ensembles and combinations of CNN and a category of RNN the long short-term memory (LSTM) networks. Additionally, we compare different word embedding systems such as the Word2Vec and the global vectors for word representation (GloVe) models. For the evaluation of those methods we used data provided by the international workshop on semantic evaluation (SemEval), which is one of the most popular international workshops on the area. Various tests and combinations are applied and best scoring values for each model are compared in terms of their performance. This study contributes to the field of sentiment analysis by analyzing the performances, advantages and limitations of the above methods with an evaluation procedure under a single testing framework with the same dataset and computing environment.","article_number":"8876896","pdf_url":"https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8876896","html_url":"https://ieeexplore.ieee.org/document/8876896/","abstract_url":"https://ieeexplore.ieee.org/document/8876896/","publication_title":"2019 International Conference on Deep Learning and Machine Learning in Emerging Applications (Deep-ML)","conference_location":"Istanbul, Turkey","conference_dates":"26-28 Aug. 2019","publication_number":8870906,"is_number":8876888,"publication_year":2019,"publication_date":"26-28 Aug. 2019","start_page":"12","end_page":"17","citing_paper_count":145,"citing_patent_count":0,"download_count":16637,"insert_date":"20191021","index_terms":{"ieee_terms":{"terms":["Sentiment analysis","Deep learning","Feature extraction","Task analysis","Twitter","Recurrent neural networks"]},"author_terms":{"terms":["sentiment analysis, deep learning, convolutional neural networks, LSTM, word embedding models, Twitter data"]},"dynamic_index_terms":{"terms":["Deep Learning","Sentiment Analysis","Sentiment Classification","Twitter Data","Neural Network","Convolutional Neural Network","Long Short-term Memory","Long Short Term Memory","LSTM","Recurrent Neural Network","Word Embedding","Word Vectors","Long Short-term Memory Network","Semantic Evaluation","Semantic Ratings","System Performance","Deep Neural Network","Single Network","Convolutional Neural Network Architecture","Max-pooling Layer","Network Configuration","Words In Sentences","Bidirectional Network","Word Embedding Model","Single Convolutional Neural Network","Multiple Convolutional Neural Networks","Previous Configuration"]}},"isbn_formats":{"isbns":[{"format":"Print on Demand(PoD) ISBN","value":"978-1-7281-2915-0","isbnType":"New-2005"},{"format":"Electronic ISBN","value":"978-1-7281-2914-3","isbnType":"New-2005"}]},"license":"IEEE"},{"doi":"10.1109/Deep-ML.2019.00017","title":"A Visual Similarity Recommendation System using Generative Adversarial Networks","publisher":"IEEE","isbn":"978-1-7281-2915-0","rank":3,"authors":{"authors":[{"affiliation":"Computer Engineering Department, Firat University, Elazig, Turkey","authorUrl":"https://ieeexplore.ieee.org/author/37086598862","id":37086598862,"full_name":"Betül Ay","author_order":1,"authorAffiliations":{"authorAffiliation":["Computer Engineering Department, Firat University, Elazig, Turkey"]}},{"affiliation":"Big Data and Artificial Intelligence Laboratory, Firat University, Elazig, Turkey","authorUrl":"https://ieeexplore.ieee.org/author/37297729000","id":37297729000,"full_name":"Galip Aydın","author_order":2,"authorAffiliations":{"authorAffiliation":["Big Data and Artificial Intelligence Laboratory, Firat University, Elazig, Turkey"]}},{"affiliation":"IT R&D Department, FLO Magazacilik A.S., Istanbul, Turkey","authorUrl":"https://ieeexplore.ieee.org/author/37087054526","id":37087054526,"full_name":"Zeynep Koyun","author_order":3,"authorAffiliations":{"authorAffiliation":["IT R&D Department, FLO Magazacilik A.S., Istanbul, Turkey"]}},{"affiliation":"Big Data and Artificial Intelligence Laboratory, Firat University, Elazig, Turkey","authorUrl":"https://ieeexplore.ieee.org/author/37087053014","id":37087053014,"full_name":"Mehmet Demir","author_order":4,"authorAffiliations":{"authorAffiliation":["Big Data and Artificial Intelligence Laboratory, Firat University, Elazig, Turkey"]}}]},"access_type":"LOCKED","content_type":"Conferences","abstract":"The goal of content-based recommendation system is to retrieve and rank the list of items that are closest to the query item. Today, almost every e-commerce platform has a recommendation system strategy for products that customers can decide to buy. In this paper we describe our work on creating a Generative Adversarial Network based image retrieval system for e-commerce platforms to retrieve best similar images for a given product image specifically for shoes. We compare state-of-the-art solutions and provide results for the proposed deep learning network on a standard data set.","article_number":"8876932","pdf_url":"https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8876932","html_url":"https://ieeexplore.ieee.org/document/8876932/","abstract_url":"https://ieeexplore.ieee.org/document/8876932/","publication_title":"2019 International Conference on Deep Learning and Machine Learning in Emerging Applications (Deep-ML)","conference_location":"Istanbul, Turkey","conference_dates":"26-28 Aug. 2019","publication_number":8870906,"is_number":8876888,"publication_year":2019,"publication_date":"26-28 Aug. 2019","start_page":"44","end_page":"48","citing_paper_count":29,"citing_patent_count":0,"download_count":3211,"insert_date":"20191021","index_terms":{"ieee_terms":{"terms":["Generators","Feature extraction","Generative adversarial networks","Footwear","Convolutional codes","Visualization","Training"]},"author_terms":{"terms":["image retrieval, deep learning, image similarity"]},"dynamic_index_terms":{"terms":["Generative Adversarial Networks","Adversarial Learning","Recommender Systems","Deep Learning","Similar Images","Standard Datasets","Standard Data Sets","Image Retrieval","Image Search","Neural Network","Convolutional Neural Network","Deep Neural Network","Large Amount Of Data","Convolutional Layers","Image Dataset","Unsupervised Learning","Unsupervised Classification","Unsupervised Machine Learning","Unsupervised Approach","Mutual Information","Precision Rate","Precise Evaluation","Precision Evaluation","Online Shopping","Online Store","Online Retailer","Visual Search","Visual Scanning","Realistic Images","Discriminator Network","Query Image","Content-based Image Retrieval","Content Based Image Retrieval","Fake Images","Tanh Function","Latent Code","Fashion Items","Extracted Feature Vectors","Batch Normalization","Fashion Products","Random Noise","Channel Noise"]}},"isbn_formats":{"isbns":[{"format":"Print on Demand(PoD) ISBN","value":"978-1-7281-2915-0","isbnType":"New-2005"},{"format":"Electronic ISBN","value":"978-1-7281-2914-3","isbnType":"New-2005"}]},"license":"IEEE"},{"doi":"10.1109/AIDLNN65358.2024.00046","title":"Research on dynamic adaptation of English translation based on deep reinforcement learning","publisher":"IEEE","isbn":"979-8-3315-2082-3","rank":4,"authors":{"authors":[{"affiliation":"Xiangnan University, Chenzhou City, China","authorUrl":"https://ieeexplore.ieee.org/author/37968661500","id":37968661500,"full_name":"Luo Yun","author_order":1,"authorAffiliations":{"authorAffiliation":["Xiangnan University, Chenzhou City, China"]}}]},"access_type":"LOCKED","content_type":"Conferences","abstract":"This research is dedicated to exploring the application of deep reinforcement learning (DRL) in dynamic adaptability of English translation. This study compared traditional sequence-to-sequence models, models using attention mechanisms, and advanced models integrating deep reinforcement learning to assess their impact on improving machine translation quality. The research found the deep reinforcement learning model significantly outperforms other models across key performance indicators like BLEU score, accuracy, and recall, particularly for complex translation tasks and maintaining contextual coherence. While deep reinforcement learning models perform well, their high computational demands and potential generalization issues also emerged as limitations. Overall, the study highlights the potential of deep reinforcement learning to adapt in dynamic environments and its promising impact on machine translation. The conclusions of this study provide strong evidence for the application of deep reinforcement learning technology in improving the performance of machine translation systems, and provide suggestions for future research directions and model optimization.","article_number":"10873253","pdf_url":"https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10873253","html_url":"https://ieeexplore.ieee.org/document/10873253/","abstract_url":"https://ieeexplore.ieee.org/document/10873253/","publication_title":"2024 International Conference on Artificial Intelligence, Deep Learning and Neural Networks (AIDLNN)","conference_location":"Guangzhou, China","conference_dates":"20-22 Sept. 2024","publication_number":10873021,"is_number":10873032,"publication_year":2024,"publication_date":"20-22 Sept. 2024","start_page":"238","end_page":"241","citing_paper_count":1,"citing_patent_count":0,"download_count":1219,"insert_date":"20250214","index_terms":{"ieee_terms":{"terms":["Adaptation models","Translation","Computational modeling","Neural networks","Key performance indicator","Coherence","Deep reinforcement learning","Machine translation","Optimization","Context modeling"]},"author_terms":{"terms":["deep reinforcement learning","English translation","dynamic adaptability","machine translation","model performance","attention mechanism"]},"dynamic_index_terms":{"terms":["Deep Learning","English Translation","Deep Reinforcement Learning","Dynamic Adaptation","Dynamic Version","Deep Learning Models","Dynamic Environment","Attention Mechanism","Multi-head Attention","Key Performance Indicators","Application Of Deep Learning","Machine Translation","Translation System","Deep Learning Technology","Reinforcement Learning Model","Translation Task","Application Of Reinforcement Learning","High Computational Demand","Deep Reinforcement Learning Model","Potential Of Deep Learning","Data Preparation","Text Data","Text Corpus","Intermediate Representation","Translation Accuracy","Encoder Output","Language Pairs","Effective Deep Learning","Word Embedding","Word Vectors","Source Text","Complex Language","L Complex","Translational Model","Dynamic Mechanism","Kinetic Mechanism"]}},"isbn_formats":{"isbns":[{"format":"Print on Demand(PoD) ISBN","value":"979-8-3315-2082-3","isbnType":"New-2005"},{"format":"Electronic ISBN","value":"979-8-3315-2081-6","isbnType":"New-2005"}]},"license":"IEEE"},{"doi":"10.1109/AIDLNN65358.2024.00018","title":"JAVA Mobile Application Development Course Under the Framework of Industry-Education Integration: Practice of Deep Learning and Neural Network Integration","publisher":"IEEE","isbn":"979-8-3315-2082-3","rank":5,"authors":{"authors":[{"affiliation":"Guangzhou International Economics College","authorUrl":"https://ieeexplore.ieee.org/author/37088918261","id":37088918261,"full_name":"Haiyan Guo","author_order":1,"authorAffiliations":{"authorAffiliation":["Guangzhou International Economics College"]}}]},"access_type":"LOCKED","content_type":"Conferences","abstract":"The popularization of AI technology, yes the emerging technology represented by deep learning and neural network has gradually become an important tool for solving complex problems. Specifically, in the application field of mobile application development, the cutting-edge deep learning technology is integrated into the JAVA mobile application development course by utilizing the teaching mode of industry-teaching fusion to cultivate students'' innovative ability and practical ability. This paper first analyzes the current market demand and technology trends in the mobile application development industry, and points out the great potential of deep learning and neural network technology in enhancing application intelligence and personalization. It describes how to introduce deep learning framework and neural network model in JAVA mobile application development course, and analyzes how to realize deep learning applications such as image recognition, emotion analysis and speech recognition in mobile applications. Under the background of the integration of industry and education, students can be provided with learning resources and internship opportunities that are closer to reality through the deep cooperation with industry enterprises. The research in this paper can provide useful practical reference for the teaching reform of mobile application development courses in colleges and universities.","article_number":"10873245","pdf_url":"https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10873245","html_url":"https://ieeexplore.ieee.org/document/10873245/","abstract_url":"https://ieeexplore.ieee.org/document/10873245/","publication_title":"2024 International Conference on Artificial Intelligence, Deep Learning and Neural Networks (AIDLNN)","conference_location":"Guangzhou, China","conference_dates":"20-22 Sept. 2024","publication_number":10873021,"is_number":10873032,"publication_year":2024,"publication_date":"20-22 Sept. 2024","start_page":"65","end_page":"70","citing_paper_count":0,"citing_patent_count":0,"download_count":576,"insert_date":"20250214","index_terms":{"ieee_terms":{"terms":["Deep learning","Industries","Java","Technological innovation","Career development","Neural networks","Mobile communication","Teamwork","Artificial intelligence","Application programming interfaces"]},"author_terms":{"terms":["Neural Network","JAVA","Deep Learning","Industry-Education Integration"]},"dynamic_index_terms":{"terms":["Neural Network","Deep Learning","Deep Neural Network","Mobile App","Mobile Application","Smartphone Application","Smartphone App","Course Of Development","Course Of Evolution","Learning Network","Deep Integration","Neural Integration","Development Of Mobile Applications","Artificial Neural Network","Neural Network Model","Deep Models","E-learning","Learning Technology","Technology-enhanced Learning","Speech Recognition","Speech Understanding","Market Demand","Image Recognition","Deep Learning Framework","Teaching Mode","Education Modules","Mode Of Instruction","Application Of Deep Learning","Deep Learning Technology","Integration Of Education","Integration Of Teaching","Deep Learning Models","Mastery Of Skills","Comprehension Ability","Deep Learning Library","Teaching Methods","Educational Methods","Instructional Methods","Professional Skills","Process Model","Social Development","Social Change","Political Change","Trained Neural Network Model","Combination Of Theory"]}},"isbn_formats":{"isbns":[{"format":"Print on Demand(PoD) ISBN","value":"979-8-3315-2082-3","isbnType":"New-2005"},{"format":"Electronic ISBN","value":"979-8-3315-2081-6","isbnType":"New-2005"}]},"license":"IEEE"}]}'
         curl_info:
-            url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
-            content_type: text/xml
-            http_code: 403
-            header_size: 320
-            request_size: 224
+            url: 'http://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+            content_type: application/json;charset=utf-8
+            http_code: 200
+            header_size: 1979
+            request_size: 239
             filetime: -1
             ssl_verify_result: 0
             redirect_count: 0
-            total_time: 0.60781
-            namelookup_time: 0.219781
-            connect_time: 0.341036
-            pretransfer_time: 0.472629
+            total_time: 0.550179
+            namelookup_time: 0.008393
+            connect_time: 0.160269
+            pretransfer_time: 0.16044
             size_upload: 0.0
-            size_download: 27.0
-            speed_download: 44.0
+            size_download: 21456.0
+            speed_download: 38998.0
             speed_upload: 0.0
-            download_content_length: 27.0
+            download_content_length: -1.0
             upload_content_length: 0.0
-            starttransfer_time: 0.607729
+            starttransfer_time: 0.436557
             redirect_time: 0.0
             redirect_url: ''
-            primary_ip: 52.7.82.248
+            primary_ip: 3.83.70.193
             certinfo: {  }
-            primary_port: 443
+            primary_port: 80
             local_ip: 192.168.100.7
-            local_port: 52674
+            local_port: 57672
             http_version: 2
-            protocol: 2
+            protocol: 1
             ssl_verifyresult: 0
-            scheme: https
-            appconnect_time_us: 472385
+            scheme: http
+            appconnect_time_us: 0
             queue_time_us: 54
-            connect_time_us: 341036
-            namelookup_time_us: 219781
-            pretransfer_time_us: 472629
+            connect_time_us: 160269
+            namelookup_time_us: 8393
+            pretransfer_time_us: 160440
             redirect_time_us: 0
-            starttransfer_time_us: 607729
-            posttransfer_time_us: 472626
-            total_time_us: 607810
+            starttransfer_time_us: 436557
+            posttransfer_time_us: 160438
+            total_time_us: 550179
             effective_method: GET
             capath: ''
             cainfo: ''
@@ -70,145 +79,3 @@
             proxyauth_used: 0
             conn_id: 0
     index: 0
--
-    request:
-        method: GET
-        url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
-        headers:
-            Host: ieeexploreapi.ieee.org
-            Accept-Encoding: ''
-            User-Agent: GuzzleHttp/7
-            Accept: ''
-    response:
-        status:
-            code: 403
-            message: Forbidden
-        headers:
-            Date: 'Sun, 26 Apr 2026 18:30:53 GMT'
-            Content-Type: text/xml
-            Content-Length: '27'
-            Connection: keep-alive
-            X-Mashery-Responder: prod-j-worker-sni-07092eb505f7994f9.use1.mashery.com
-            X-Error-Detail-Header: 'Account Inactive'
-            X-Mashery-Error-Code: ERR_403_DEVELOPER_INACTIVE
-            Server: 'Mashery Proxy'
-        body: '<h1>Developer Inactive</h1>'
-        curl_info:
-            url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
-            content_type: text/xml
-            http_code: 403
-            header_size: 320
-            request_size: 224
-            filetime: -1
-            ssl_verify_result: 0
-            redirect_count: 0
-            total_time: 0.600107
-            namelookup_time: 0.001255
-            connect_time: 0.336521
-            pretransfer_time: 0.468277
-            size_upload: 0.0
-            size_download: 27.0
-            speed_download: 44.0
-            speed_upload: 0.0
-            download_content_length: 27.0
-            upload_content_length: 0.0
-            starttransfer_time: 0.600086
-            redirect_time: 0.0
-            redirect_url: ''
-            primary_ip: 3.83.70.193
-            certinfo: {  }
-            primary_port: 443
-            local_ip: 192.168.100.7
-            local_port: 54384
-            http_version: 2
-            protocol: 2
-            ssl_verifyresult: 0
-            scheme: https
-            appconnect_time_us: 468208
-            queue_time_us: 25
-            connect_time_us: 336521
-            namelookup_time_us: 1255
-            pretransfer_time_us: 468277
-            redirect_time_us: 0
-            starttransfer_time_us: 600086
-            posttransfer_time_us: 468275
-            total_time_us: 600107
-            effective_method: GET
-            capath: ''
-            cainfo: ''
-            used_proxy: 0
-            httpauth_used: 0
-            proxyauth_used: 0
-            conn_id: 0
-    index: 1
--
-    request:
-        method: GET
-        url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
-        headers:
-            Host: ieeexploreapi.ieee.org
-            Accept-Encoding: ''
-            User-Agent: GuzzleHttp/7
-            Accept: ''
-    response:
-        status:
-            code: 403
-            message: Forbidden
-        headers:
-            Date: 'Sun, 26 Apr 2026 18:30:56 GMT'
-            Content-Type: text/xml
-            Content-Length: '27'
-            Connection: keep-alive
-            X-Mashery-Responder: prod-j-worker-sni-0da43254dab1e4192.use1.mashery.com
-            X-Error-Detail-Header: 'Account Inactive'
-            X-Mashery-Error-Code: ERR_403_DEVELOPER_INACTIVE
-            Server: 'Mashery Proxy'
-        body: '<h1>Developer Inactive</h1>'
-        curl_info:
-            url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
-            content_type: text/xml
-            http_code: 403
-            header_size: 320
-            request_size: 224
-            filetime: -1
-            ssl_verify_result: 0
-            redirect_count: 0
-            total_time: 0.399233
-            namelookup_time: 0.002175
-            connect_time: 0.136714
-            pretransfer_time: 0.267937
-            size_upload: 0.0
-            size_download: 27.0
-            speed_download: 67.0
-            speed_upload: 0.0
-            download_content_length: 27.0
-            upload_content_length: 0.0
-            starttransfer_time: 0.399208
-            redirect_time: 0.0
-            redirect_url: ''
-            primary_ip: 52.7.82.248
-            certinfo: {  }
-            primary_port: 443
-            local_ip: 192.168.100.7
-            local_port: 54387
-            http_version: 2
-            protocol: 2
-            ssl_verifyresult: 0
-            scheme: https
-            appconnect_time_us: 267774
-            queue_time_us: 31
-            connect_time_us: 136714
-            namelookup_time_us: 2175
-            pretransfer_time_us: 267937
-            redirect_time_us: 0
-            starttransfer_time_us: 399208
-            posttransfer_time_us: 267933
-            total_time_us: 399233
-            effective_method: GET
-            capath: ''
-            cainfo: ''
-            used_proxy: 0
-            httpauth_used: 0
-            proxyauth_used: 0
-            conn_id: 0
-    index: 2

@@ -51,7 +51,7 @@ final class ProviderConfigRegistry
             ),
             'ieee' => new ProviderConfig(
                 alias:         'ieee',
-                baseUrl:       'https://ieeexploreapi.ieee.org/api/v1',
+                baseUrl:       'http://ieeexploreapi.ieee.org/api/v1',
                 ratePerSecond: 1.0,
                 apiKey:        $ieeeApiKey,
                 enabled:       $ieeeApiKey !== null,

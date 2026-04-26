@@ -71,13 +71,10 @@ it('searches and fetches when api key is present', function () {
         maxResults: 5,
     );
 
-    // With a dummy key, the adapter makes a request but gets 401/403 or times out
-    // It should handle this safely and throw ProviderUnavailable or return empty.
-    try {
-        $results = $adapter->search($query);
-        expect(is_array($results))->toBeTrue();
-    } catch (\Nexus\Search\Domain\Exception\ProviderUnavailable $e) {
-        // Expected if dummy key is rejected
-        expect(true)->toBeTrue();
-    }
+    $results = $adapter->search($query);
+    
+    expect($results)->not->toBeEmpty();
+    $work = $results[0];
+    expect($work->sourceProvider())->toBe('ieee');
+    expect($work->title())->not->toBeEmpty();
 });
