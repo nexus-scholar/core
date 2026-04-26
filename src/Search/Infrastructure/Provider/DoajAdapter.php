@@ -49,7 +49,7 @@ final class DoajAdapter extends BaseProviderAdapter
             $searchText = "({$searchText}) AND bibjson.year:[{$from} TO {$to}]";
         }
 
-        $url = "{$this->config->baseUrl}/v1/search/articles/" . urlencode($searchText);
+        $url = "{$this->config->baseUrl}/v1/search/articles/" . rawurlencode($searchText);
 
         $params = $this->paginationParams($query);
 
@@ -70,8 +70,7 @@ final class DoajAdapter extends BaseProviderAdapter
             return null;
         }
 
-        // DOAJ doesn't have a direct DOI lookup — search for it
-        $url = "{$this->config->baseUrl}/v1/search/articles/" . urlencode("bibjson.doi:\"{$id->value}\"");
+        $url = "{$this->config->baseUrl}/v1/search/articles/" . rawurlencode("\"{$id->value}\"");
 
         $response = $this->request($url, ['page' => 1, 'pageSize' => 1]);
 

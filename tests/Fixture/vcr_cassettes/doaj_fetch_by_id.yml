@@ -1,0 +1,155 @@
+
+-
+    request:
+        method: GET
+        url: 'https://doaj.org/api/v1/search/articles/bibjson.doi%3A%2210.9767%2Fbcrec.16.3.10313.588-600%22?page=1&pageSize=1'
+        headers:
+            Host: doaj.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 200
+            message: OK
+        headers:
+            Date: 'Sun, 26 Apr 2026 18:28:48 GMT'
+            Content-Type: application/json
+            Transfer-Encoding: chunked
+            Connection: keep-alive
+            Server: cloudflare
+            vary: Accept-Encoding
+            access-control-allow-origin: '*'
+            link: '<https://doaj.org/api/v4/search/articles/bibjson.doi:%2210.9767/bcrec.16.3.10313.588-600%22?page=1&pageSize=1>; rel=last'
+            x-total-count: '0'
+            Report-To: '{"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=kpvubvaqGW2yx14jDoZLT2c%2Bqzm71XwLcdUUMZo0cC2NZ8tImjeL8ar3xqav%2B61TNwEBtW2gf5AKQkqN49Af2728EZoyYTusFdc%2BIwdzWFnX%2F0jTYm0ijk8F"}]}'
+            Nel: '{"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}'
+            cf-cache-status: DYNAMIC
+            Server-Timing: ['cfCacheStatus;desc="DYNAMIC"', 'cfEdge;dur=81,cfOrigin;dur=10']
+            CF-RAY: 9f27a63aae7da4a9-ORN
+        body: '{"total": 0, "page": 1, "pageSize": 1, "timestamp": "2026-04-26T18:28:48.483030Z", "query": "bibjson.doi:\"10.9767/bcrec.16.3.10313.588-600\"", "results": [], "last": "https://doaj.org/api/v4/search/articles/bibjson.doi:%2210.9767/bcrec.16.3.10313.588-600%22?page=1&pageSize=1"}'
+        curl_info:
+            url: 'https://doaj.org/api/v1/search/articles/bibjson.doi%3A%2210.9767%2Fbcrec.16.3.10313.588-600%22?page=1&pageSize=1'
+            content_type: application/json
+            http_code: 200
+            header_size: 819
+            request_size: 155
+            filetime: -1
+            ssl_verify_result: 0
+            redirect_count: 0
+            total_time: 0.169279
+            namelookup_time: 0.003284
+            connect_time: 0.023885
+            pretransfer_time: 0.053286
+            size_upload: 0.0
+            size_download: 278.0
+            speed_download: 1642.0
+            speed_upload: 0.0
+            download_content_length: -1.0
+            upload_content_length: 0.0
+            starttransfer_time: 0.169251
+            redirect_time: 0.0
+            redirect_url: ''
+            primary_ip: 104.26.13.243
+            certinfo: {  }
+            primary_port: 443
+            local_ip: 192.168.100.7
+            local_port: 56686
+            http_version: 2
+            protocol: 2
+            ssl_verifyresult: 0
+            scheme: https
+            appconnect_time_us: 53210
+            queue_time_us: 24
+            connect_time_us: 23885
+            namelookup_time_us: 3284
+            pretransfer_time_us: 53286
+            redirect_time_us: 0
+            starttransfer_time_us: 169251
+            posttransfer_time_us: 53285
+            total_time_us: 169279
+            effective_method: GET
+            capath: ''
+            cainfo: ''
+            used_proxy: 0
+            httpauth_used: 0
+            proxyauth_used: 0
+            conn_id: 0
+    index: 0
+-
+    request:
+        method: GET
+        url: 'https://doaj.org/api/v1/search/articles/%2210.9767%2Fbcrec.16.3.10313.588-600%22?page=1&pageSize=1'
+        headers:
+            Host: doaj.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 200
+            message: OK
+        headers:
+            Date: 'Sun, 26 Apr 2026 18:29:34 GMT'
+            Content-Type: application/json
+            Transfer-Encoding: chunked
+            Connection: keep-alive
+            Server: cloudflare
+            vary: Accept-Encoding
+            access-control-allow-origin: '*'
+            link: '<https://doaj.org/api/v4/search/articles/%2210.9767/bcrec.16.3.10313.588-600%22?page=1&pageSize=1>; rel=last'
+            x-total-count: '1'
+            Report-To: '{"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=ptdwrDGDhZGn7UcDFqjDHIDXBZS9zWMY21QzArf4RAq0%2BodJfhy6p8mgswsckWq8fe5hc1l6yy2Ov9EpGIBc%2Fo7jhPuLFRLeT1ErFEGJdLSTfFUyywGL9F3H"}]}'
+            Nel: '{"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}'
+            cf-cache-status: DYNAMIC
+            Server-Timing: ['cfCacheStatus;desc="DYNAMIC"', 'cfEdge;dur=66,cfOrigin;dur=24']
+            CF-RAY: 9f27a7595e0bd07f-ORN
+        body: '{"total": 1, "page": 1, "pageSize": 1, "timestamp": "2026-04-26T18:29:34.365800Z", "query": "\"10.9767/bcrec.16.3.10313.588-600\"", "results": [{"last_updated": "2025-08-19T20:21:17Z", "bibjson": {"identifier": [{"id": "1978-2993", "type": "eissn"}, {"id": "10.9767/bcrec.16.3.10313.588-600", "type": "doi"}], "journal": {"volume": "16", "number": "3", "country": "ID", "issns": ["1978-2993"], "publisher": "Masyarakat Katalis Indonesia - Indonesian Catalyst Society (MKICS)", "language": ["EN", "ID"], "title": "Bulletin of Chemical Reaction Engineering & Catalysis"}, "month": "9", "end_page": "600", "keywords": ["oil palm shell", "bio-oil", "pyrolysis", "catalyst", "zeolite", "bayah natural zeolite"], "year": "2021", "start_page": "588", "subject": [{"code": "TP155-156", "scheme": "LCC", "term": "Chemical engineering"}], "author": [{"affiliation": "Chemical Engineering, Engineering Faculty, Sultan Ageng Tirtayasa University, Jalan Jendral Sudirman KM.3 Cilegon, Banten, Indonesia", "name": "Endang Suhendi"}, {"affiliation": "Chemical Engineering, Engineering Faculty, Sultan Ageng Tirtayasa University, Jalan Jendral Sudirman KM.3 Cilegon, Banten, Indonesia", "name": "Teguh Kurniawan"}, {"affiliation": "Chemical Engineering, Engineering Faculty, Sultan Ageng Tirtayasa University, Jalan Jendral Sudirman KM.3 Cilegon, Banten, Indonesia", "name": "Adian Yoga Pradana"}, {"affiliation": "Chemical Engineering, Engineering Faculty, Sultan Ageng Tirtayasa University, Jalan Jendral Sudirman KM.3 Cilegon, Banten, Indonesia", "name": "Vicky Zayan Giffari"}], "link": [{"content_type": "html", "type": "fulltext", "url": "https://journal.bcrec.id/index.php/bcrec/article/view/10313"}], "abstract": "Oil palm shell (OPS) constitutes 60% of the waste generated during the processing of palm oil. However, OPS can potentially be converted into energy and chemicals through pyrolysis. The purpose of this study is to determine and analyse the effect of acid treatment time on the characteristics of natural zeolites, which were then applied to oil palm shell pyrolysis. The effect of the acid treatment time on the products of the pyrolysis was also studied. The acid treatment time was varied: 1, 3, and 5 hours. The crystallinity of the natural zeolites was determined by\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0 X-ray diffraction (XRD). Solid, liquid and gaseous pyrolysis products were observed. Proximate, ultimate, and heat analysis were performed on the solid product. The liquid product was characterised using gas chromatography-mass spectrometry (GC-MS). Gas Chromatography (GC) was performed to analyse the composition of the gases produced. The results obtained from this study indicate that longer reflux times reduced the crystallinity of the zeolites. The addition of the zeolite catalysts increased the liquid products of pyrolysis from 24.5 wt% over the parent to 24.6\u201337.1 wt% over the acid-treated natural zeolites. The reduction of oxygenated compounds in bio-oil was observed in the amount of acetic acid and acetone produced. Copyright \u00a9 2021 by Authors, Published by BCREC Group. This is an open access article under the CC BY-SA\u00a0\u00a0 License (https://creativecommons.org/licenses/by-sa/4.0).", "title": "The Effect of Time on the Activation of Bayah Natural Zeolite for Application of Palm Oil Shell Pyrolysis"}, "created_date": "2021-07-23T08:41:12Z", "id": "0000e76ec76943239986f80d4fa437ec"}], "last": "https://doaj.org/api/v4/search/articles/%2210.9767/bcrec.16.3.10313.588-600%22?page=1&pageSize=1"}'
+        curl_info:
+            url: 'https://doaj.org/api/v1/search/articles/%2210.9767%2Fbcrec.16.3.10313.588-600%22?page=1&pageSize=1'
+            content_type: application/json
+            http_code: 200
+            header_size: 803
+            request_size: 141
+            filetime: -1
+            ssl_verify_result: 0
+            redirect_count: 0
+            total_time: 0.213689
+            namelookup_time: 0.009392
+            connect_time: 0.041573
+            pretransfer_time: 0.082395
+            size_upload: 0.0
+            size_download: 3543.0
+            speed_download: 16580.0
+            speed_upload: 0.0
+            download_content_length: -1.0
+            upload_content_length: 0.0
+            starttransfer_time: 0.213639
+            redirect_time: 0.0
+            redirect_url: ''
+            primary_ip: 104.26.13.243
+            certinfo: {  }
+            primary_port: 443
+            local_ip: 192.168.100.7
+            local_port: 52845
+            http_version: 2
+            protocol: 2
+            ssl_verifyresult: 0
+            scheme: https
+            appconnect_time_us: 82307
+            queue_time_us: 50
+            connect_time_us: 41573
+            namelookup_time_us: 9392
+            pretransfer_time_us: 82395
+            redirect_time_us: 0
+            starttransfer_time_us: 213639
+            posttransfer_time_us: 82394
+            total_time_us: 213689
+            effective_method: GET
+            capath: ''
+            cainfo: ''
+            used_proxy: 0
+            httpauth_used: 0
+            proxyauth_used: 0
+            conn_id: 0
+    index: 0

@@ -1,0 +1,214 @@
+
+-
+    request:
+        method: GET
+        url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+        headers:
+            Host: ieeexploreapi.ieee.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 403
+            message: Forbidden
+        headers:
+            Date: 'Sun, 26 Apr 2026 18:30:52 GMT'
+            Content-Type: text/xml
+            Content-Length: '27'
+            Connection: keep-alive
+            X-Mashery-Responder: prod-j-worker-sni-043fbac4990af41d4.use1.mashery.com
+            X-Error-Detail-Header: 'Account Inactive'
+            X-Mashery-Error-Code: ERR_403_DEVELOPER_INACTIVE
+            Server: 'Mashery Proxy'
+        body: '<h1>Developer Inactive</h1>'
+        curl_info:
+            url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+            content_type: text/xml
+            http_code: 403
+            header_size: 320
+            request_size: 224
+            filetime: -1
+            ssl_verify_result: 0
+            redirect_count: 0
+            total_time: 0.60781
+            namelookup_time: 0.219781
+            connect_time: 0.341036
+            pretransfer_time: 0.472629
+            size_upload: 0.0
+            size_download: 27.0
+            speed_download: 44.0
+            speed_upload: 0.0
+            download_content_length: 27.0
+            upload_content_length: 0.0
+            starttransfer_time: 0.607729
+            redirect_time: 0.0
+            redirect_url: ''
+            primary_ip: 52.7.82.248
+            certinfo: {  }
+            primary_port: 443
+            local_ip: 192.168.100.7
+            local_port: 52674
+            http_version: 2
+            protocol: 2
+            ssl_verifyresult: 0
+            scheme: https
+            appconnect_time_us: 472385
+            queue_time_us: 54
+            connect_time_us: 341036
+            namelookup_time_us: 219781
+            pretransfer_time_us: 472629
+            redirect_time_us: 0
+            starttransfer_time_us: 607729
+            posttransfer_time_us: 472626
+            total_time_us: 607810
+            effective_method: GET
+            capath: ''
+            cainfo: ''
+            used_proxy: 0
+            httpauth_used: 0
+            proxyauth_used: 0
+            conn_id: 0
+    index: 0
+-
+    request:
+        method: GET
+        url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+        headers:
+            Host: ieeexploreapi.ieee.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 403
+            message: Forbidden
+        headers:
+            Date: 'Sun, 26 Apr 2026 18:30:53 GMT'
+            Content-Type: text/xml
+            Content-Length: '27'
+            Connection: keep-alive
+            X-Mashery-Responder: prod-j-worker-sni-07092eb505f7994f9.use1.mashery.com
+            X-Error-Detail-Header: 'Account Inactive'
+            X-Mashery-Error-Code: ERR_403_DEVELOPER_INACTIVE
+            Server: 'Mashery Proxy'
+        body: '<h1>Developer Inactive</h1>'
+        curl_info:
+            url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+            content_type: text/xml
+            http_code: 403
+            header_size: 320
+            request_size: 224
+            filetime: -1
+            ssl_verify_result: 0
+            redirect_count: 0
+            total_time: 0.600107
+            namelookup_time: 0.001255
+            connect_time: 0.336521
+            pretransfer_time: 0.468277
+            size_upload: 0.0
+            size_download: 27.0
+            speed_download: 44.0
+            speed_upload: 0.0
+            download_content_length: 27.0
+            upload_content_length: 0.0
+            starttransfer_time: 0.600086
+            redirect_time: 0.0
+            redirect_url: ''
+            primary_ip: 3.83.70.193
+            certinfo: {  }
+            primary_port: 443
+            local_ip: 192.168.100.7
+            local_port: 54384
+            http_version: 2
+            protocol: 2
+            ssl_verifyresult: 0
+            scheme: https
+            appconnect_time_us: 468208
+            queue_time_us: 25
+            connect_time_us: 336521
+            namelookup_time_us: 1255
+            pretransfer_time_us: 468277
+            redirect_time_us: 0
+            starttransfer_time_us: 600086
+            posttransfer_time_us: 468275
+            total_time_us: 600107
+            effective_method: GET
+            capath: ''
+            cainfo: ''
+            used_proxy: 0
+            httpauth_used: 0
+            proxyauth_used: 0
+            conn_id: 0
+    index: 1
+-
+    request:
+        method: GET
+        url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+        headers:
+            Host: ieeexploreapi.ieee.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 403
+            message: Forbidden
+        headers:
+            Date: 'Sun, 26 Apr 2026 18:30:56 GMT'
+            Content-Type: text/xml
+            Content-Length: '27'
+            Connection: keep-alive
+            X-Mashery-Responder: prod-j-worker-sni-0da43254dab1e4192.use1.mashery.com
+            X-Error-Detail-Header: 'Account Inactive'
+            X-Mashery-Error-Code: ERR_403_DEVELOPER_INACTIVE
+            Server: 'Mashery Proxy'
+        body: '<h1>Developer Inactive</h1>'
+        curl_info:
+            url: 'https://ieeexploreapi.ieee.org/api/v1/search/articles?apikey=dummy_key&querytext=deep%20learning&format=json&max_records=5&sort_field=publication_year&sort_order=desc&start_record=1'
+            content_type: text/xml
+            http_code: 403
+            header_size: 320
+            request_size: 224
+            filetime: -1
+            ssl_verify_result: 0
+            redirect_count: 0
+            total_time: 0.399233
+            namelookup_time: 0.002175
+            connect_time: 0.136714
+            pretransfer_time: 0.267937
+            size_upload: 0.0
+            size_download: 27.0
+            speed_download: 67.0
+            speed_upload: 0.0
+            download_content_length: 27.0
+            upload_content_length: 0.0
+            starttransfer_time: 0.399208
+            redirect_time: 0.0
+            redirect_url: ''
+            primary_ip: 52.7.82.248
+            certinfo: {  }
+            primary_port: 443
+            local_ip: 192.168.100.7
+            local_port: 54387
+            http_version: 2
+            protocol: 2
+            ssl_verifyresult: 0
+            scheme: https
+            appconnect_time_us: 267774
+            queue_time_us: 31
+            connect_time_us: 136714
+            namelookup_time_us: 2175
+            pretransfer_time_us: 267937
+            redirect_time_us: 0
+            starttransfer_time_us: 399208
+            posttransfer_time_us: 267933
+            total_time_us: 399233
+            effective_method: GET
+            capath: ''
+            cainfo: ''
+            used_proxy: 0
+            httpauth_used: 0
+            proxyauth_used: 0
+            conn_id: 0
+    index: 2
