@@ -32,6 +32,21 @@ final class CorpusSlice
     }
 
     /**
+     * @internal For test fixtures only — bypasses addWork() deduplication.
+     * Each work is keyed by spl_object_id to guarantee uniqueness.
+     */
+    public static function fromWorksUnsafe(ScholarlyWork ...$works): self
+    {
+        $instance = new self(CorpusSliceId::generate());
+
+        foreach ($works as $work) {
+            $instance->works[(string) spl_object_id($work)] = $work;
+        }
+
+        return $instance;
+    }
+
+    /**
      * Add a work, merging into an existing one if isSameWorkAs() returns true.
      * Falls back to spl_object_hash when the work has no primary ID.
      */

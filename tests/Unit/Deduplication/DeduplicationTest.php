@@ -183,13 +183,9 @@ it('clusters_two_works_with_same_doi_into_one_cluster', function (): void {
     $workA = makeDeduplicatable('10.1234/abc', 'Work A');
     $workB = makeDeduplicatable('10.1234/abc', 'Work B');
 
-    // Bypass CorpusSlice's addWork deduplication by using reflection
-    $corpus = CorpusSlice::empty();
-    $reflection = new \ReflectionClass($corpus);
-    $property = $reflection->getProperty('works');
-    $property->setAccessible(true);
-    // Use arbitrary keys to force them into the array despite same primaryId
-    $property->setValue($corpus, ['a' => $workA, 'b' => $workB]);
+    // Bypass CorpusSlice's addWork deduplication to present two distinct
+    // objects with the same DOI to the handler.
+    $corpus = CorpusSlice::fromWorksUnsafe($workA, $workB);
 
     // Now the handler receives exactly 2 identical-DOI works
     $result = makeHandler()->handle(new DeduplicateCorpus($corpus));

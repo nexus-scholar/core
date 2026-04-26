@@ -13,8 +13,20 @@ use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 
+/**
+ * Adapter for Semantic Scholar Academic Graph API.
+ *
+ * Uses the /paper/search/bulk endpoint (cursor-based pagination, up to 1000/page)
+ * for searches, and /paper/{id} for fetchById.  The bulk endpoint supports
+ * boolean operators via +, |, and - instead of AND/OR/NOT.
+ *
+ * Learned from old package: S2 bulk endpoint requires translating boolean
+ * operators and uses a continuation "token" instead of offset pagination.
+ */
 final class SemanticScholarAdapter extends BaseProviderAdapter
 {
+    private const FIELDS = 'paperId,externalIds,title,abstract,year,venue,authors,citationCount,isOpenAccess';
+
     public function alias(): string
     {
         return 'semantic_scholar';
@@ -26,18 +38,30 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
             WorkIdNamespace::DOI,
             WorkIdNamespace::S2,
             WorkIdNamespace::ARXIV,
+            WorkIdNamespace::PUBMED,
         ], true);
     }
 
     public function search(SearchQuery $query): array
     {
-        $params = array_merge(
-            [
-                'query'  => $query->term->value,
-                'fields' => 'paperId,externalIds,title,abstract,year,venue,authors,citationCount,isOpenAccess',
-            ],
-            $this->paginationParams($query),
-        );
+        $params = [
+            'query'  => $this->toBulkQuery($query->term->value),
+            'fields' => self::FIELDS,
+        ];
+
+        // Year range filter (S2 bulk supports "2020-2024" syntax)
+        if ($query->yearRange !== null) {
+            $from = $query->yearRange->from;
+            $to   = $query->yearRange->to;
+
+            if ($from !== null && $to !== null) {
+                $params['year'] = "{$from}-{$to}";
+            } elseif ($from !== null) {
+                $params['year'] = "{$from}-";
+            } elseif ($to !== null) {
+                $params['year'] = "-{$to}";
+            }
+        }
 
         $headers = [];
 
@@ -45,28 +69,61 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
             $headers['x-api-key'] = $this->config->apiKey;
         }
 
-        $response = $this->request(
-            "{$this->config->baseUrl}/graph/v1/paper/search",
-            $params,
-            $headers
-        );
+        // Bulk endpoint with continuation-token pagination
+        $collected = [];
+        $token     = null;
+        $maxResults = $query->maxResults;
 
-        if (! $response->ok()) {
-            return [];
+        while (count($collected) < $maxResults) {
+            $requestParams = $params;
+
+            if ($token !== null) {
+                $requestParams['token'] = $token;
+            }
+
+            $response = $this->request(
+                "{$this->config->baseUrl}/graph/v1/paper/search/bulk",
+                $requestParams,
+                $headers
+            );
+
+            if (! $response->ok()) {
+                break;
+            }
+
+            $items = $this->extractItems($response->body);
+
+            if ($items === []) {
+                break;
+            }
+
+            foreach ($items as $raw) {
+                if (count($collected) >= $maxResults) {
+                    break 2;
+                }
+
+                $collected[] = $this->normalize($raw, $query);
+            }
+
+            // Continuation token for next page
+            $token = $response->body['token'] ?? null;
+
+            if ($token === null) {
+                break;
+            }
         }
 
-        $items = $this->extractItems($response->body);
-
-        return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+        return $collected;
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         $identifier = match ($id->namespace) {
-            WorkIdNamespace::DOI   => "DOI:{$id->value}",
-            WorkIdNamespace::S2    => $id->value,
-            WorkIdNamespace::ARXIV => "ARXIV:{$id->value}",
-            default                => null,
+            WorkIdNamespace::DOI    => "DOI:{$id->value}",
+            WorkIdNamespace::S2     => $id->value,
+            WorkIdNamespace::ARXIV  => "ARXIV:{$id->value}",
+            WorkIdNamespace::PUBMED => "PMID:{$id->value}",
+            default                 => null,
         };
 
         if ($identifier === null) {
@@ -81,7 +138,7 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
 
         $response = $this->request(
             "{$this->config->baseUrl}/graph/v1/paper/{$identifier}",
-            ['fields' => 'paperId,externalIds,title,abstract,year,venue,authors,citationCount'],
+            ['fields' => self::FIELDS],
             $headers
         );
 
@@ -102,17 +159,23 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
             $ids = $ids->add(new WorkId(WorkIdNamespace::S2, $raw['paperId']));
         }
 
-        if (! empty($raw['externalIds']['DOI'])) {
-            $ids = $ids->add(new WorkId(WorkIdNamespace::DOI, $raw['externalIds']['DOI']));
+        $externalIds = $raw['externalIds'] ?? [];
+
+        if (! empty($externalIds['DOI'])) {
+            $ids = $ids->add(new WorkId(WorkIdNamespace::DOI, $externalIds['DOI']));
         }
 
-        if (! empty($raw['externalIds']['ArXiv'])) {
-            $ids = $ids->add(new WorkId(WorkIdNamespace::ARXIV, $raw['externalIds']['ArXiv']));
+        if (! empty($externalIds['ArXiv'])) {
+            $ids = $ids->add(new WorkId(WorkIdNamespace::ARXIV, $externalIds['ArXiv']));
         }
 
-        $title   = $this->extractString($raw, 'title') ?? 'Unknown Title';
-        $year    = $this->extractInt($raw, 'year');
-        $cited   = $this->extractInt($raw, 'citationCount');
+        if (! empty($externalIds['PubMed'])) {
+            $ids = $ids->add(new WorkId(WorkIdNamespace::PUBMED, $externalIds['PubMed']));
+        }
+
+        $title    = $this->extractString($raw, 'title') ?? 'Unknown Title';
+        $year     = $this->extractInt($raw, 'year');
+        $cited    = $this->extractInt($raw, 'citationCount');
         $abstract = $this->extractString($raw, 'abstract');
 
         $venue = null;
@@ -122,6 +185,7 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
             $venue = new Venue(name: $venueName);
         }
 
+        // S2 returns "Given Family" name order — split last token as family
         $authors = [];
 
         foreach ($this->extractArray($raw, 'authors') as $authorRaw) {
@@ -131,9 +195,15 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
                 continue;
             }
 
-            $parts  = explode(' ', $name, 2);
-            $given  = count($parts) === 2 ? $parts[0] : null;
-            $family = count($parts) === 2 ? $parts[1] : $parts[0];
+            $parts = explode(' ', $name);
+
+            if (count($parts) === 1) {
+                $family = $parts[0];
+                $given  = null;
+            } else {
+                $family = array_pop($parts);
+                $given  = implode(' ', $parts);
+            }
 
             $authors[] = new Author(familyName: $family, givenName: $given);
         }
@@ -155,14 +225,25 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
 
     protected function paginationParams(SearchQuery $query): array
     {
-        return [
-            'limit'  => $query->maxResults,
-            'offset' => $query->offset,
-        ];
+        // Bulk endpoint uses continuation tokens; not used directly.
+        return [];
     }
 
     protected function extractItems(array $body): array
     {
         return $body['data'] ?? [];
+    }
+
+    /**
+     * Translate standard boolean query into S2 bulk syntax.
+     * AND → +, OR → |, NOT → -
+     */
+    private function toBulkQuery(string $text): string
+    {
+        $q = preg_replace('/\bAND\b/i', '+', $text);
+        $q = preg_replace('/\bOR\b/i', '|', $q);
+        $q = preg_replace('/\bNOT\b\s+/i', '-', $q);
+
+        return trim((string) preg_replace('/\s+/', ' ', $q));
     }
 }
