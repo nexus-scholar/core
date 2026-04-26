@@ -28,6 +28,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
         protected readonly HttpClientPort  $http,
         protected readonly RateLimiterPort $rateLimiter,
         protected readonly ProviderConfig  $config,
+        protected readonly ?\Psr\Log\LoggerInterface $logger = null,
     ) {}
 
     /**
@@ -51,7 +52,16 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
             } catch (ProviderUnavailable $e) {
                 $attempt++;
 
+                $this->logger?->warning("Provider {$this->alias()} unavailable: {$e->getMessage()}", [
+                    'url' => $url,
+                    'attempt' => $attempt,
+                ]);
+
                 if ($attempt >= $this->config->maxRetries) {
+                    $this->logger?->error("Provider {$this->alias()} failed permanently after {$attempt} attempts.", [
+                        'url' => $url,
+                        'exception' => $e,
+                    ]);
                     throw $e;
                 }
 
@@ -71,7 +81,14 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
             if ($response->rateLimited() || $response->serverError()) {
                 $attempt++;
 
+                $this->logger?->warning("Provider {$this->alias()} rate limited or server error", [
+                    'status' => $response->statusCode,
+                    'url' => $url,
+                    'attempt' => $attempt,
+                ]);
+
                 if ($attempt >= $this->config->maxRetries) {
+                    $this->logger?->error("Provider {$this->alias()} failed permanently after {$attempt} attempts with status {$response->statusCode}.");
                     throw new ProviderUnavailable(
                         $this->alias(),
                         "HTTP {$response->statusCode} after {$attempt} attempt(s)."

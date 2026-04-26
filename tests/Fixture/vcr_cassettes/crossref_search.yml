@@ -1,0 +1,22 @@
+
+-
+    request:
+        method: GET
+        url: 'https://api.crossref.org/works?query=artificial%20intelligence&mailto=test%40example.com&rows=5&offset=0&filter=from-pub-date%3A2022%2Cuntil-pub-date%3A2023'
+        headers:
+            Host: api.crossref.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 200
+            message: OK
+        headers:
+            Content-Type: application/json
+        body: '{"status":"ok","message-type":"work-list","message-version":"1.0.0","message":{"facets":{},"total-results":50000,"items":[{"DOI":"10.1234/ai2022","title":["Artificial Intelligence in 2022"],"author":[{"given":"John","family":"Smith"}],"published-print":{"date-parts":[[2022,1,1]]},"abstract":"An overview of AI in 2022."},{"DOI":"10.1234/ai2022-2","title":["More Artificial Intelligence"],"author":[{"given":"Jane","family":"Doe"}],"published-print":{"date-parts":[[2022,2,1]]}},{"DOI":"10.1234/ai2023-1","title":["AI in 2023"],"author":[{"given":"Alice","family":"Johnson"}],"published-print":{"date-parts":[[2023,1,1]]}},{"DOI":"10.1234/ai2023-2","title":["Future of AI"],"author":[{"given":"Bob","family":"Williams"}],"published-print":{"date-parts":[[2023,3,1]]}},{"DOI":"10.1234/ai2023-3","title":["Another AI Paper"],"author":[{"given":"Charlie","family":"Brown"}],"published-print":{"date-parts":[[2023,4,1]]}}]}}'
+        curl_info:
+            url: 'https://api.crossref.org/works?query=artificial%20intelligence&mailto=test%40example.com&rows=5&offset=0&filter=from-pub-date%3A2022%2Cuntil-pub-date%3A2023'
+            content_type: application/json
+            http_code: 200
+    index: 0

@@ -1,0 +1,22 @@
+
+-
+    request:
+        method: GET
+        url: 'https://api.crossref.org/works/10.1109/5.771073?mailto=test%40example.com'
+        headers:
+            Host: api.crossref.org
+            Accept-Encoding: ''
+            User-Agent: GuzzleHttp/7
+            Accept: ''
+    response:
+        status:
+            code: 200
+            message: OK
+        headers:
+            Content-Type: application/json
+        body: '{"status":"ok","message-type":"work","message-version":"1.0.0","message":{"DOI":"10.1109/5.771073","title":["Artificial intelligence"],"author":[{"given":"N.","family":"Nilsson"}],"published-print":{"date-parts":[[1998,1,1]]}}}'
+        curl_info:
+            url: 'https://api.crossref.org/works/10.1109/5.771073?mailto=test%40example.com'
+            content_type: application/json
+            http_code: 200
+    index: 0

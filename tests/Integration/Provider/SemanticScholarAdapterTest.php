@@ -72,3 +72,26 @@ it('fetches a paper by DOIs and S2 IDs', function () {
     expect($work->title())->toContain('hydrogel');
     expect($work->authors()->isEmpty())->toBeFalse();
 });
+
+it('paginates using continuation tokens', function () {
+    VCR::insertCassette('s2_pagination.yml');
+
+    $config = ProviderConfigRegistry::defaults(s2ApiKey: null)['semantic_scholar'];
+    $adapter = new SemanticScholarAdapter(
+        config: $config,
+        http: GuzzleHttpClient::create(),
+        rateLimiter: new NullRateLimiter(),
+    );
+
+    // Request 4 items. The cassette will return 2 items per page.
+    $query = new SearchQuery(
+        term: new SearchTerm('pagination test'),
+        yearRange: null,
+        maxResults: 4,
+    );
+
+    $results = $adapter->search($query);
+
+    // We should have fetched 4 items across 2 pages
+    expect($results)->toHaveCount(4);
+});

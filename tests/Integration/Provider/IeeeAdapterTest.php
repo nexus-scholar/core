@@ -78,3 +78,22 @@ it('searches and fetches when api key is present', function () {
     expect($work->sourceProvider())->toBe('ieee');
     expect($work->title())->not->toBeEmpty();
 });
+
+it('fetches a paper from ieee by article number', function () {
+    VCR::insertCassette('ieee_fetch_by_id.yml');
+
+    $config = ProviderConfigRegistry::defaults(ieeeApiKey: 'dummy_key')['ieee'];
+    $adapter = new IeeeAdapter(
+        config: $config,
+        http: GuzzleHttpClient::create(),
+        rateLimiter: new NullRateLimiter(),
+    );
+
+    // Deep learning paper article number from previous search
+    $id = new WorkId(WorkIdNamespace::IEEE, '8876906');
+    $work = $adapter->fetchById($id);
+
+    expect($work)->not->toBeNull();
+    expect($work->sourceProvider())->toBe('ieee');
+    expect($work->title())->not->toBeEmpty();
+});

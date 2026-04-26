@@ -23,9 +23,11 @@ final class GuzzleHttpClient implements HttpClientPort
      */
     public static function create(int $timeoutSeconds = 30): self
     {
+        $caPath = CaBundle::getSystemCaRootBundlePath();
+        
         $client = new Client([
             'timeout' => $timeoutSeconds,
-            'verify'  => CaBundle::getSystemCaRootBundlePath(),
+            'verify'  => $caPath !== '' ? $caPath : true,
         ]);
 
         return new self($client);

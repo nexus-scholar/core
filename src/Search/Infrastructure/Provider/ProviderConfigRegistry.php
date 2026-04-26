@@ -40,7 +40,7 @@ final class ProviderConfigRegistry
             ),
             'arxiv' => new ProviderConfig(
                 alias:         'arxiv',
-                baseUrl:       'http://export.arxiv.org/api',
+                baseUrl:       'https://export.arxiv.org/api',
                 ratePerSecond: 3.0,
             ),
             'pubmed' => new ProviderConfig(
@@ -51,7 +51,7 @@ final class ProviderConfigRegistry
             ),
             'ieee' => new ProviderConfig(
                 alias:         'ieee',
-                baseUrl:       'http://ieeexploreapi.ieee.org/api/v1',
+                baseUrl:       'https://ieeexploreapi.ieee.org/api/v1',
                 ratePerSecond: 1.0,
                 apiKey:        $ieeeApiKey,
                 enabled:       $ieeeApiKey !== null,
