@@ -43,6 +43,8 @@ final class GuzzleHttpClient implements HttpClientPort
             $options['headers'] = $headers;
         }
 
+        $options = array_merge($options, ['http_errors' => false]);
+
         try {
             $guzzleResponse = $this->guzzle->get($url, $options);
             $rawBody        = (string) $guzzleResponse->getBody();
