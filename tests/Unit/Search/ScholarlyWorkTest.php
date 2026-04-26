@@ -216,3 +216,149 @@ it('excludes_retracted_when_asked', function (): void {
     $slice = CorpusSlice::fromWorks(makeWork('10.x/1'), $retracted);
     expect($slice->withoutRetracted()->count())->toBe(1);
 });
+
+// ── Added Tests for 100% Coverage ─────────────────────────────────────────────
+
+it('throws_on_empty_title', function (): void {
+    expect(fn () => ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/1')]),
+        title: '   ',
+        sourceProvider: 'test'
+    ))->toThrow(\InvalidArgumentException::class, 'must not be empty');
+});
+
+it('returns_all_properties_correctly', function (): void {
+    $venue = new \Nexus\Shared\ValueObject\Venue('Nature', null, 'journal');
+    $author = new \Nexus\Shared\ValueObject\Author('Smith', 'John');
+    
+    $work = ScholarlyWork::reconstitute(
+        ids:            WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/prop')]),
+        title:          'Full Props',
+        sourceProvider: 'crossref',
+        year:           2025,
+        authors:        \Nexus\Shared\ValueObject\AuthorList::fromArray([$author]),
+        venue:          $venue,
+        citedByCount:   42,
+    );
+
+    expect($work->year())->toBe(2025);
+    expect($work->venue())->toBe($venue);
+    expect($work->citedByCount())->toBe(42);
+    expect($work->sourceProvider())->toBe('crossref');
+    expect($work->retrievedAt())->toBeInstanceOf(\DateTimeImmutable::class);
+    expect($work->authors()->count())->toBe(1);
+});
+
+it('manipulates_raw_data', function (): void {
+    $work = makeWork('10.x/raw');
+    expect($work->rawData())->toBeNull();
+
+    $withRaw = $work->withRawData(['foo' => 'bar']);
+    expect($withRaw->rawData())->toBe(['foo' => 'bar']);
+    
+    $withoutRaw = $withRaw->withoutRawData();
+    expect($withoutRaw->rawData())->toBeNull();
+});
+
+it('calculates_completeness_score_with_all_bonuses', function (): void {
+    $author = new \Nexus\Shared\ValueObject\Author('Smith', 'John', new \Nexus\Shared\ValueObject\OrcidId('0000-0002-1825-0097'));
+    
+    $work = ScholarlyWork::reconstitute(
+        ids:            WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/score')]), // 2
+        title:          'Score',
+        sourceProvider: 'crossref',
+        year:           2025, // 1
+        authors:        \Nexus\Shared\ValueObject\AuthorList::fromArray([$author]), // 1 + 1 (orcid)
+        venue:          new \Nexus\Shared\ValueObject\Venue('Test'), // 1
+        abstract:       'Abstract', // 2
+        citedByCount:   10, // 1
+        isRetracted:    false // 1
+    ); // Total 10
+
+    expect($work->completenessScore())->toBe(10);
+});
+
+it('finds_slice_by_id_and_title', function (): void {
+    $doi = new WorkId(WorkIdNamespace::DOI, '10.x/find');
+    $work = ScholarlyWork::reconstitute(
+        ids:            WorkIdSet::fromArray([$doi]),
+        title:          'Unique Title',
+        sourceProvider: 'test'
+    );
+    
+    $slice = CorpusSlice::fromWorks($work);
+    
+    expect($slice->findById($doi)?->title())->toBe('Unique Title');
+    expect($slice->findById(new WorkId(WorkIdNamespace::DOI, '10.x/missing')))->toBeNull();
+    
+    expect($slice->findByTitle('Unique Title')?->title())->toBe('Unique Title');
+    expect($slice->findByTitle('unique title')?->title())->toBe('Unique Title'); // case insensitive
+    expect($slice->findByTitle('Missing Title'))->toBeNull();
+});
+
+it('checks_emptiness', function (): void {
+    expect(CorpusSlice::empty()->isEmpty())->toBeTrue();
+    $slice = CorpusSlice::fromWorks(makeWork('10.x/1'));
+    expect($slice->isEmpty())->toBeFalse();
+});
+
+it('sorts_by_year_and_cited_by_count', function (): void {
+    $work1 = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/1')]),
+        title: 'Work 1',
+        sourceProvider: 'test',
+        year: 2020,
+        citedByCount: 10
+    );
+    $work2 = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/2')]),
+        title: 'Work 2',
+        sourceProvider: 'test',
+        year: 2022,
+        citedByCount: 5
+    );
+    $work3 = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/3')]),
+        title: 'Work 3',
+        sourceProvider: 'test',
+        year: null,
+        citedByCount: null
+    );
+
+    $slice = CorpusSlice::fromWorks($work1, $work2, $work3);
+
+    $byYearDesc = $slice->sortByYear(true)->all();
+    expect($byYearDesc[0]->year())->toBe(2022);
+    expect($byYearDesc[1]->year())->toBe(2020);
+    expect($byYearDesc[2]->year())->toBeNull();
+
+    $byYearAsc = $slice->sortByYear(false)->all();
+    expect($byYearAsc[0]->year())->toBeNull();
+    expect($byYearAsc[1]->year())->toBe(2020);
+    expect($byYearAsc[2]->year())->toBe(2022);
+
+    $byCitedDesc = $slice->sortByCitedByCount(true)->all();
+    expect($byCitedDesc[0]->citedByCount())->toBe(10);
+    expect($byCitedDesc[1]->citedByCount())->toBe(5);
+    expect($byCitedDesc[2]->citedByCount())->toBeNull();
+    
+    $byCitedAsc = $slice->sortByCitedByCount(false)->all();
+    expect($byCitedAsc[0]->citedByCount())->toBeNull();
+    expect($byCitedAsc[1]->citedByCount())->toBe(5);
+    expect($byCitedAsc[2]->citedByCount())->toBe(10);
+});
+
+it('filters_only_retracted', function (): void {
+    $retracted = ScholarlyWork::reconstitute(
+        ids:            WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/r')]),
+        title:          'Retracted',
+        sourceProvider: 'test',
+        isRetracted:    true,
+    );
+    $slice = CorpusSlice::fromWorks(makeWork('10.x/1'), $retracted);
+    
+    $retractedSlice = $slice->retracted();
+    expect($retractedSlice->count())->toBe(1);
+    expect($retractedSlice->all()[0]->isRetracted())->toBeTrue();
+});
+

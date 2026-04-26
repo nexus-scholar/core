@@ -80,6 +80,21 @@ it('fromString_produces_same_id_as_constructor_for_doi', function (): void {
     expect($viaConstructor->equals($viaFromString))->toBeTrue();
 });
 
+it('throws_on_fromString_missing_colon', function (): void {
+    expect(fn () => WorkId::fromString('doi10.1234/abc'))
+        ->toThrow(\InvalidArgumentException::class, 'Expected "<namespace>:<value>"');
+});
+
+it('throws_on_fromString_empty_value', function (): void {
+    expect(fn () => WorkId::fromString('doi:'))
+        ->toThrow(\InvalidArgumentException::class, 'Expected "<namespace>:<value>"');
+});
+
+it('throws_on_fromString_invalid_namespace', function (): void {
+    expect(fn () => WorkId::fromString('invalid:1234'))
+        ->toThrow(\InvalidArgumentException::class, 'Unknown WorkId namespace');
+});
+
 // ── WorkIdSet ─────────────────────────────────────────────────────────────────
 
 it('returns_doi_as_primary_when_present', function (): void {

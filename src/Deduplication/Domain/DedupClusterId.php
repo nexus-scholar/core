@@ -17,4 +17,14 @@ final class DedupClusterId
     {
         return $this->value === $other->value;
     }
+
+    public function toString(): string
+    {
+        return $this->value;
+    }
+
+    public function __toString(): string
+    {
+        return $this->value;
+    }
 }
