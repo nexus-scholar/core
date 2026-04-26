@@ -33,6 +33,37 @@ final class OpenAlexAdapter extends BaseProviderAdapter
 
     public function search(SearchQuery $query): array
     {
+        $params = $this->prepareSearchParams($query);
+
+        $response = $this->request("{$this->config->baseUrl}/works", $params);
+
+        if (! $response->ok()) {
+            return [];
+        }
+
+        $items = $this->extractItems($response->body);
+
+        return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+    }
+
+    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    {
+        $params = $this->prepareSearchParams($query);
+
+        return $this->requestAsync("{$this->config->baseUrl}/works", $params)
+            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+                if (! $response->ok()) {
+                    return [];
+                }
+
+                $items = $this->extractItems($response->body);
+
+                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+            });
+    }
+
+    private function prepareSearchParams(SearchQuery $query): array
+    {
         $params = array_merge(
             [
                 'search' => $query->term->value,
@@ -54,15 +85,7 @@ final class OpenAlexAdapter extends BaseProviderAdapter
             }
         }
 
-        $response = $this->request("{$this->config->baseUrl}/works", $params);
-
-        if (! $response->ok()) {
-            return [];
-        }
-
-        $items = $this->extractItems($response->body);
-
-        return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+        return $params;
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

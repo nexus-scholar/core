@@ -61,4 +61,14 @@ interface HttpClientPort
         array  $query   = [],
         array  $headers = [],
     ): HttpResponse;
+
+    /**
+     * Perform an asynchronous GET request.
+     * Returns a promise that resolves to an HttpResponse.
+     */
+    public function getAsync(
+        string $url,
+        array  $query   = [],
+        array  $headers = [],
+    ): \GuzzleHttp\Promise\PromiseInterface;
 }

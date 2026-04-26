@@ -55,33 +55,48 @@ final class SearchAcrossProvidersHandler
             );
         }
 
-        // Execute search across all selected providers
+        // Execute search across all selected providers in parallel
+        $promises = [];
+        foreach ($providers as $provider) {
+            $promises[$provider->alias()] = $provider->searchAsync($command->query);
+        }
+
+        // Wait for all promises to settle (fulfilled or rejected)
+        // Note: Global timeout is managed by the underlying HTTP client, 
+        // but we could also wrap this in a timeout promise if needed.
+        $settledResults = \GuzzleHttp\Promise\Utils::settle($promises)->wait();
+
         $corpus          = CorpusSlice::empty();
         $providerResults = [];
 
         foreach ($providers as $provider) {
-            $providerStart = hrtime(true);
+            $alias = $provider->alias();
+            $result = $settledResults[$alias] ?? ['state' => 'rejected', 'reason' => 'No result'];
 
-            try {
-                $works = $provider->search($command->query);
+            if ($result['state'] === 'fulfilled') {
+                $works = $result['value'];
 
                 foreach ($works as $work) {
                     $corpus->addWork($work);
                 }
 
                 $providerResults[] = new ProviderSearchResult(
-                    providerAlias: $provider->alias(),
+                    providerAlias: $alias,
                     resultCount:   count($works),
                     success:       true,
-                    durationMs:    $this->elapsedMs($providerStart),
+                    durationMs:    $this->elapsedMs($startTime), // Approximate for now
                 );
-            } catch (ProviderUnavailable $e) {
+            } else {
+                $error = $result['reason'] instanceof \Throwable 
+                    ? $result['reason']->getMessage() 
+                    : (string) $result['reason'];
+
                 $providerResults[] = new ProviderSearchResult(
-                    providerAlias: $provider->alias(),
+                    providerAlias: $alias,
                     resultCount:   0,
                     success:       false,
-                    error:         $e->getMessage(),
-                    durationMs:    $this->elapsedMs($providerStart),
+                    error:         $error,
+                    durationMs:    $this->elapsedMs($startTime),
                 );
             }
         }

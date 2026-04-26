@@ -81,34 +81,39 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
                 $requestParams['token'] = $token;
             }
 
-            $response = $this->request(
-                "{$this->config->baseUrl}/graph/v1/paper/search/bulk",
-                $requestParams,
-                $headers
-            );
+            try {
+                $response = $this->request(
+                    "{$this->config->baseUrl}/graph/v1/paper/search/bulk",
+                    $requestParams,
+                    $headers
+                );
 
-            if (! $response->ok()) {
-                break;
-            }
-
-            $items = $this->extractItems($response->body);
-
-            if ($items === []) {
-                break;
-            }
-
-            foreach ($items as $raw) {
-                if (count($collected) >= $maxResults) {
-                    break 2;
+                if (! $response->ok()) {
+                    break;
                 }
 
-                $collected[] = $this->normalize($raw, $query);
-            }
+                $items = $this->extractItems($response->body);
 
-            // Continuation token for next page
-            $token = $response->body['token'] ?? null;
+                if ($items === []) {
+                    break;
+                }
 
-            if ($token === null) {
+                foreach ($items as $raw) {
+                    if (count($collected) >= $maxResults) {
+                        break 2;
+                    }
+
+                    $collected[] = $this->normalize($raw, $query);
+                }
+
+                // Continuation token for next page
+                $token = $response->body['token'] ?? null;
+
+                if ($token === null) {
+                    break;
+                }
+            } catch (\Nexus\Search\Domain\Exception\ProviderUnavailable $e) {
+                // Return partial results collected so far
                 break;
             }
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Port\AcademicProviderPort;
 use Nexus\Search\Domain\Port\HttpClientPort;
@@ -66,7 +67,8 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
                     throw $e;
                 }
 
-                ($this->sleeper ?? static fn(int $s) => sleep($s))($backoff);
+                $jitter = (random_int(0, 1000) / 1000.0); // 0 to 1 second jitter
+                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
                 $backoff *= 2;
                 continue;
             }
@@ -96,7 +98,8 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
                     );
                 }
 
-                ($this->sleeper ?? static fn(int $s) => sleep($s))($backoff);
+                $jitter = (random_int(0, 1000) / 1000.0); // 0 to 1 second jitter
+                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
                 $backoff *= 2;
                 continue;
             }
@@ -121,6 +124,43 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
      * OpenAlex uses 'results', arXiv uses entries from XML, etc.
      */
     abstract protected function extractItems(array $body): array;
+
+    /**
+     * Default implementation of searchAsync.
+     * Most adapters follow a simple request -> extract -> normalize pattern.
+     * Complex adapters (like PubMed) MUST override this.
+     */
+    public function searchAsync(SearchQuery $query): PromiseInterface
+    {
+        $params = $this->paginationParams($query);
+
+        return $this->requestAsync($this->config->baseUrl, $params)
+            ->then(function (HttpResponse $response) use ($query) {
+                if (! $response->ok()) {
+                    return [];
+                }
+
+                $items = $this->extractItems($response->body);
+
+                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+            });
+    }
+
+    /**
+     * Async version of request.
+     *
+     * TODO: Implement async-safe rate limiting and retries.
+     * Currently blocks for the rate limit token then returns an async HTTP promise.
+     */
+    final protected function requestAsync(
+        string $url,
+        array  $query   = [],
+        array  $headers = [],
+    ): PromiseInterface {
+        $this->rateLimiter->waitForToken();
+
+        return $this->http->getAsync($url, $query, $headers);
+    }
 
     // ── Shared utilities ─────────────────────────────────────────────────────
 

@@ -40,17 +40,7 @@ final class DoajAdapter extends BaseProviderAdapter
 
     public function search(SearchQuery $query): array
     {
-        $searchText = $query->term->value;
-
-        // Year range via Lucene syntax
-        if ($query->yearRange !== null) {
-            $from = $query->yearRange->from ?? 1000;
-            $to   = $query->yearRange->to   ?? 3000;
-            $searchText = "({$searchText}) AND bibjson.year:[{$from} TO {$to}]";
-        }
-
-        $url = "{$this->config->baseUrl}/v1/search/articles/" . rawurlencode($searchText);
-
+        $url = $this->buildSearchUrl($query);
         $params = $this->paginationParams($query);
 
         $response = $this->request($url, $params);
@@ -62,6 +52,37 @@ final class DoajAdapter extends BaseProviderAdapter
         $items = $this->extractItems($response->body);
 
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+    }
+
+    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    {
+        $url = $this->buildSearchUrl($query);
+        $params = $this->paginationParams($query);
+
+        return $this->requestAsync($url, $params)
+            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+                if (! $response->ok()) {
+                    return [];
+                }
+
+                $items = $this->extractItems($response->body);
+
+                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+            });
+    }
+
+    private function buildSearchUrl(SearchQuery $query): string
+    {
+        $searchText = $this->escapeLucene($query->term->value);
+
+        // Year range via Lucene syntax
+        if ($query->yearRange !== null) {
+            $from = $query->yearRange->from ?? 1000;
+            $to   = $query->yearRange->to   ?? 3000;
+            $searchText = "({$searchText}) AND bibjson.year:[{$from} TO {$to}]";
+        }
+
+        return "{$this->config->baseUrl}/v1/search/articles/" . rawurlencode($searchText);
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork
@@ -186,5 +207,16 @@ final class DoajAdapter extends BaseProviderAdapter
     protected function extractItems(array $body): array
     {
         return $body['results'] ?? [];
+    }
+
+    /**
+     * Escape special characters in Lucene queries.
+     * Special characters are: + - & | ! ( ) { } [ ] ^ " ~ * ? : \ /
+     */
+    private function escapeLucene(string $term): string
+    {
+        // Replace special characters with their escaped equivalent
+        $pattern = '/([+\-&|!(){}\[\]\^"~*?:\/\\\])/';
+        return preg_replace($pattern, '\\\$1', $term) ?? $term;
     }
 }

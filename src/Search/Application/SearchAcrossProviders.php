@@ -12,5 +12,6 @@ final class SearchAcrossProviders
         public readonly SearchQuery $query,
         public readonly array       $providerAliases = [],
         // empty array = use all registered providers
+        public readonly int         $timeoutMs = 60000,
     ) {}
 }

@@ -35,7 +35,41 @@ final class GuzzleHttpClient implements HttpClientPort
 
     public function get(string $url, array $query = [], array $headers = []): HttpResponse
     {
-        $options = [];
+        $options = $this->prepareOptions($query, $headers);
+
+        try {
+            $guzzleResponse = $this->guzzle->get($url, $options);
+            
+            return $this->mapResponse($guzzleResponse);
+        } catch (GuzzleException $e) {
+            throw new ProviderUnavailable(
+                providerAlias: 'http',
+                reason:        $e->getMessage(),
+                previous:      $e,
+            );
+        }
+    }
+
+    public function getAsync(string $url, array $query = [], array $headers = []): \GuzzleHttp\Promise\PromiseInterface
+    {
+        $options = $this->prepareOptions($query, $headers);
+
+        return $this->guzzle->getAsync($url, $options)
+            ->then(
+                fn ($response) => $this->mapResponse($response),
+                function (GuzzleException $e) {
+                    throw new ProviderUnavailable(
+                        providerAlias: 'http',
+                        reason:        $e->getMessage(),
+                        previous:      $e,
+                    );
+                }
+            );
+    }
+
+    private function prepareOptions(array $query, array $headers): array
+    {
+        $options = ['http_errors' => false];
 
         if ($query !== []) {
             $options['query'] = $query;
@@ -45,42 +79,36 @@ final class GuzzleHttpClient implements HttpClientPort
             $options['headers'] = $headers;
         }
 
-        $options = array_merge($options, ['http_errors' => false]);
+        return $options;
+    }
 
-        try {
-            $guzzleResponse = $this->guzzle->get($url, $options);
-            $rawBody        = (string) $guzzleResponse->getBody();
-            $statusCode     = $guzzleResponse->getStatusCode();
+    private function mapResponse(\Psr\Http\Message\ResponseInterface $guzzleResponse): HttpResponse
+    {
+        $rawBody    = (string) $guzzleResponse->getBody();
+        $statusCode = $guzzleResponse->getStatusCode();
 
-            // Attempt JSON decode; fall back to empty array for non-JSON bodies
-            $body = [];
+        // Attempt JSON decode; fall back to empty array for non-JSON bodies
+        $body = [];
 
-            if (trim($rawBody) !== '') {
-                $decoded = json_decode($rawBody, true);
+        if (trim($rawBody) !== '') {
+            $decoded = json_decode($rawBody, true);
 
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    $body = $decoded;
-                }
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $body = $decoded;
             }
-
-            $responseHeaders = [];
-
-            foreach ($guzzleResponse->getHeaders() as $name => $values) {
-                $responseHeaders[$name] = $values;
-            }
-
-            return new HttpResponse(
-                statusCode: $statusCode,
-                body:       $body ?? [],
-                rawBody:    $rawBody,
-                headers:    $responseHeaders,
-            );
-        } catch (GuzzleException $e) {
-            throw new ProviderUnavailable(
-                providerAlias: 'http',
-                reason:        $e->getMessage(),
-                previous:      $e,
-            );
         }
+
+        $responseHeaders = [];
+
+        foreach ($guzzleResponse->getHeaders() as $name => $values) {
+            $responseHeaders[$name] = $values;
+        }
+
+        return new HttpResponse(
+            statusCode: $statusCode,
+            body:       $body ?? [],
+            rawBody:    $rawBody,
+            headers:    $responseHeaders,
+        );
     }
 }

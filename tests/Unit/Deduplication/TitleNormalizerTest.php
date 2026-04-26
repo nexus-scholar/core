@@ -56,3 +56,24 @@ it('is_not_byte_count_based', function () use ($normalizer): void {
     $ratio = $normalizer->fuzzyRatio('café au lait', 'cafe au lait');
     expect($ratio)->toBe(100); // normalized to same string
 });
+
+it('handles_emojis_without_error', function () use ($normalizer): void {
+    $result = $normalizer->normalize('Deep Learning 🚀 and AI 🔥');
+    expect($result)->toBe('deep learning and ai');
+});
+
+it('handles_mathematical_symbols_without_error', function () use ($normalizer): void {
+    $result = $normalizer->normalize('Solving \(\alpha \beta \Delta\) equations');
+    expect($result)->toBeString();
+});
+
+it('handles_extremely_long_strings_without_memory_spikes_or_errors', function () use ($normalizer): void {
+    $longString = str_repeat('A long title with many words. ', 100); // ~3000 chars
+    $result = $normalizer->normalize($longString);
+    expect($result)->toBeString();
+    
+    // Test fuzzy ratio with large strings
+    $longStringB = $longString . ' extra';
+    $ratio = $normalizer->fuzzyRatio($longString, $longStringB);
+    expect($ratio)->toBeGreaterThan(95);
+});

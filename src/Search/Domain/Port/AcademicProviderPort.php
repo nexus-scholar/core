@@ -32,6 +32,12 @@ interface AcademicProviderPort
     public function search(SearchQuery $query): array;
 
     /**
+     * Asynchronous search matching the query.
+     * Returns a promise that resolves to ScholarlyWork[].
+     */
+    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface;
+
+    /**
      * Fetch a single work by known external identifier.
      * Returns null if the provider cannot find or does not support this ID.
      *

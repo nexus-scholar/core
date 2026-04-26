@@ -39,6 +39,9 @@ it('aggregates results from multiple providers and deduplicates them', function 
         public function search(SearchQuery $query): array {
             return [$this->work];
         }
+        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
+            return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+        }
     };
 
     $adapter2 = new class($work2) implements AcademicProviderPort {
@@ -49,6 +52,9 @@ it('aggregates results from multiple providers and deduplicates them', function 
         public function search(SearchQuery $query): array {
             return [$this->work];
         }
+        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
+            return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+        }
     };
 
     $adapter3 = new class implements AcademicProviderPort {
@@ -57,6 +63,9 @@ it('aggregates results from multiple providers and deduplicates them', function 
         public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
         public function search(SearchQuery $query): array {
             throw new ProviderUnavailable('provider_error', 'Simulated failure');
+        }
+        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
+            return new \GuzzleHttp\Promise\RejectedPromise(new ProviderUnavailable('provider_error', 'Simulated failure'));
         }
     };
 
@@ -98,6 +107,9 @@ it('returns empty corpus when all providers fail', function () {
         public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
         public function search(SearchQuery $query): array {
             throw new ProviderUnavailable('dead', 'All down');
+        }
+        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
+            return new \GuzzleHttp\Promise\RejectedPromise(new ProviderUnavailable('dead', 'All down'));
         }
     };
 
