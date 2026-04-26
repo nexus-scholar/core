@@ -67,7 +67,7 @@ it('aggregates results from multiple providers and deduplicates them', function 
         }
     };
 
-    $aggregator = new SearchAggregator([$adapter1, $adapter2, $adapter3], $dedup);
+    $aggregator = new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($adapter1, $adapter2, $adapter3), $dedup);
 
     $result = $aggregator->aggregate($query);
 
@@ -89,4 +89,27 @@ it('aggregates results from multiple providers and deduplicates them', function 
     expect($result->providerStats[2]->alias)->toBe('provider_error');
     expect($result->providerStats[2]->resultCount)->toBe(0);
     expect($result->providerStats[2]->skipReason)->toBe('Provider "provider_error" is unavailable: Simulated failure');
+});
+
+it('returns empty corpus when all providers fail', function () {
+    $failingAdapter = new class implements AcademicProviderPort {
+        public function alias(): string { return 'dead'; }
+        public function supports(WorkIdNamespace $ns): bool { return true; }
+        public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
+        public function search(SearchQuery $query): array {
+            throw new ProviderUnavailable('dead', 'All down');
+        }
+    };
+
+    $dedup = new class implements DeduplicationPort {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice { return $corpus; }
+    };
+
+    $result = (new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($failingAdapter), $dedup))->aggregate(
+        new SearchQuery(new SearchTerm('test'))
+    );
+
+    expect($result->totalRaw)->toBe(0);
+    expect($result->corpus->count())->toBe(0);
+    expect($result->providerStats[0]->skipReason)->not->toBeNull();
 });

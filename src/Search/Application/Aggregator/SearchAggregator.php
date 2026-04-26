@@ -8,16 +8,14 @@ use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Port\AcademicProviderPort;
 use Nexus\Search\Domain\Port\DeduplicationPort;
+use Nexus\Search\Domain\Port\AdapterCollection;
 use Nexus\Search\Domain\SearchQuery;
 use Psr\Log\LoggerInterface;
 
 final class SearchAggregator implements SearchAggregatorPort
 {
-    /** 
-     * @param AcademicProviderPort[] $adapters 
-     */
     public function __construct(
-        private readonly array              $adapters,
+        private readonly AdapterCollection  $adapters,
         private readonly DeduplicationPort  $deduplication,
         private readonly ?LoggerInterface   $logger = null,
     ) {}
@@ -27,7 +25,7 @@ final class SearchAggregator implements SearchAggregatorPort
         $allWorks = [];
         $stats    = [];
 
-        foreach ($this->adapters as $adapter) {
+        foreach ($this->adapters->all() as $adapter) {
             $start = hrtime(true);
 
             try {
@@ -40,6 +38,14 @@ final class SearchAggregator implements SearchAggregatorPort
                 $stats[]   = new ProviderStat($adapter->alias(), 0, $latencyMs, $e->getMessage());
                 $this->logger?->warning("Aggregator skipped {$adapter->alias()}", ['reason' => $e->getMessage()]);
             }
+        }
+
+        if ($allWorks === []) {
+            return new AggregatedResult(
+                corpus:        CorpusSlice::empty(),
+                providerStats: $stats,
+                totalRaw:      0,
+            );
         }
 
         $merged  = array_merge(...$allWorks);
