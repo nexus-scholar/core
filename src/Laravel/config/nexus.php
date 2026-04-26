@@ -11,6 +11,8 @@ return [
     |
     */
 
+    'mail_to' => env('NEXUS_MAIL_TO', 'admin@example.com'),
+
     'providers' => [
         'ieee' => [
             'api_key' => env('NEXUS_IEEE_API_KEY'),
@@ -23,8 +25,5 @@ return [
         'pubmed' => [
             'api_key' => env('NEXUS_PUBMED_API_KEY'),
         ],
-
-        // Used for polite pools in OpenAlex and Crossref
-        'mail_to' => env('NEXUS_MAIL_TO', 'admin@example.com'),
     ],
 ];
