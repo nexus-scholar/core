@@ -1,24 +1,24 @@
 # Module Checklists
 
 ## Shared Kernel Checklist
-- [ ] `WorkId` is the only DOI normalization source
-- [ ] `WorkIdSet` is immutable
-- [ ] no provider logic in shared kernel
-- [ ] no framework imports
+- [x] `WorkId` is the only DOI normalization source
+- [x] `WorkIdSet` is immutable
+- [x] no provider logic in shared kernel
+- [x] no framework imports
 
 ## Search Checklist
-- [ ] all query dimensions included in cache identity
-- [ ] provider calls rate-limited
-- [ ] raw data off by default
-- [ ] provider adapters return domain objects, not arrays
+- [x] all query dimensions included in cache identity
+- [x] provider calls rate-limited
+- [x] raw data off by default
+- [x] provider adapters return domain objects, not arrays
 - [ ] adapter tests use recorded fixtures
 
 ## Deduplication Checklist
-- [ ] exact ID policies run before fuzzy policies
-- [ ] representative election is explicit
-- [ ] provider priority is configurable, not hardcoded
-- [ ] Unicode-safe title normalization/matching
-- [ ] clustering provenance can be persisted
+- [x] exact ID policies run before fuzzy policies
+- [x] representative election is explicit
+- [x] provider priority is configurable, not hardcoded
+- [x] Unicode-safe title normalization/matching
+- [x] clustering provenance can be persisted
 
 ## Citation Network Checklist
 - [ ] graph invariant rejects dangling edges
