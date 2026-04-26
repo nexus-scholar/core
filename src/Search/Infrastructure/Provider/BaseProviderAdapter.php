@@ -29,6 +29,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
         protected readonly RateLimiterPort $rateLimiter,
         protected readonly ProviderConfig  $config,
         protected readonly ?\Psr\Log\LoggerInterface $logger = null,
+        private readonly ?\Closure $sleeper = null,
     ) {}
 
     /**
@@ -65,7 +66,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
                     throw $e;
                 }
 
-                sleep($backoff);
+                ($this->sleeper ?? static fn(int $s) => sleep($s))($backoff);
                 $backoff *= 2;
                 continue;
             }
@@ -95,7 +96,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
                     );
                 }
 
-                sleep($backoff);
+                ($this->sleeper ?? static fn(int $s) => sleep($s))($backoff);
                 $backoff *= 2;
                 continue;
             }

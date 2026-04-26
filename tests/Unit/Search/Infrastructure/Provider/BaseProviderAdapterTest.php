@@ -105,7 +105,7 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
         maxRetries: 2
     );
 
-    $adapter = new StubAdapter($http, $rateLimiter, $config, $logger);
+    $adapter = new StubAdapter($http, $rateLimiter, $config, $logger, fn(int $s) => null);
 
     $query = new SearchQuery(
         term: new SearchTerm('test'),
