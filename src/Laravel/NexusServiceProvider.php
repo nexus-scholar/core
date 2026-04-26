@@ -76,6 +76,7 @@ final class NexusServiceProvider extends ServiceProvider
             return new SearchAggregator(
                 new AdapterCollection(...$adapters),
                 $app->make(DeduplicationPort::class),
+                $app->make(\Nexus\Search\Domain\Port\SearchCachePort::class),
                 $app->bound(\Psr\Log\LoggerInterface::class) ? $app->make(\Psr\Log\LoggerInterface::class) : null
             );
         });
@@ -90,6 +91,10 @@ final class NexusServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/config/nexus.php' => $this->app->configPath('nexus.php'),
             ], 'nexus-config');
+
+            $this->commands([
+                \Nexus\Laravel\Command\NexusSearchCommand::class,
+            ]);
         }
     }
 }

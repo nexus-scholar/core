@@ -37,6 +37,7 @@ final class SearchAggregator implements SearchAggregatorPort
         // 1. Check cache
         $cached = $this->cache->get($cacheKey);
         if ($cached !== null) {
+            // Cache stores post-deduplication works only; fromWorksUnsafe is safe here.
             $corpus = CorpusSlice::fromWorksUnsafe(...$cached);
             
             return new AggregatedResult(
