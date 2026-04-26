@@ -121,6 +121,10 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
         return $collected;
     }
 
+    /**
+     * Single-page async fetch. Supports up to ~1000 results per S2 bulk page.
+     * For maxResults > 1000, use the synchronous search() instead.
+     */
     public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
     {
         $params = [

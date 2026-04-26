@@ -525,10 +525,9 @@ final class PubMedAdapter extends BaseProviderAdapter
      */
     protected function normalize(array $raw, SearchQuery $query): ScholarlyWork
     {
-        return ScholarlyWork::reconstitute(
-            ids:            WorkIdSet::empty(),
-            title:          $raw['title'] ?? 'Unknown Title',
-            sourceProvider: $this->alias(),
+        throw new \LogicException(
+            'PubMedAdapter::normalize() must never be called. '
+            . 'PubMed parsing goes through normalizeXmlArticle() only.'
         );
     }
 
