@@ -13,7 +13,10 @@ return new class extends Migration
             $table->uuid('project_id');
             $table->string('strategy', 64)->default('default');
             $table->json('thresholds')->nullable();
+            // Denormalized for fast "get representative" queries.
+            // Must stay in sync with cluster_members.is_representative via repository atomicity.
             $table->uuid('representative_work_id')->nullable();
+            // Also denormalized for fast cardinality queries — keep in sync on member mutations.
             $table->unsignedInteger('cluster_size')->default(1);
             $table->decimal('confidence', 5, 4)->nullable();
             $table->json('metadata')->nullable();

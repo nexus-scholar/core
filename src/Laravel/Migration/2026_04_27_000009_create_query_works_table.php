@@ -20,7 +20,8 @@ return new class extends Migration
 
             $table->foreign('search_query_id')->references('id')->on('search_queries')->cascadeOnDelete();
             $table->foreign('work_id')->references('id')->on('scholarly_works')->cascadeOnDelete();
-            $table->unique(['search_query_id', 'work_id']);
+            // Preserve provenance: same work from different providers are distinct rows
+            $table->unique(['search_query_id', 'work_id', 'provider_alias']);
             $table->index(['provider_alias', 'provider_work_id']);
         });
     }

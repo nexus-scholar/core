@@ -17,7 +17,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('work_id')->references('id')->on('scholarly_works')->cascadeOnDelete();
-            $table->unique(['namespace', 'value']);
+            // Unique per work — a DOI may be stored in multiple works across projects
+            $table->unique(['work_id', 'namespace', 'value']);
             $table->index(['work_id', 'namespace']);
         });
     }

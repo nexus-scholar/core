@@ -24,6 +24,8 @@ return new class extends Migration
             $table->foreign('work_id')->references('id')->on('scholarly_works')->cascadeOnDelete();
             $table->index(['project_id', 'work_id']);
             $table->index(['project_id', 'stage', 'decision']);
+            // For "latest decision per work per stage" queries without full scan
+            $table->index(['project_id', 'stage', 'work_id', 'decided_at']);
         });
     }
 

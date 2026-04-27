@@ -13,6 +13,8 @@ return new class extends Migration
             $table->uuid('work_id');
             $table->string('provider_alias', 64);
             $table->string('provider_work_id', 255)->nullable();
+            // metadata: provider-specific metadata only (e.g. indexing hints, dedup confidence).
+            // Raw provider payloads are opt-in only via SearchQuery::includeRawData flag.
             $table->json('metadata')->nullable();
             $table->timestamp('first_seen_at')->useCurrent();
             $table->timestamp('last_seen_at')->nullable();

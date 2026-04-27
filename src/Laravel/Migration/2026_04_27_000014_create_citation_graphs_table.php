@@ -12,6 +12,8 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('project_id');
             $table->string('name')->nullable();
+            // Must be one of: 'direct_citation', 'co_citation', 'bibliographic_coupling'
+            // Enforced via Eloquent cast. See CitationGraphType domain enum.
             $table->string('graph_type', 64);
             $table->unsignedInteger('node_count')->default(0);
             $table->unsignedInteger('edge_count')->default(0);
