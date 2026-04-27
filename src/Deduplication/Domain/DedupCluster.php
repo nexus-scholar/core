@@ -40,6 +40,20 @@ final class DedupCluster
         return new self(DedupClusterId::generate(), $seed);
     }
 
+    public static function reconstitute(
+        DedupClusterId $id,
+        ScholarlyWork $representative,
+        array $members,
+        array $duplicates = []
+    ): self {
+        $cluster = new self($id, $representative);
+        $cluster->members = $members;
+        $cluster->duplicates = $duplicates;
+        $cluster->representative = $representative;
+
+        return $cluster;
+    }
+
     /**
      * Add a duplicate work to this cluster with its evidence.
      * Idempotent: if a work with the same primary ID is already present, skip.

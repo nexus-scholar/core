@@ -10,17 +10,17 @@ use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdSet;
 use Nexus\Shared\ValueObject\Venue;
-use Nexus\Laravel\Persistence\EloquentScholarlyWork;
-use Nexus\Laravel\Persistence\EloquentWorkExternalId;
-use Nexus\Laravel\Persistence\EloquentWorkAuthor;
-use Nexus\Laravel\Persistence\EloquentAuthor;
+use Nexus\Laravel\Model\ScholarlyWorkModel as EloquentScholarlyWork;
+use Nexus\Laravel\Model\WorkExternalIdModel as EloquentWorkExternalId;
+use Nexus\Laravel\Model\WorkAuthorModel as EloquentWorkAuthor;
+use Nexus\Laravel\Model\AuthorModel as EloquentAuthor;
 
 /**
  * Eloquent-backed adapter for persisting and retrieving ScholarlyWork domain objects.
  * This is the most complex repository because works touch five tables:
  * scholarly_works, work_external_ids, work_providers, work_authors, authors.
  */
-final class EloquentWorkRepository
+final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepositoryPort
 {
     /**
      * Fetch a domain ScholarlyWork by its primary ID.

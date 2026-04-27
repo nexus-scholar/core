@@ -32,7 +32,6 @@ final class PersistenceIntegrationTest extends TestCase
 
         $work = ScholarlyWorkModel::create([
             'id' => (string) Str::uuid(),
-            'project_id' => $project->id,
             'title' => 'Test Work',
         ]);
 
@@ -59,11 +58,11 @@ final class PersistenceIntegrationTest extends TestCase
         ]);
 
         $this->assertNotNull($project->id);
-        $this->assertEqual('Repo Test', $project->name);
+        $this->assertEquals('Repo Test', $project->name);
 
         $loaded = SlrProject::find($project->id);
         $this->assertNotNull($loaded);
-        $this->assertEqual($project->name, $loaded->name);
+        $this->assertEquals($project->name, $loaded->name);
     }
 }
 
