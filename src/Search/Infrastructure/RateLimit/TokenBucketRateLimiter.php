@@ -6,21 +6,17 @@ namespace Nexus\Search\Infrastructure\RateLimit;
 
 use Nexus\Search\Domain\Port\RateLimiterPort;
 
-/**
- * Token bucket rate limiter using hrtime(true) for nanosecond precision.
- * Uses hrtime() NOT microtime() — see known bug note in agent skill.
- */
 final class TokenBucketRateLimiter implements RateLimiterPort
 {
     private float $tokens;
-    private float $lastRefillTime; // in seconds (from hrtime nanoseconds)
+    private float $lastRefillTimeNs;
 
     public function __construct(
         private readonly float $ratePerSecond,
         private readonly float $capacity,
     ) {
-        $this->tokens         = $capacity;
-        $this->lastRefillTime = hrtime(true) / 1e9;
+        $this->tokens = $capacity; // Start full
+        $this->lastRefillTimeNs = (float) hrtime(true);
     }
 
     public function waitForToken(): void
@@ -28,10 +24,18 @@ final class TokenBucketRateLimiter implements RateLimiterPort
         $this->refill();
 
         if ($this->tokens < 1.0) {
-            $waitSeconds = (1.0 - $this->tokens) / $this->ratePerSecond;
-            // usleep expects microseconds
-            usleep((int) ($waitSeconds * 1_000_000));
-            $this->refill();
+            $tokensNeeded = 1.0 - $this->tokens;
+            $sleepSeconds = $tokensNeeded / $this->ratePerSecond;
+            $sleepMicroseconds = (int) ($sleepSeconds * 1_000_000);
+            
+            if ($sleepMicroseconds > 0) {
+                usleep($sleepMicroseconds);
+            }
+            
+            // After sleeping, we assume we have 1 token.
+            // Update the last refill time so we don't double-count the time we just slept.
+            $this->tokens = 1.0;
+            $this->lastRefillTimeNs = (float) hrtime(true);
         }
 
         $this->tokens -= 1.0;
@@ -43,7 +47,6 @@ final class TokenBucketRateLimiter implements RateLimiterPort
 
         if ($this->tokens >= 1.0) {
             $this->tokens -= 1.0;
-
             return true;
         }
 
@@ -57,13 +60,14 @@ final class TokenBucketRateLimiter implements RateLimiterPort
 
     private function refill(): void
     {
-        $now     = hrtime(true) / 1e9;
-        $elapsed = $now - $this->lastRefillTime;
-
-        $this->tokens         = min(
-            $this->capacity,
-            $this->tokens + $elapsed * $this->ratePerSecond,
-        );
-        $this->lastRefillTime = $now;
+        $nowNs = (float) hrtime(true);
+        $elapsedSeconds = ($nowNs - $this->lastRefillTimeNs) / 1_000_000_000;
+        
+        $this->tokens += $elapsedSeconds * $this->ratePerSecond;
+        if ($this->tokens > $this->capacity) {
+            $this->tokens = $this->capacity;
+        }
+        
+        $this->lastRefillTimeNs = $nowNs;
     }
 }

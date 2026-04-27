@@ -27,7 +27,7 @@ final class NexusServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/config/nexus.php', 'nexus');
 
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
-        $this->app->singleton(RateLimiterPort::class, fn () => new NullRateLimiter());
+
         $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, \Nexus\Search\Infrastructure\Cache\NullSearchCache::class);
 
         $this->app->singleton('nexus.provider_configs', function ($app) {
@@ -65,16 +65,42 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
             $configs     = $app->make('nexus.provider_configs');
             $http        = $app->make(HttpClientPort::class);
-            $rateLimiter = $app->make(RateLimiterPort::class);
-
             $adapters = [
-                new \Nexus\Search\Infrastructure\Provider\ArXivAdapter($http, $rateLimiter, $configs['arxiv']),
-                new \Nexus\Search\Infrastructure\Provider\CrossrefAdapter($http, $rateLimiter, $configs['crossref']),
-                new \Nexus\Search\Infrastructure\Provider\DoajAdapter($http, $rateLimiter, $configs['doaj']),
-                new \Nexus\Search\Infrastructure\Provider\IeeeAdapter($http, $rateLimiter, $configs['ieee']),
-                new \Nexus\Search\Infrastructure\Provider\OpenAlexAdapter($http, $rateLimiter, $configs['openalex']),
-                new \Nexus\Search\Infrastructure\Provider\PubMedAdapter($http, $rateLimiter, $configs['pubmed']),
-                new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter($http, $rateLimiter, $configs['semantic_scholar']),
+                new \Nexus\Search\Infrastructure\Provider\ArXivAdapter(
+                    $http, 
+                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['arxiv']->ratePerSecond, $configs['arxiv']->ratePerSecond), 
+                    $configs['arxiv']
+                ),
+                new \Nexus\Search\Infrastructure\Provider\CrossrefAdapter(
+                    $http, 
+                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['crossref']->ratePerSecond, $configs['crossref']->ratePerSecond), 
+                    $configs['crossref']
+                ),
+                new \Nexus\Search\Infrastructure\Provider\DoajAdapter(
+                    $http, 
+                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['doaj']->ratePerSecond, $configs['doaj']->ratePerSecond), 
+                    $configs['doaj']
+                ),
+                new \Nexus\Search\Infrastructure\Provider\IeeeAdapter(
+                    $http, 
+                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['ieee']->ratePerSecond, $configs['ieee']->ratePerSecond), 
+                    $configs['ieee']
+                ),
+                new \Nexus\Search\Infrastructure\Provider\OpenAlexAdapter(
+                    $http, 
+                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['openalex']->ratePerSecond, $configs['openalex']->ratePerSecond), 
+                    $configs['openalex']
+                ),
+                new \Nexus\Search\Infrastructure\Provider\PubMedAdapter(
+                    $http, 
+                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['pubmed']->ratePerSecond, $configs['pubmed']->ratePerSecond), 
+                    $configs['pubmed']
+                ),
+                new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
+                    $http, 
+                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['semantic_scholar']->ratePerSecond, $configs['semantic_scholar']->ratePerSecond), 
+                    $configs['semantic_scholar']
+                ),
             ];
 
             return new SearchAggregator(
