@@ -17,11 +17,10 @@ final class SearchQueryProviderModel extends Model
     protected $casts = [
         'id'              => 'string',
         'search_query_id' => 'string',
-        'result_count'    => 'integer',
-        'latency_ms'      => 'integer',
+        'total_raw'       => 'integer',
+        'total_unique'    => 'integer',
+        'duration_ms'     => 'integer',
         'metadata'        => 'array',
-        'started_at'      => 'datetime',
-        'finished_at'     => 'datetime',
         'created_at'      => 'datetime',
         'updated_at'      => 'datetime',
     ];

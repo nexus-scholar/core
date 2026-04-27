@@ -10,6 +10,7 @@ final class DeduplicateCorpus
 {
     public function __construct(
         public readonly CorpusSlice $corpus,
+        public readonly string      $projectId = 'default-project',
         public readonly array       $policyAliases = [],
         // empty = use all registered policies in default order
     ) {}

@@ -16,6 +16,7 @@ final class SearchQuery
 
     public function __construct(
         public readonly SearchTerm    $term,
+        public readonly string        $projectId      = 'default-project',
         public readonly ?YearRange    $yearRange      = null,
         public readonly ?LanguageCode $language       = null,
         public readonly int           $maxResults     = 100,
@@ -54,6 +55,7 @@ final class SearchQuery
     {
         return new self(
             term:           $this->term,
+            projectId:      $this->projectId,
             yearRange:      $this->yearRange,
             language:       $this->language,
             maxResults:     $this->maxResults,
@@ -67,6 +69,7 @@ final class SearchQuery
     {
         return new self(
             term:           $this->term,
+            projectId:      $this->projectId,
             yearRange:      $this->yearRange,
             language:       $this->language,
             maxResults:     $max,

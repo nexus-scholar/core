@@ -107,7 +107,7 @@ final class DeduplicateCorpusHandler
                 continue;
             }
 
-            $cluster = DedupCluster::startWith($keyMap[$seedKey]);
+            $cluster = DedupCluster::startWith($keyMap[$seedKey], $command->projectId);
 
             // Re-absorb with evidence for each non-seed member
             foreach (array_slice($memberKeys, 1) as $memberKey) {

@@ -14,6 +14,7 @@ use Nexus\CitationNetwork\Domain\CitationGraphType;
 use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Nexus\Shared\ValueObject\WorkId;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 final class EloquentCitationGraphRepository implements CitationGraphRepositoryPort
 {
@@ -28,8 +29,10 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
             $graphRow = CitationGraphModel::updateOrCreate(
                 ['id' => $graph->id->toString()],
                 [
-                    'type'       => $graph->type->value,
+                    'graph_type' => $graph->type->value,
                     'project_id' => $graph->projectId,
+                    'node_count' => $graph->nodeCount(),
+                    'edge_count' => $graph->edgeCount(),
                 ]
             );
 
@@ -39,8 +42,8 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
                 CitationEdgeModel::create([
                     'id'             => (string) Str::uuid(),
                     'graph_id'       => $graphRow->id,
-                    'citing_work_id' => $edge->citing->toString(),
-                    'cited_work_id'  => $edge->cited->toString(),
+                    'citing_work_id' => $edge->citing->value,
+                    'cited_work_id'  => $edge->cited->value,
                     'weight'         => $edge->weight,
                 ]);
             }
@@ -75,10 +78,11 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
     {
         $graph = CitationGraph::withId(
             new CitationGraphId($row->id),
-            CitationGraphType::from($row->type),
+            CitationGraphType::from($row->graph_type),
             $row->project_id
         );
 
+        $works = [];
         // Collect all unique work IDs across both sides of every edge
         $workIdMap = [];
         foreach ($row->edges as $edge) {
@@ -87,7 +91,7 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
         }
 
         if (!empty($workIdMap)) {
-            $workIds = array_map(fn ($idStr) => WorkId::fromString($idStr), array_keys($workIdMap));
+            $workIds = array_map(fn ($idStr) => new WorkId(WorkIdNamespace::INTERNAL, $idStr), array_keys($workIdMap));
             $works = $this->workRepository->findManyByIds($workIds);
 
             foreach ($works as $work) {
@@ -95,12 +99,23 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
             }
         }
 
+        // Create a map from internal ID to work to resolve edges to primary IDs
+        $internalToWork = [];
+        foreach ($works as $work) {
+            $internalId = $work->ids()->findByNamespace(WorkIdNamespace::INTERNAL);
+            if ($internalId) {
+                $internalToWork[$internalId->value] = $work;
+            }
+        }
+
         // Now record edges — nodes must exist for recordCitation to accept them
         foreach ($row->edges as $edgeRow) {
-            $graph->recordCitation(
-                WorkId::fromString($edgeRow->citing_work_id),
-                WorkId::fromString($edgeRow->cited_work_id)
-            );
+            $citingWork = $internalToWork[$edgeRow->citing_work_id] ?? null;
+            $citedWork  = $internalToWork[$edgeRow->cited_work_id] ?? null;
+
+            if ($citingWork && $citedWork) {
+                $graph->recordCitation($citingWork->primaryId(), $citedWork->primaryId());
+            }
         }
 
         return $graph;

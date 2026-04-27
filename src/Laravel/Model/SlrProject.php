@@ -17,6 +17,7 @@ final class SlrProject extends Model
     protected $casts = [
         'id'         => 'string',
         'settings'   => 'array',
+        'metadata'   => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

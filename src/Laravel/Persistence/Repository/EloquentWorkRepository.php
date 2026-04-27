@@ -33,18 +33,18 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
             'providers',
             'authors' => fn ($q) => $q->orderBy('position'),
             'authors.author',
-        ])->find($id->toString());
+        ])->find($id->value);
 
         return $row ? $this->toDomain($row) : null;
     }
 
     /**
      * @param WorkId[] $ids
-     * @return ScholarlyWork[] Keyed by WorkId string
+     * @return ScholarlyWork[] Keyed by WorkId string (toString())
      */
     public function findManyByIds(array $ids): array
     {
-        $idStrings = array_map(fn (WorkId $id) => $id->toString(), $ids);
+        $idStrings = array_map(fn (WorkId $id) => $id->value, $ids);
 
         $rows = EloquentScholarlyWork::with([
             'externalIds',
@@ -56,6 +56,7 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
         $results = [];
         foreach ($rows as $row) {
             $domainWork = $this->toDomain($row);
+            // Must key by toString() to match the port interface contract
             $results[$domainWork->primaryId()->toString()] = $domainWork;
         }
 
@@ -68,8 +69,9 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
      */
     public function save(ScholarlyWork $work): void
     {
-        $workId = $work->primaryId()?->toString() ?? throw new \InvalidArgumentException(
-            'Cannot persist ScholarlyWork without a primary ID.'
+        $internalId = $work->ids()->findByNamespace(\Nexus\Shared\ValueObject\WorkIdNamespace::INTERNAL);
+        $workId = $internalId?->value ?? $work->primaryId()?->value ?? throw new \InvalidArgumentException(
+            'Cannot persist ScholarlyWork without a primary ID or internal database ID.'
         );
 
         // Update or create the main work row
@@ -82,6 +84,7 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
         $row->externalIds()->delete();
         foreach ($work->ids()->all() as $workIdObj) {
             $row->externalIds()->create([
+                'id'         => (string) \Illuminate\Support\Str::uuid(),
                 'namespace'  => $workIdObj->namespace->value,
                 'value'      => $workIdObj->value,
                 'is_primary' => $workIdObj->equals($work->primaryId()),
@@ -92,11 +95,12 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
         $row->authors()->delete();
         foreach ($work->authors()->all() as $i => $author) {
             $authorRow = EloquentAuthor::firstOrCreate(
-                ['full_name' => $author->familyName() . ($author->givenName() ? ', ' . $author->givenName() : '')],
-                ['normalized_name' => mb_strtolower($author->familyName())]
+                ['full_name' => $author->familyName . ($author->givenName ? ', ' . $author->givenName : '')],
+                ['id' => (string) \Illuminate\Support\Str::uuid(), 'normalized_name' => mb_strtolower($author->familyName)]
             );
 
             $row->authors()->create([
+                'id'        => (string) \Illuminate\Support\Str::uuid(),
                 'author_id' => $authorRow->id,
                 'position'  => $i,
                 'is_corresponding' => false,
@@ -113,12 +117,12 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
         return [
             'title'             => $work->title(),
             'abstract'          => $work->abstract(),
-            'year'              => $work->year(),
-            'venue_name'        => $work->venue()?->name(),
-            'venue_issn'        => $work->venue()?->issn(),
-            'venue_type'        => $work->venue()?->type(),
+            'year'              => $work->year() ?? 0,
+            'venue_name'        => $work->venue()?->name,
+            'venue_issn'        => $work->venue()?->issn,
+            'venue_type'        => $work->venue()?->type,
             'language'          => null, // TODO: extract from domain
-            'cited_by_count'    => $work->citedByCount(),
+            'cited_by_count'    => $work->citedByCount() ?? 0,
             'is_retracted'      => $work->isRetracted(),
             'retrieved_at'      => $work->retrievedAt(),
         ];
@@ -131,7 +135,9 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
     private function toDomain(EloquentScholarlyWork $row): ScholarlyWork
     {
         // Reconstruct WorkIdSet from external_ids
-        $ids = WorkIdSet::empty();
+        $ids = WorkIdSet::fromArray([
+            new WorkId(\Nexus\Shared\ValueObject\WorkIdNamespace::INTERNAL, $row->id)
+        ]);
         foreach ($row->externalIds as $idRow) {
             $ids = $ids->add(new WorkId(
                 \Nexus\Shared\ValueObject\WorkIdNamespace::from($idRow->namespace),
@@ -174,4 +180,3 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
         );
     }
 }
-

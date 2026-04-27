@@ -13,4 +13,5 @@ enum WorkIdNamespace: string
     case PUBMED   = 'pubmed';
     case IEEE     = 'ieee';
     case DOAJ     = 'doaj';
+    case INTERNAL = 'internal';
 }

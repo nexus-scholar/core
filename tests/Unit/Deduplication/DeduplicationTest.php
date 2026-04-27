@@ -102,7 +102,7 @@ it('returns_empty_when_all_dois_are_unique', function (): void {
 
 it('starts_with_single_seed_as_representative', function (): void {
     $seed    = makeDeduplicatable('10.x/seed');
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed);
+    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
 
     expect($cluster->size())->toBe(1);
     expect($cluster->representative()->primaryId()?->toString())
@@ -113,7 +113,7 @@ it('absorbs_a_duplicate_work', function (): void {
     $seed  = makeDeduplicatable('10.x/seed');
     $other = makeDeduplicatable('10.x/other');
 
-    $cluster  = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed);
+    $cluster  = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
     $evidence = new \Nexus\Deduplication\Domain\Duplicate(
         primaryId:   $seed->primaryId(),
         secondaryId: $other->primaryId(),
@@ -128,7 +128,7 @@ it('absorbs_a_duplicate_work', function (): void {
 
 it('size_grows_on_absorb', function (): void {
     $seed    = makeDeduplicatable('10.x/a');
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed);
+    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
 
     for ($i = 1; $i <= 3; $i++) {
         $work = makeDeduplicatable("10.x/b{$i}");
@@ -147,7 +147,7 @@ it('size_grows_on_absorb', function (): void {
 it('collects_all_dois_from_all_members', function (): void {
     $seed = makeDeduplicatable('10.x/a');
     $b    = makeDeduplicatable('10.x/b');
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed);
+    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
     $ev = new \Nexus\Deduplication\Domain\Duplicate(
         primaryId:   $seed->primaryId(),
         secondaryId: $b->primaryId(),
@@ -164,7 +164,7 @@ it('elects_most_complete_work_as_representative', function (): void {
     $bare = makeDeduplicatable('10.x/bare', abstract: null);
     $rich = makeDeduplicatable('10.x/rich', abstract: 'Has abstract');
 
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($bare);
+    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($bare, 'test-project');
     $ev = new \Nexus\Deduplication\Domain\Duplicate(
         primaryId:   $bare->primaryId(),
         secondaryId: $rich->primaryId(),

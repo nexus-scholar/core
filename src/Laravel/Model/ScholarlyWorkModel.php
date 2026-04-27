@@ -34,7 +34,7 @@ final class ScholarlyWorkModel extends Model
         return $this->hasMany(WorkExternalIdModel::class, 'work_id');
     }
 
-    public function providerSightings(): HasMany
+    public function providers(): HasMany
     {
         return $this->hasMany(WorkProviderModel::class, 'work_id');
     }
@@ -47,6 +47,11 @@ final class ScholarlyWorkModel extends Model
     public function clusterMemberships(): HasMany
     {
         return $this->hasMany(ClusterMemberModel::class, 'work_id');
+    }
+
+    public function authors(): HasMany
+    {
+        return $this->hasMany(WorkAuthorModel::class, 'work_id');
     }
 
     public function screeningDecisions(): HasMany

@@ -31,14 +31,14 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
                     'project_id'             => $cluster->projectId,
                     'strategy'               => $cluster->strategy,
                     'thresholds'             => $cluster->thresholds,
-                    'representative_work_id' => $cluster->representative()?->primaryId()?->toString(),
+                    'representative_work_id' => $cluster->representative()?->primaryId()?->value,
                     'cluster_size'           => $cluster->size(),
                     'confidence'             => $cluster->confidence,
                 ]
             );
 
             $currentMemberIds = array_map(
-                fn ($m) => $m->primaryId()?->toString(),
+                fn ($m) => $m->primaryId()?->value,
                 $cluster->members()
             );
 
@@ -50,7 +50,7 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
                 ClusterMemberModel::updateOrCreate(
                     [
                         'cluster_id' => $clusterRow->id,
-                        'work_id'    => $member->primaryId()?->toString(),
+                        'work_id'    => $member->primaryId()?->value,
                     ],
                     ['id' => (string) Str::uuid()]
                 );
@@ -85,15 +85,26 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
         $works = [];
         if (!empty($allWorkIds)) {
             $ids = array_map(fn ($idStr) => new WorkId(WorkIdNamespace::INTERNAL, $idStr), array_keys($allWorkIds));
-            $works = $this->workRepository->findManyByIds($ids);
+            $loadedWorks = $this->workRepository->findManyByIds($ids);
+            
+            // Re-key by internal ID to avoid N+1 in toDomain
+            foreach ($loadedWorks as $work) {
+                $internalId = $work->ids()->findByNamespace(WorkIdNamespace::INTERNAL);
+                if ($internalId) {
+                    $works['internal:' . $internalId->value] = $work;
+                }
+            }
         }
 
         $results = [];
         foreach ($rows as $row) {
-            $results[] = $this->toDomain($row, $works);
+            $domain = $this->toDomain($row, $works);
+            if ($domain) {
+                $results[] = $domain;
+            }
         }
 
-        return array_filter($results);
+        return $results;
     }
 
     /**
@@ -101,12 +112,13 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
      */
     private function toDomain(DedupClusterModel $row, array $preloadedWorks = []): ?DedupCluster
     {
-        $repId = $row->representative_work_id;
-        $representative = $repId ? ($preloadedWorks[$repId] ?? $this->workRepository->findById(new WorkId(WorkIdNamespace::INTERNAL, $repId))) : null;
+        $repIdStr = $row->representative_work_id ? 'internal:' . $row->representative_work_id : null;
+        $representative = $repIdStr ? ($preloadedWorks[$repIdStr] ?? $this->workRepository->findById(new WorkId(WorkIdNamespace::INTERNAL, $row->representative_work_id))) : null;
 
         $members = [];
         foreach ($row->members as $memberRow) {
-            $work = $preloadedWorks[$memberRow->work_id] ?? $this->workRepository->findById(new WorkId(WorkIdNamespace::INTERNAL, $memberRow->work_id));
+            $mIdStr = 'internal:' . $memberRow->work_id;
+            $work = $preloadedWorks[$mIdStr] ?? $this->workRepository->findById(new WorkId(WorkIdNamespace::INTERNAL, $memberRow->work_id));
             if ($work) {
                 $members[] = $work;
             }
@@ -118,7 +130,7 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
                 projectId:      $row->project_id,
                 representative: $representative,
                 members:        $members,
-                strategy:       $row->strategy,
+                strategy:       $row->strategy ?? 'default',
                 thresholds:     $row->thresholds ?? [],
                 confidence:     $row->confidence ? (float) $row->confidence : null,
             );

@@ -15,14 +15,14 @@ final class CitationEdgeModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'id'         => 'string',
-        'graph_id'   => 'string',
-        'citing_id'  => 'string',
-        'cited_id'   => 'string',
-        'metadata'   => 'array',
-        'weight'     => 'float',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'id'             => 'string',
+        'graph_id'       => 'string',
+        'citing_work_id' => 'string',
+        'cited_work_id'  => 'string',
+        'metadata'       => 'array',
+        'weight'         => 'float',
+        'created_at'     => 'datetime',
+        'updated_at'     => 'datetime',
     ];
 
     public function graph(): BelongsTo
@@ -32,12 +32,12 @@ final class CitationEdgeModel extends Model
 
     public function citingWork(): BelongsTo
     {
-        return $this->belongsTo(ScholarlyWorkModel::class, 'citing_id');
+        return $this->belongsTo(ScholarlyWorkModel::class, 'citing_work_id');
     }
 
     public function citedWork(): BelongsTo
     {
-        return $this->belongsTo(ScholarlyWorkModel::class, 'cited_id');
+        return $this->belongsTo(ScholarlyWorkModel::class, 'cited_work_id');
     }
 }
 

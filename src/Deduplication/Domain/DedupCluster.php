@@ -54,8 +54,11 @@ final class DedupCluster
         array          $thresholds = [],
         ?float         $confidence = null,
     ): self {
-        // We use a dummy seed if members is empty, but reconstitution should have members
-        $seed = $representative ?? $members[0] ?? throw new \InvalidArgumentException('Cannot reconstitute empty cluster');
+        if ($representative === null && empty($members)) {
+             throw new \InvalidArgumentException('Cannot reconstitute empty cluster');
+        }
+
+        $seed = $representative ?? $members[0];
         
         $cluster = new self($id, $projectId, $seed, $strategy, $thresholds, $confidence);
         $cluster->members = $members;
@@ -71,10 +74,10 @@ final class DedupCluster
      */
     public function absorb(ScholarlyWork $work, Duplicate $evidence): void
     {
-        $incomingKey = $work->primaryId()?->toString() ?? spl_object_hash($work);
+        $incomingKey = $work->primaryId()?->value ?? spl_object_hash($work);
 
         foreach ($this->members as $existing) {
-            $existingKey = $existing->primaryId()?->toString() ?? spl_object_hash($existing);
+            $existingKey = $existing->primaryId()?->value ?? spl_object_hash($existing);
 
             if ($existingKey === $incomingKey) {
                 return; // already absorbed
@@ -85,7 +88,7 @@ final class DedupCluster
         $this->duplicates[] = $evidence;
     }
 
-    public function representative(): ScholarlyWork
+    public function representative(): ?ScholarlyWork
     {
         return $this->representative;
     }
@@ -108,13 +111,17 @@ final class DedupCluster
     /** @return ScholarlyWork[] — excludes the representative */
     public function nonRepresentatives(): array
     {
-        $repKey = $this->representative->primaryId()?->toString()
+        if ($this->representative === null) {
+            return $this->members;
+        }
+
+        $repKey = $this->representative->primaryId()?->value
             ?? spl_object_hash($this->representative);
 
         return array_values(array_filter(
             $this->members,
             function (ScholarlyWork $m) use ($repKey): bool {
-                $key = $m->primaryId()?->toString() ?? spl_object_hash($m);
+                $key = $m->primaryId()?->value ?? spl_object_hash($m);
 
                 return $key !== $repKey;
             }
@@ -134,7 +141,7 @@ final class DedupCluster
 
     public function hasDoi(): bool
     {
-        return $this->representative->ids()->findByNamespace(WorkIdNamespace::DOI) !== null;
+        return $this->representative?->ids()->findByNamespace(WorkIdNamespace::DOI) !== null;
     }
 
     /** @return string[] */

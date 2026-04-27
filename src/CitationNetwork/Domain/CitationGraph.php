@@ -9,7 +9,7 @@ use Nexus\Shared\ValueObject\WorkId;
 
 final class CitationGraph
 {
-    /** @var array<string, ScholarlyWork> key = WorkId::toString() */
+    /** @var array<string, ScholarlyWork> key = bare ID value */
     private array $nodes = [];
     /** @var CitationLink[] */
     private array $edges = [];
@@ -33,7 +33,7 @@ final class CitationGraph
 
     public function addWork(ScholarlyWork $work): void
     {
-        $idStr = $work->primaryId()?->toString();
+        $idStr = $work->primaryId()?->value;
         if ($idStr === null) {
             return;
         }
@@ -46,13 +46,11 @@ final class CitationGraph
     public function recordCitation(WorkId $citing, WorkId $cited): void
     {
         if (!$this->hasWork($citing)) {
-            // In a real implementation we might throw an exception as per spec
-            // but for now we follow the internal logic
             return;
         }
 
         foreach ($this->edges as $edge) {
-            if ($edge->citing->equals($citing) && $edge->cited->equals($cited)) {
+            if ($edge->citing->value === $citing->value && $edge->cited->value === $cited->value) {
                 return;
             }
         }
@@ -62,7 +60,7 @@ final class CitationGraph
 
     public function hasWork(WorkId $id): bool
     {
-        return isset($this->nodes[$id->toString()]);
+        return isset($this->nodes[$id->value]);
     }
 
     public function nodeCount(): int
@@ -89,6 +87,14 @@ final class CitationGraph
 
     public function workByIdString(string $s): ?ScholarlyWork
     {
-        return $this->nodes[$s] ?? null;
+        // Check for bare value or prefixed toString()
+        if (isset($this->nodes[$s])) {
+            return $this->nodes[$s];
+        }
+        if (str_contains($s, ':')) {
+            $bare = explode(':', $s, 2)[1];
+            return $this->nodes[$bare] ?? null;
+        }
+        return null;
     }
 }
