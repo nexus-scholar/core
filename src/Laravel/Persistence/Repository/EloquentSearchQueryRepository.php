@@ -11,6 +11,7 @@ use Nexus\Laravel\Model\QueryWorkModel;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
+use Nexus\Search\Domain\ProviderProgress;
 use Nexus\Shared\ValueObject\LanguageCode;
 use Nexus\Search\Domain\Port\SearchQueryRepositoryPort;
 
@@ -31,9 +32,9 @@ final class EloquentSearchQueryRepository implements SearchQueryRepositoryPort
     }
 
     public function recordProviderProgress(
-        string $searchQueryId,
-        string $providerAlias,
-        array $progressData
+        string           $searchQueryId,
+        string           $providerAlias,
+        ProviderProgress $progress
     ): void {
         SearchQueryProviderModel::updateOrCreate(
             [
@@ -42,7 +43,7 @@ final class EloquentSearchQueryRepository implements SearchQueryRepositoryPort
             ],
             array_merge(
                 ['id' => (string) Str::uuid()],
-                $progressData
+                $progress->toArray()
             )
         );
     }

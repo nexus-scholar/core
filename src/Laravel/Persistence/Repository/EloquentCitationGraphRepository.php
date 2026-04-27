@@ -14,7 +14,6 @@ use Nexus\CitationNetwork\Domain\CitationGraphType;
 use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Nexus\Shared\ValueObject\WorkId;
-use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 final class EloquentCitationGraphRepository implements CitationGraphRepositoryPort
 {
@@ -29,8 +28,8 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
             $graphRow = CitationGraphModel::updateOrCreate(
                 ['id' => $graph->id->toString()],
                 [
-                    'type' => $graph->type->value,
-                    // 'project_id' => ... // TODO: how to get project_id from graph?
+                    'type'       => $graph->type->value,
+                    'project_id' => $graph->projectId,
                 ]
             );
 
@@ -38,11 +37,11 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
 
             foreach ($graph->allEdges() as $edge) {
                 CitationEdgeModel::create([
-                    'id'       => (string) Str::uuid(),
-                    'graph_id' => $graphRow->id,
+                    'id'             => (string) Str::uuid(),
+                    'graph_id'       => $graphRow->id,
                     'citing_work_id' => $edge->citing->toString(),
                     'cited_work_id'  => $edge->cited->toString(),
-                    'weight'   => $edge->weight,
+                    'weight'         => $edge->weight,
                 ]);
             }
         });
@@ -61,7 +60,7 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
     /** @return CitationGraph[] */
     public function findByProjectId(string $projectId): array
     {
-        return CitationGraphModel::where('project_id', $projectId)
+        return CitationGraphModel::with('edges')->where('project_id', $projectId)
             ->get()
             ->map(fn ($row) => $this->toDomain($row))
             ->all();
@@ -76,24 +75,32 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
     {
         $graph = CitationGraph::withId(
             new CitationGraphId($row->id),
-            CitationGraphType::from($row->type)
+            CitationGraphType::from($row->type),
+            $row->project_id
         );
 
-        // This is tricky because CitationGraph holds ScholarlyWork nodes.
-        // We might need to fetch them if we want a fully hydrated graph.
-        // For now, let's at least add the nodes we know about from edges.
-        
-        foreach ($row->edges as $edgeRow) {
-            $citingId = WorkId::fromString($edgeRow->citing_work_id);
-            $citedId  = WorkId::fromString($edgeRow->cited_work_id);
-            
-            // If the work is in our DB, we can load it.
-            $citingWork = $this->workRepository->findById($citingId);
-            if ($citingWork) {
-                $graph->addWork($citingWork);
+        // Collect all unique work IDs across both sides of every edge
+        $workIdMap = [];
+        foreach ($row->edges as $edge) {
+            $workIdMap[$edge->citing_work_id] = true;
+            $workIdMap[$edge->cited_work_id]  = true;
+        }
+
+        if (!empty($workIdMap)) {
+            $workIds = array_map(fn ($idStr) => WorkId::fromString($idStr), array_keys($workIdMap));
+            $works = $this->workRepository->findManyByIds($workIds);
+
+            foreach ($works as $work) {
+                $graph->addWork($work);
             }
-            
-            $graph->recordCitation($citingId, $citedId);
+        }
+
+        // Now record edges — nodes must exist for recordCitation to accept them
+        foreach ($row->edges as $edgeRow) {
+            $graph->recordCitation(
+                WorkId::fromString($edgeRow->citing_work_id),
+                WorkId::fromString($edgeRow->cited_work_id)
+            );
         }
 
         return $graph;

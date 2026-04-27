@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Search\Domain\Port;
 
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Domain\ProviderProgress;
 
 interface SearchQueryRepositoryPort
 {
@@ -12,9 +13,9 @@ interface SearchQueryRepositoryPort
     public function save(SearchQuery $query): void;
 
     public function recordProviderProgress(
-        string $searchQueryId,
-        string $providerAlias,
-        array $progressData
+        string           $searchQueryId,
+        string           $providerAlias,
+        ProviderProgress $progress
     ): void;
 
     public function linkWorkToQuery(

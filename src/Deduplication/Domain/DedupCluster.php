@@ -25,28 +25,39 @@ final class DedupCluster
     /** @var Duplicate[] */
     private array $duplicates = [];
 
-    private ScholarlyWork $representative;
+    private ?ScholarlyWork $representative;
 
     private function __construct(
         public readonly DedupClusterId $id,
-        ScholarlyWork $seed,
+        public readonly string         $projectId,
+        ScholarlyWork                  $seed,
+        public readonly string         $strategy = 'default',
+        public readonly array          $thresholds = [],
+        public readonly ?float         $confidence = null,
     ) {
         $this->members[]     = $seed;
         $this->representative = $seed;
     }
 
-    public static function startWith(ScholarlyWork $seed): self
+    public static function startWith(ScholarlyWork $seed, string $projectId): self
     {
-        return new self(DedupClusterId::generate(), $seed);
+        return new self(id: DedupClusterId::generate(), projectId: $projectId, seed: $seed);
     }
 
     public static function reconstitute(
         DedupClusterId $id,
-        ScholarlyWork $representative,
-        array $members,
-        array $duplicates = []
+        string         $projectId,
+        ?ScholarlyWork $representative,
+        array          $members,
+        array          $duplicates = [],
+        string         $strategy = 'default',
+        array          $thresholds = [],
+        ?float         $confidence = null,
     ): self {
-        $cluster = new self($id, $representative);
+        // We use a dummy seed if members is empty, but reconstitution should have members
+        $seed = $representative ?? $members[0] ?? throw new \InvalidArgumentException('Cannot reconstitute empty cluster');
+        
+        $cluster = new self($id, $projectId, $seed, $strategy, $thresholds, $confidence);
         $cluster->members = $members;
         $cluster->duplicates = $duplicates;
         $cluster->representative = $representative;

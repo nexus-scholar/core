@@ -3,3 +3,4 @@
 /output
 coverage/
 tmp/
+.phpunit.result.cache

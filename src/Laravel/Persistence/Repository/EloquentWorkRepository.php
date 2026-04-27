@@ -39,6 +39,30 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
     }
 
     /**
+     * @param WorkId[] $ids
+     * @return ScholarlyWork[] Keyed by WorkId string
+     */
+    public function findManyByIds(array $ids): array
+    {
+        $idStrings = array_map(fn (WorkId $id) => $id->toString(), $ids);
+
+        $rows = EloquentScholarlyWork::with([
+            'externalIds',
+            'providers',
+            'authors' => fn ($q) => $q->orderBy('position'),
+            'authors.author',
+        ])->whereIn('id', $idStrings)->get();
+
+        $results = [];
+        foreach ($rows as $row) {
+            $domainWork = $this->toDomain($row);
+            $results[$domainWork->primaryId()->toString()] = $domainWork;
+        }
+
+        return $results;
+    }
+
+    /**
      * Save (create or update) a ScholarlyWork and all its related data atomically.
      * Performs insertOrUpdate on the work row, then re-syncs all external IDs and authors.
      */

@@ -17,17 +17,18 @@ final class CitationGraph
     private function __construct(
         public readonly CitationGraphId   $id,
         public readonly CitationGraphType $type,
+        public readonly string            $projectId,
     ) {
     }
 
-    public static function create(CitationGraphType $type): self
+    public static function create(CitationGraphType $type, string $projectId): self
     {
-        return new self(CitationGraphId::generate(), $type);
+        return new self(CitationGraphId::generate(), $type, $projectId);
     }
 
-    public static function withId(CitationGraphId $id, CitationGraphType $type): self
+    public static function withId(CitationGraphId $id, CitationGraphType $type, string $projectId): self
     {
-        return new self($id, $type);
+        return new self($id, $type, $projectId);
     }
 
     public function addWork(ScholarlyWork $work): void
