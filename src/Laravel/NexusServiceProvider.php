@@ -63,6 +63,20 @@ final class NexusServiceProvider extends ServiceProvider
 
         $this->app->singleton(DeduplicationPort::class, DeduplicationAdapter::class);
 
+        // Persistence repositories
+        $this->app->singleton(
+            \Nexus\Laravel\Persistence\Repository\EloquentSearchQueryRepository::class
+        );
+        $this->app->singleton(
+            \Nexus\Laravel\Persistence\Repository\EloquentDedupClusterRepository::class
+        );
+        $this->app->singleton(
+            \Nexus\Laravel\Persistence\Repository\EloquentCitationGraphRepository::class
+        );
+        $this->app->singleton(
+            \Nexus\Laravel\Persistence\Repository\EloquentWorkRepository::class
+        );
+
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
             $configs     = $app->make('nexus.provider_configs');
