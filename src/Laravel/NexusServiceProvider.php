@@ -28,7 +28,9 @@ final class NexusServiceProvider extends ServiceProvider
 
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
 
-        $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, \Nexus\Search\Infrastructure\Cache\NullSearchCache::class);
+        $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, function ($app) {
+            return new \Nexus\Search\Infrastructure\Cache\LaravelSearchCache($app['cache.store']);
+        });
 
         $this->app->singleton('nexus.provider_configs', function ($app) {
             $config = $app['config']->get('nexus');
