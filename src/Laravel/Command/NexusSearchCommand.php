@@ -6,104 +6,205 @@ namespace Nexus\Laravel\Command;
 
 use Illuminate\Console\Command;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
+use Symfony\Component\Yaml\Yaml;
 
 final class NexusSearchCommand extends Command
 {
-    protected $signature = 'nexus:search {query : The search term}
-                            {--max=50 : Maximum number of results to fetch per provider}
-                            {--from-year= : Start year for publication date filter}
-                            {--to-year= : End year for publication date filter}';
+    protected $signature = 'nexus:search
+                            {query? : Inline search term}
+                            {--file= : Path to a queries.yml file — runs all queries sequentially}
+                            {--max=50 : Maximum results per provider (overrides YAML value)}
+                            {--from-year= : Start year filter (inline mode only)}
+                            {--to-year= : End year filter (inline mode only)}
+                            {--priority= : Only run queries with this priority (file mode only)}
+                            {--only= : Comma-separated query IDs to run (file mode only)}';
 
     protected $description = 'Perform a concurrent literature search across all active providers';
 
     public function handle(SearchAggregatorPort $aggregator): int
     {
-        $termText = $this->argument('query');
-        $maxStr   = $this->option('max');
-        $fromStr  = $this->option('from-year');
-        $toStr    = $this->option('to-year');
+        $file = $this->option('file');
 
-        $this->info("Starting Nexus scholarly search for: '{$termText}'...");
+        if ($file !== null) {
+            return $this->runFile($aggregator, $file);
+        }
 
+        $queryText = $this->argument('query');
+        if (empty($queryText)) {
+            $this->error('Provide either a query argument or --file=path/to/queries.yml');
+            return self::FAILURE;
+        }
+
+        return $this->runSingle($aggregator, [
+            'id'          => 'inline',
+            'text'        => $queryText,
+            'year_min'    => $this->option('from-year') ? (int) $this->option('from-year') : null,
+            'year_max'    => $this->option('to-year')   ? (int) $this->option('to-year')   : null,
+            'max_results' => (int) $this->option('max'),
+            'metadata'    => ['theme' => 'inline', 'priority' => 'high'],
+        ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function runFile(SearchAggregatorPort $aggregator, string $path): int
+    {
+        if (!file_exists($path)) {
+            $this->error("File not found: {$path}");
+            return self::FAILURE;
+        }
+
+        $yaml    = Yaml::parseFile($path);
+        $queries = $yaml['queries'] ?? [];
+
+        // --only filter
+        if ($only = $this->option('only')) {
+            $ids     = explode(',', $only);
+            $queries = array_values(array_filter(
+                $queries,
+                fn ($q) => in_array($q['id'], $ids, true)
+            ));
+        }
+
+        // --priority filter
+        if ($priority = $this->option('priority')) {
+            $queries = array_values(array_filter(
+                $queries,
+                fn ($q) => ($q['metadata']['priority'] ?? '') === $priority
+            ));
+        }
+
+        if (empty($queries)) {
+            $this->warn('No queries matched the given filters.');
+            return self::SUCCESS;
+        }
+
+        $this->info(sprintf(
+            'Running %d quer%s from %s (project: %s)',
+            count($queries),
+            count($queries) === 1 ? 'y' : 'ies',
+            basename($path),
+            $yaml['project'] ?? 'unknown'
+        ));
+        $this->newLine();
+
+        $summary  = [];
+        $failures = 0;
+
+        foreach ($queries as $i => $q) {
+            $this->line(sprintf(
+                '<fg=cyan>[%d/%d]</> <options=bold>%s</> — %s',
+                $i + 1,
+                count($queries),
+                $q['id'],
+                $q['metadata']['theme'] ?? ''
+            ));
+
+            // --max overrides YAML per-query value
+            if ($this->option('max') !== '50') {
+                $q['max_results'] = (int) $this->option('max');
+            }
+
+            $exitCode  = $this->runSingle($aggregator, $q);
+            $failures += $exitCode !== self::SUCCESS ? 1 : 0;
+
+            $summary[] = ['id' => $q['id'], 'exit' => $exitCode];
+
+            if ($i < count($queries) - 1) {
+                sleep(1);
+            }
+        }
+
+        $this->newLine();
+        $this->info('Batch complete.');
+        $this->line(sprintf(
+            'Queries: %d  |  Failures: %d',
+            count($queries),
+            $failures
+        ));
+
+        return $failures > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function runSingle(SearchAggregatorPort $aggregator, array $q): int
+    {
         $yearRange = null;
-        if ($fromStr !== null || $toStr !== null) {
-            $from = $fromStr ? (int) $fromStr : null;
-            $to   = $toStr ? (int) $toStr : null;
-            $yearRange = new YearRange($from, $to);
-            $this->line("Filtering by year: " . ($from ?? '*') . " to " . ($to ?? '*'));
+        if (($q['year_min'] ?? null) !== null || ($q['year_max'] ?? null) !== null) {
+            $yearRange = new YearRange(
+                $q['year_min'] ?? null,
+                $q['year_max'] ?? null
+            );
         }
 
         $query = new SearchQuery(
-            term:       new SearchTerm($termText),
-            maxResults: (int) $maxStr,
+            term:       new SearchTerm(trim((string) $q['text'])),
+            maxResults: $q['max_results'] ?? 50,
             yearRange:  $yearRange,
         );
 
-        $this->output->write("Querying providers... ");
-        
-        $start = microtime(true);
-        $result = $aggregator->aggregate($query);
-        $elapsed = round((microtime(true) - $start) * 1000);
-        
-        $this->output->writeln("Done in {$elapsed}ms");
+        $this->output->write('  Querying providers… ');
 
-        // Print provider stats
-        $this->newLine();
-        $this->info("Provider Statistics:");
+        $start   = microtime(true);
+        $result  = $aggregator->aggregate($query);
+        $elapsed = round((microtime(true) - $start) * 1000);
+
+        $this->output->writeln("done in {$elapsed}ms");
+
+        // Provider stats table
         $statRows = [];
         foreach ($result->providerStats as $stat) {
-            $status = $stat->skipReason === null ? 'Success' : 'Failed/Skipped';
             $statRows[] = [
                 $stat->alias,
                 $stat->resultCount,
                 $stat->latencyMs . 'ms',
-                $status,
-                $stat->skipReason ?? '-',
+                $stat->skipReason === null ? '<fg=green>OK</>' : '<fg=red>Failed</>',
+                $stat->skipReason ?? '—',
             ];
         }
         $this->table(['Provider', 'Results', 'Latency', 'Status', 'Message'], $statRows);
 
-        // Print Corpus Summary
-        $this->newLine();
-        $this->info("Deduplication Summary:");
-        $this->line("Total raw works retrieved: <comment>{$result->totalRaw}</comment>");
-        $this->line("Total unique works after deduplication: <comment>{$result->corpus->count()}</comment>");
+        // Dedup summary
+        $this->line(sprintf(
+            '  Raw: <comment>%d</comment>  →  Unique: <comment>%d</comment>',
+            $result->totalRaw,
+            $result->corpus->count()
+        ));
 
         if ($result->corpus->isEmpty()) {
-            $this->warn("No results found.");
+            $this->warn('  No results.');
+            $this->newLine();
             return self::SUCCESS;
         }
 
-        // Print final top works
-        $this->newLine();
-        $this->info("Top Deduplicated Works (Sorted by Citation Count):");
-        
-        $sortedCorpus = $result->corpus->sortByCitedByCount();
-        
-        $workRows = [];
-        $displayLimit = min($sortedCorpus->count(), 15);
-        $works = array_slice($sortedCorpus->all(), 0, $displayLimit);
+        // Top works
+        $sorted = $result->corpus->sortByCitedByCount();
+        $works  = array_slice($sorted->all(), 0, 15);
 
+        $workRows = [];
         foreach ($works as $work) {
+            $title      = $work->title();
             $workRows[] = [
-                substr($work->title(), 0, 50) . (strlen($work->title()) > 50 ? '...' : ''),
-                $work->year() ?? '-',
-                $work->citedByCount() ?? '-',
+                mb_substr($title, 0, 48) . (mb_strlen($title) > 48 ? '…' : ''),
+                $work->year()         ?? '—',
+                $work->citedByCount() ?? '—',
                 $work->sourceProvider(),
-                $work->primaryId() ? $work->primaryId()->namespace->value . ':' . $work->primaryId()->value : 'None',
+                $work->primaryId()
+                    ? $work->primaryId()->namespace->value . ':' . $work->primaryId()->value
+                    : 'none',
             ];
         }
+        $this->table(['Title', 'Year', 'Cites', 'Provider', 'Primary ID'], $workRows);
 
-        $this->table(['Title', 'Year', 'Citations', 'Primary Provider', 'Primary ID'], $workRows);
-
-        if ($sortedCorpus->count() > $displayLimit) {
-            $this->line("... and " . ($sortedCorpus->count() - $displayLimit) . " more works.");
+        if ($sorted->count() > 15) {
+            $this->line('  … and ' . ($sorted->count() - 15) . ' more works.');
         }
 
+        $this->newLine();
         return self::SUCCESS;
     }
 }
