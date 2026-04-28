@@ -36,14 +36,31 @@ final class SearchAggregator implements SearchAggregatorPort
 
         // 1. Check cache
         $cached = $this->cache->get($cacheKey);
-        if ($cached !== null) {
-            // Cache stores post-deduplication works only; fromWorksUnsafe is safe here.
-            $corpus = CorpusSlice::fromWorksUnsafe(...$cached);
+        if ($cached !== null && is_array($cached)) {
+            $worksData = $cached['works'] ?? [];
+            $statsData = $cached['stats'] ?? [];
+            
+            $works = array_map(
+                fn (array $d) => \Nexus\Search\Application\Dto\ScholarlyWorkDto::toDomain($d), 
+                $worksData
+            );
+            
+            $corpus = CorpusSlice::fromWorksUnsafe(...$works);
+            
+            // Restore stats
+            $stats = array_map(function (array $s) {
+                return new ProviderStat(
+                    $s['alias'],
+                    $s['count'],
+                    $s['ms'],
+                    $s['error'] ?? null
+                );
+            }, $statsData);
             
             return new AggregatedResult(
                 corpus:        $corpus,
-                providerStats: [], // Cache hit means no fresh stats
-                totalRaw:      $corpus->count(),
+                providerStats: $stats,
+                totalRaw:      $cached['total_raw'] ?? $corpus->count(),
                 fromCache:     true,
                 durationMs:    $this->elapsedMs($startTime),
             );
@@ -113,8 +130,19 @@ final class SearchAggregator implements SearchAggregatorPort
         $rawCorpus = CorpusSlice::fromWorksUnsafe(...$allWorks);
         $deduped   = $this->deduplication->deduplicate($rawCorpus);
 
-        // 4. Cache raw array form
-        $this->cache->put($cacheKey, $deduped->all(), $this->cacheTtl);
+        // 4. Cache normalized form with stats
+        $cachePayload = [
+            'works'     => array_map(fn ($w) => \Nexus\Search\Application\Dto\ScholarlyWorkDto::fromDomain($w), $deduped->all()),
+            'stats'     => array_map(fn ($s) => [
+                'alias' => $s->alias,
+                'count' => $s->resultCount,
+                'ms'    => $s->latencyMs,
+                'error' => $s->skipReason,
+            ], $stats),
+            'total_raw' => count($allWorks),
+        ];
+
+        $this->cache->put($cacheKey, $cachePayload, $this->cacheTtl);
 
         return new AggregatedResult(
             corpus:        $deduped,

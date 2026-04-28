@@ -43,7 +43,10 @@ final class IeeeAdapter extends BaseProviderAdapter
     public function search(SearchQuery $query): array
     {
         if ($this->config->apiKey === null) {
-            return []; // IEEE requires an API key
+            throw new \Nexus\Search\Domain\Exception\ProviderUnavailable(
+                $this->alias(),
+                'IEEE API key is missing. Results cannot be retrieved.'
+            );
         }
 
         $params = array_merge(
@@ -83,7 +86,12 @@ final class IeeeAdapter extends BaseProviderAdapter
     public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
     {
         if ($this->config->apiKey === null) {
-            return new \GuzzleHttp\Promise\FulfilledPromise([]); // IEEE requires an API key
+            return new \GuzzleHttp\Promise\RejectedPromise(
+                new \Nexus\Search\Domain\Exception\ProviderUnavailable(
+                    $this->alias(),
+                    'IEEE API key is missing. Results cannot be retrieved.'
+                )
+            );
         }
 
         $params = array_merge(
@@ -124,7 +132,10 @@ final class IeeeAdapter extends BaseProviderAdapter
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         if ($this->config->apiKey === null) {
-            return null;
+            throw new \Nexus\Search\Domain\Exception\ProviderUnavailable(
+                $this->alias(),
+                'IEEE API key is missing.'
+            );
         }
 
         if ($id->namespace === WorkIdNamespace::DOI) {

@@ -13,3 +13,20 @@
 #10 C:/Users/mouadh/Desktop/projects/nexus-scholarly/test_cmd.php(5): Orchestra/Testbench/Foundation/Application::create()
 #11 {main}
 "} 
+[2026-04-27 16:59:23] workbench.ERROR: The C:\Users\mouadh\Desktop\projects\nexus-scholarly\bootstrap\cache directory must be present and writable. {"exception":"[object] (Exception(code: 0): The C:\\Users\\mouadh\\Desktop\\projects\\nexus-scholarly\\bootstrap\\cache directory must be present and writable. at C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:179)
+[stacktrace]
+#0 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Foundation/PackageManifest.php(158): Illuminate/Foundation/PackageManifest->write()
+#1 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(132): Orchestra/Testbench/Foundation/PackageManifest->write()
+#2 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(108): Illuminate/Foundation/PackageManifest->build()
+#3 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Foundation/PackageManifest.php(103): Illuminate/Foundation/PackageManifest->getManifest()
+#4 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(90): Orchestra/Testbench/Foundation/PackageManifest->getManifest()
+#5 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php(79): Illuminate/Foundation/PackageManifest->config()
+#6 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/RegisterFacades.php(26): Illuminate/Foundation/PackageManifest->aliases()
+#7 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Concerns/CreatesApplication.php(532): Illuminate/Foundation/Bootstrap/RegisterFacades->bootstrap()
+#8 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Concerns/CreatesApplication.php(287): Orchestra/Testbench/Foundation/Application->resolveApplicationBootstrappers()
+#9 C:/Users/mouadh/Desktop/projects/nexus-scholarly/vendor/orchestra/testbench-core/src/Foundation/Application.php(198): Orchestra/Testbench/Foundation/Application->createApplication()
+#10 C:/Users/mouadh/Desktop/projects/nexus-scholarly/test_cmd_batch.php(110): Orchestra/Testbench/Foundation/Application::create()
+#11 {main}
+"} 
+[2026-04-27 17:04:51] workbench.WARNING: Aggregator skipped crossref {"reason":"Provider \"http\" is unavailable: cURL error 6: Could not resolve host: api.crossref.org (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for https://api.crossref.org/works?query=%28%22weakly%20supervised%22%20OR%20%22box-supervised%22%20OR%20%22box%20supervised%22%29%20AND%20%22instance%20segmentation%22%20AND%20%28agriculture%20OR%20plant%20OR%20crop%20OR%20tomato%20OR%20fruit%29&mailto=admin%40example.com&rows=50&offset=0&filter=from-pub-date%3A2024%2Cuntil-pub-date%3A2026"} 
+[2026-04-27 17:04:56] workbench.WARNING: Aggregator skipped crossref {"reason":"Provider \"http\" is unavailable: cURL error 6: Could not resolve host: api.crossref.org (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for https://api.crossref.org/works?query=%28%22pseudo-label%22%20OR%20%22pseudo%20label%22%29%20AND%20segmentation%20AND%20%28agriculture%20OR%20plant%20OR%20greenhouse%20OR%20tomato%20OR%20crop%29&mailto=admin%40example.com&rows=50&offset=0&filter=from-pub-date%3A2024%2Cuntil-pub-date%3A2026"} 

@@ -24,12 +24,12 @@ final class NexusSearchCommand extends Command
 
     protected $description = 'Perform a concurrent literature search across all active providers';
 
-    public function handle(SearchAggregatorPort $aggregator): int
+    public function handle(\Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler $handler): int
     {
         $file = $this->option('file');
 
         if ($file !== null) {
-            return $this->runFile($aggregator, $file);
+            return $this->runFile($handler, $file);
         }
 
         $queryText = $this->argument('query');
@@ -38,7 +38,7 @@ final class NexusSearchCommand extends Command
             return self::FAILURE;
         }
 
-        return $this->runSingle($aggregator, [
+        return $this->runSingle($handler, [
             'id'          => 'inline',
             'text'        => $queryText,
             'year_min'    => $this->option('from-year') ? (int) $this->option('from-year') : null,
@@ -50,7 +50,7 @@ final class NexusSearchCommand extends Command
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function runFile(SearchAggregatorPort $aggregator, string $path): int
+    private function runFile(\Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler $handler, string $path): int
     {
         if (!file_exists($path)) {
             $this->error("File not found: {$path}");
@@ -108,7 +108,7 @@ final class NexusSearchCommand extends Command
                 $q['max_results'] = (int) $this->option('max');
             }
 
-            $exitCode  = $this->runSingle($aggregator, $q);
+            $exitCode  = $this->runSingle($handler, $q);
             $failures += $exitCode !== self::SUCCESS ? 1 : 0;
 
             $summary[] = ['id' => $q['id'], 'exit' => $exitCode];
@@ -131,29 +131,22 @@ final class NexusSearchCommand extends Command
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function runSingle(SearchAggregatorPort $aggregator, array $q): int
+    private function runSingle(\Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler $handler, array $q): int
     {
-        $yearRange = null;
-        if (($q['year_min'] ?? null) !== null || ($q['year_max'] ?? null) !== null) {
-            $yearRange = new YearRange(
-                $q['year_min'] ?? null,
-                $q['year_max'] ?? null
-            );
-        }
-
-        $query = new SearchQuery(
-            term:       new SearchTerm(trim((string) $q['text'])),
+        $command = new \Nexus\Search\Application\UseCase\SearchAcrossProviders(
+            query:      trim((string) $q['text']),
             maxResults: $q['max_results'] ?? 50,
-            yearRange:  $yearRange,
+            yearFrom:   $q['year_min'] ?? null,
+            yearTo:     $q['year_max'] ?? null,
         );
 
         $this->output->write('  Querying providers… ');
 
         $start   = microtime(true);
-        $result  = $aggregator->aggregate($query);
+        $result  = $handler->handle($command);
         $elapsed = round((microtime(true) - $start) * 1000);
 
-        $this->output->writeln("done in {$elapsed}ms");
+        $this->output->writeln("done in {$elapsed}ms" . ($result->fromCache ? ' (cached)' : ''));
 
         // Provider stats table
         $statRows = [];

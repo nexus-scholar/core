@@ -1,0 +1,63 @@
+════════════════════════════════════════════════════════════════════════
+  NEXUS SCHOLARLY — BATCH RUN
+  Project : tomatomap_slr
+  Queries : 1 / 14
+  Mode    : LIVE
+  Log     : C:\Users\mouadh\Desktop\projects\nexus-scholarly/storage/run_20260427_185948.log
+  Started : 2026-04-27 18:59:48
+════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
+  [1/1] AG_SAM01 — foundation_models
+  Priority : high
+  Years    : 2024 – 2026  |  max=5
+  Term     : "Segment Anything" AND (agriculture OR "plant phenotyping" OR greenhouse OR tomato OR fruit OR leaf OR crop)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 3172ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 5       | 1966ms  | OK     | —       |
+| crossref         | 5       | 2515ms  | OK     | —       |
+| doaj             | 5       | 850ms   | OK     | —       |
+| ieee             | 0       | 3ms     | OK     | —       |
+| openalex         | 5       | 2132ms  | OK     | —       |
+| pubmed           | 5       | 1782ms  | OK     | —       |
+| semantic_scholar | 5       | 3066ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 30  →  Unique: 27
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                           |
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+| Leaf only SAM: A segment anything pipeline for z… | 2024 | 43    | openalex         | doi:10.1016/j.atech.2024.100515      |
+| Evaluating the Efficacy of Segment Anything Mode… | 2024 | 42    | openalex         | doi:10.3390/rs16020414               |
+| Tea leaf disease detection using segment anythin… | 2024 | 33    | openalex         | doi:10.1016/j.rineng.2024.103784     |
+| A Multispectral Remote Sensing Crop Segmentation… | 2024 | 27    | openalex         | doi:10.1109/tgrs.2024.3411398        |
+| Enhancing Crop Mapping through Automated Sample … | 2024 | 25    | openalex         | doi:10.3390/rs16091505               |
+| LEAF-Net: A Unified Framework for Leaf Extractio… | 2025 | 22    | crossref         | doi:10.3390/agriculture15020196      |
+| EMSAM: enhanced multi-scale segment anything mod… | 2025 | 6     | crossref         | doi:10.3389/fpls.2025.1564079        |
+| Visual-language transformer-based tomato leaf di… | 2025 | 3     | crossref         | doi:10.1186/s13007-025-01456-8       |
+| Promptable Leaf Segmentation in Plant Phenotypin… | 2024 | 2     | semantic_scholar | doi:10.1109/m2vip62491.2024.10745998 |
+| BeeSAM2: detecting bees in cherry flowers using … | 2025 | 1     | semantic_scholar | doi:10.1101/2025.08.01.668108        |
+| Object-Centric 3D Gaussian Splatting for Strawbe… | 2025 | 1     | semantic_scholar | doi:10.48550/arxiv.2511.02207        |
+| A SAM-based Solution for Hierarchical Panoptic S… | 2023 | —     | arxiv            | arxiv:2309.13578                     |
+| Investigating the Segment Anything Foundation Mo… | 2024 | —     | arxiv            | arxiv:2407.01846                     |
+| Can SAM recognize crops? Quantifying the zero-sh… | 2023 | —     | arxiv            | arxiv:2311.15138                     |
+| IPENS: Interactive unsupervised framework for ra… | 2025 | —     | pubmed           | doi:10.1016/j.plaphe.2025.100106     |
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+  … and 12 more works.
+
+  ⏱  Completed in 3398ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  BATCH SUMMARY
+════════════════════════════════════════════════════════════════════════
+  ID           Theme                            Priority    Raw Unique Time(ms)   OK?
+  ──────────────────────────────────────────────────────────────────────
+  AG_SAM01     foundation_models                high          ?      ?     3398   ✓
+  ──────────────────────────────────────────────────────────────────────
+  TOTAL                                                       0      0
+
+  Failures: 0 / 1
+  Finished: 2026-04-27 16:59:52
+════════════════════════════════════════════════════════════════════════

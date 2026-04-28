@@ -1,0 +1,23 @@
+════════════════════════════════════════════════════════════════════════
+  NEXUS SCHOLARLY — BATCH RUN
+  Project : tomatomap_slr
+  Queries : 14 / 14
+  Mode    : DRY-RUN (no network calls)
+  Log     : C:\Users\mouadh\Desktop\projects\nexus-scholarly/storage/run_20260427_185904.log
+  Started : 2026-04-27 18:59:04
+════════════════════════════════════════════════════════════════════════
+
+[DRY-RUN] Would run: AG_WS01 | "("weakly supervised" OR "box-supervised" OR "box supervised"" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_WS02 | "("pseudo-label" OR "pseudo label") AND segmentation AND (agr" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_SAM01 | ""Segment Anything" AND (agriculture OR "plant phenotyping" O" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_SAM02 | "("SAM" OR "SAM 2") AND "pseudo-label" AND (plant OR agricult" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_SOD01 | "("Slicing Aided Hyper Inference" OR "SAHI") AND (agriculture" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_SOD02 | ""small object detection" AND (fruit OR tomato OR flower OR b" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_AL01 | ""active learning" AND (annotation OR labeling OR "instance s" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_BENCH01 | "tomato AND (dataset OR benchmark) AND ("instance segmentatio" | 2024-2026 | max=50
+[DRY-RUN] Would run: AG_BENCH02 | ""plant phenotyping" AND (dataset OR benchmark) AND ("instanc" | 2024-2026 | max=50
+[DRY-RUN] Would run: TR_WS01 | ""box-supervised instance segmentation" OR "mask auto-labelin" | 2024-2026 | max=50
+[DRY-RUN] Would run: TR_WS02 | "("teacher-student" OR "mean teacher") AND segmentation AND "" | 2024-2026 | max=50
+[DRY-RUN] Would run: TR_SAM01 | ""Segment Anything" AND ("pseudo-label" OR "auto-label" OR "m" | 2024-2026 | max=50
+[DRY-RUN] Would run: TR_SOD01 | "("Slicing Aided Hyper Inference" OR "SAHI" OR "Normalized Wa" | 2024-2026 | max=50
+[DRY-RUN] Would run: TR_AL01 | ""active learning" AND ("instance segmentation" OR "object de" | 2024-2026 | max=50

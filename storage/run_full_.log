@@ -1,0 +1,183 @@
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  NEXUS SCHOLARLY ΓÇö BATCH RUN
+  Project : tomatomap_slr
+  Queries : 14 / 14
+  Mode    : LIVE
+  Log     : C:\Users\mouadh\Desktop\projects\nexus-scholarly/storage/run_20260427_190606.log
+  Started : 2026-04-27 19:06:06
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  [1/14] AG_WS01 ΓÇö weakly_supervised_segmentation
+  Priority : high
+  Years    : 2024 ΓÇô 2026  |  max=50
+  Term     : ("weakly supervised" OR "box-supervised" OR "box supervised") AND "instance segmentation" AND (agriculture OR plant OR crop OR tomato OR fruit)
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  Querying providersΓÇª done in 4089ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 3       | 471ms   | OK     | ΓÇö       |
+| crossref         | 50      | 3906ms  | OK     | ΓÇö       |
+| doaj             | 23      | 416ms   | OK     | ΓÇö       |
+| ieee             | 0       | 3ms     | OK     | ΓÇö       |
+| openalex         | 50      | 2407ms  | OK     | ΓÇö       |
+| pubmed           | 3       | 1461ms  | OK     | ΓÇö       |
+| semantic_scholar | 3       | 977ms   | OK     | ΓÇö       |
++------------------+---------+---------+--------+---------+
+  Raw: 132  ΓåÆ  Unique: 113
++---------------------------------------------------+------+-------+----------+----------------------------------+
+| Title                                             | Year | Cites | Provider | Primary ID                       |
++---------------------------------------------------+------+-------+----------+----------------------------------+
+| A Review of Machine Learning and Deep Learning fΓÇª | 2024 | 224   | openalex | doi:10.3390/technologies12020015 |
+| Remote Sensing Object Detection in the Deep LearΓÇª | 2024 | 209   | openalex | doi:10.3390/rs16020327           |
+| A Comprehensive Survey of Convolutions in Deep LΓÇª | 2024 | 139   | openalex | doi:10.1109/access.2024.3376441  |
+| Towards Open Vocabulary Learning: A Survey        | 2024 | 125   | openalex | doi:10.1109/tpami.2024.3361862   |
+| Computational pathology: A survey review and theΓÇª | 2024 | 92    | openalex | doi:10.1016/j.jpi.2023.100357    |
+| PCB defect detection algorithm based on CDI-YOLO  | 2024 | 88    | openalex | doi:10.1038/s41598-024-57491-3   |
+| A systematic review of deep learning based imageΓÇª | 2024 | 78    | openalex | doi:10.1007/s10462-023-10621-1   |
+| AVSegFormer: Audio-Visual Segmentation with TranΓÇª | 2024 | 52    | openalex | doi:10.1609/aaai.v38i11.29104    |
+| Vision Transformers with Hierarchical Attention   | 2024 | 48    | openalex | doi:10.1007/s11633-024-1393-8    |
+| Towards the next generation of Geospatial ArtifiΓÇª | 2025 | 45    | openalex | doi:10.1016/j.jag.2025.104368    |
+| Enhancing waste sorting and recycling efficiencyΓÇª | 2024 | 43    | openalex | doi:10.1007/s00521-024-10855-2   |
+| A review of deep learning techniques for detectiΓÇª | 2024 | 42    | openalex | doi:10.1016/j.jag.2024.103732    |
+| SFC: Shared Feature Calibration in Weakly SupervΓÇª | 2024 | 40    | openalex | doi:10.1609/aaai.v38i7.28584     |
+| Advancements in point cloud-based 3D defect clasΓÇª | 2024 | 36    | openalex | doi:10.1016/j.inffus.2024.102575 |
+| Synchronizing Object Detection: Applications, AdΓÇª | 2024 | 36    | openalex | doi:10.1109/access.2024.3388889  |
++---------------------------------------------------+------+-------+----------+----------------------------------+
+  ΓÇª and 98 more works.
+
+  ΓÅ▒  Completed in 4302ms  (exit=0)
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  [2/14] AG_WS02 ΓÇö weakly_supervised_segmentation
+  Priority : high
+  Years    : 2024 ΓÇô 2026  |  max=50
+  Term     : ("pseudo-label" OR "pseudo label") AND segmentation AND (agriculture OR plant OR greenhouse OR tomato OR crop)
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  Querying providersΓÇª done in 4710ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 18      | 859ms   | OK     | ΓÇö       |
+| crossref         | 50      | 4427ms  | OK     | ΓÇö       |
+| doaj             | 50      | 926ms   | OK     | ΓÇö       |
+| ieee             | 0       | 1ms     | OK     | ΓÇö       |
+| openalex         | 50      | 3642ms  | OK     | ΓÇö       |
+| pubmed           | 3       | 1329ms  | OK     | ΓÇö       |
+| semantic_scholar | 38      | 1573ms  | OK     | ΓÇö       |
++------------------+---------+---------+--------+---------+
+  Raw: 209  ΓåÆ  Unique: 174
++---------------------------------------------------+------+-------+----------+-----------------------------------+
+| Title                                             | Year | Cites | Provider | Primary ID                        |
++---------------------------------------------------+------+-------+----------+-----------------------------------+
+| Remote Sensing Object Detection in the Deep LearΓÇª | 2024 | 209   | openalex | doi:10.3390/rs16020327            |
+| Change Detection Methods for Remote Sensing in tΓÇª | 2024 | 176   | openalex | doi:10.3390/rs16132355            |
+| A Comprehensive Survey of Deep Transfer LearningΓÇª | 2024 | 152   | openalex | doi:10.1109/access.2023.3349132   |
+| Deep learning techniques for hyperspectral imageΓÇª | 2024 | 148   | openalex | doi:10.1016/j.ophoto.2024.100062  |
+| Mutual learning with reliable pseudo label for sΓÇª | 2024 | 136   | crossref | doi:10.1016/j.media.2024.103111   |
+| Towards Open Vocabulary Learning: A Survey        | 2024 | 125   | openalex | doi:10.1109/tpami.2024.3361862    |
+| Automated data processing and feature engineerinΓÇª | 2024 | 121   | openalex | doi:10.1016/j.jiixd.2024.01.002   |
+| Generative Adversarial Networks (GANs) in MedicaΓÇª | 2024 | 121   | openalex | doi:10.1109/access.2024.3370848   |
+| ScribFormer: Transformer Makes CNN Work Better fΓÇª | 2024 | 115   | openalex | doi:10.1109/tmi.2024.3363190      |
+| Clinical Applications of Artificial IntelligenceΓÇª | 2024 | 79    | openalex | doi:10.3390/cancers16101870       |
+| A review of remote sensing image segmentation byΓÇª | 2024 | 74    | openalex | doi:10.1080/17538947.2024.2328827 |
+| Mine yOur owN Anatomy: Revisiting Medical Image ΓÇª | 2024 | 67    | openalex | doi:10.1109/tpami.2024.3461321    |
+| Deep Learning for Satellite Image Time-Series AnΓÇª | 2024 | 66    | openalex | doi:10.1109/mgrs.2024.3393010     |
+| Medical Image Segmentation: A Comprehensive ReviΓÇª | 2025 | 65    | openalex | doi:10.3390/tomography11050052    |
+| Unsupervised Domain Adaptation for Semantic SegmΓÇª | 2024 | 32    | crossref | doi:10.1109/wacv57701.2024.00239  |
++---------------------------------------------------+------+-------+----------+-----------------------------------+
+  ΓÇª and 159 more works.
+
+  ΓÅ▒  Completed in 4724ms  (exit=0)
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  [3/14] AG_SAM01 ΓÇö foundation_models
+  Priority : high
+  Years    : 2024 ΓÇô 2026  |  max=50
+  Term     : "Segment Anything" AND (agriculture OR "plant phenotyping" OR greenhouse OR tomato OR fruit OR leaf OR crop)
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  Querying providersΓÇª done in 5820ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 44      | 834ms   | OK     | ΓÇö       |
+| crossref         | 50      | 5323ms  | OK     | ΓÇö       |
+| doaj             | 50      | 735ms   | OK     | ΓÇö       |
+| ieee             | 0       | 1ms     | OK     | ΓÇö       |
+| openalex         | 50      | 2963ms  | OK     | ΓÇö       |
+| pubmed           | 46      | 3784ms  | OK     | ΓÇö       |
+| semantic_scholar | 50      | 1903ms  | OK     | ΓÇö       |
++------------------+---------+---------+--------+---------+
+  Raw: 290  ΓåÆ  Unique: 237
++---------------------------------------------------+------+-------+------------------+----------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                       |
++---------------------------------------------------+------+-------+------------------+----------------------------------+
+| Segment Anything Is Not Always Perfect: An InvesΓÇª | 2024 | 176   | openalex         | doi:10.1007/s11633-023-1385-0    |
+| Semantic segmentation of microbial alterations bΓÇª | 2024 | 114   | semantic_scholar | doi:10.3389/fpls.2024.1352935    |
+| Optimizing tomato plant phenotyping detection: BΓÇª | 2024 | 96    | crossref         | doi:10.1016/j.compag.2024.108728 |
+| Super-Resolution AI-Based Approach for ExtractinΓÇª | 2025 | 64    | openalex         | doi:10.1109/jstars.2025.3530714  |
+| Leaf only SAM: A segment anything pipeline for zΓÇª | 2024 | 43    | openalex         | doi:10.1016/j.atech.2024.100515  |
+| Evaluating the Efficacy of Segment Anything ModeΓÇª | 2024 | 42    | openalex         | doi:10.3390/rs16020414           |
+| On-tree fruit image segmentation comparing Mask ΓÇª | 2024 | 32    | openalex         | doi:10.1016/j.compag.2024.109077 |
+| Tea Leaf Disease Detection using Segment AnythinΓÇª | 2024 | 30    | semantic_scholar | doi:10.1016/j.rineng.2024.103784 |
+| A Segment Anything Model based weakly supervisedΓÇª | 2024 | 29    | semantic_scholar | doi:10.1016/j.jag.2024.104085    |
+| Segment Anything Model Can Not Segment Anything:ΓÇª | 2024 | 28    | openalex         | doi:10.3390/rs16050797           |
+| A Multispectral Remote Sensing Crop SegmentationΓÇª | 2024 | 27    | openalex         | doi:10.1109/tgrs.2024.3411398    |
+| Enhancing Crop Mapping through Automated Sample ΓÇª | 2024 | 25    | semantic_scholar | doi:10.3390/rs16091505           |
+| An innovative segment anything model for precisiΓÇª | 2024 | 25    | openalex         | doi:10.1016/j.compag.2024.109045 |
+| Segment Anything Model and Fully Convolutional DΓÇª | 2024 | 23    | semantic_scholar | doi:10.1109/access.2024.3433495  |
+| Segment Anything Model Combined with Multi-ScaleΓÇª | 2024 | 23    | semantic_scholar | doi:10.3390/rs16183489           |
++---------------------------------------------------+------+-------+------------------+----------------------------------+
+  ΓÇª and 222 more works.
+
+  ΓÅ▒  Completed in 5832ms  (exit=0)
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  [4/14] AG_SAM02 ΓÇö foundation_models
+  Priority : medium
+  Years    : 2024 ΓÇô 2026  |  max=50
+  Term     : ("SAM" OR "SAM 2") AND "pseudo-label" AND (plant OR agriculture OR fruit OR tomato OR crop)
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  Querying providersΓÇª done in 3722ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 1       | 1460ms  | OK     | ΓÇö       |
+| crossref         | 50      | 3463ms  | OK     | ΓÇö       |
+| doaj             | 50      | 880ms   | OK     | ΓÇö       |
+| ieee             | 0       | 1ms     | OK     | ΓÇö       |
+| openalex         | 50      | 3028ms  | OK     | ΓÇö       |
+| pubmed           | 1       | 1926ms  | OK     | ΓÇö       |
+| semantic_scholar | 3       | 937ms   | OK     | ΓÇö       |
++------------------+---------+---------+--------+---------+
+  Raw: 155  ΓåÆ  Unique: 148
++---------------------------------------------------+------+-------+----------+---------------------------------------+
+| Title                                             | Year | Cites | Provider | Primary ID                            |
++---------------------------------------------------+------+-------+----------+---------------------------------------+
+| Remote Sensing Object Detection in the Deep LearΓÇª | 2024 | 209   | openalex | doi:10.3390/rs16020327                |
+| MM-LLMs: Recent Advances in MultiModal Large LanΓÇª | 2024 | 190   | openalex | doi:10.18653/v1/2024.findings-acl.738 |
+| Change Detection Methods for Remote Sensing in tΓÇª | 2024 | 176   | openalex | doi:10.3390/rs16132355                |
+| A Comprehensive Survey of Deep Transfer LearningΓÇª | 2024 | 152   | openalex | doi:10.1109/access.2023.3349132       |
+| Deep learning techniques for hyperspectral imageΓÇª | 2024 | 148   | openalex | doi:10.1016/j.ophoto.2024.100062      |
+| YOLOv1 to YOLOv10: The Fastest and Most AccurateΓÇª | 2024 | 127   | openalex | doi:10.1561/116.20240058              |
+| Towards Open Vocabulary Learning: A Survey        | 2024 | 125   | openalex | doi:10.1109/tpami.2024.3361862        |
+| A review of remote sensing image segmentation byΓÇª | 2024 | 74    | openalex | doi:10.1080/17538947.2024.2328827     |
+| Local feature matching using deep learning: A suΓÇª | 2024 | 74    | openalex | doi:10.1016/j.inffus.2024.102344      |
+| Improving Text Embeddings with Large Language MoΓÇª | 2024 | 72    | openalex | doi:10.18653/v1/2024.acl-long.642     |
+| Mine yOur owN Anatomy: Revisiting Medical Image ΓÇª | 2024 | 67    | openalex | doi:10.1109/tpami.2024.3461321        |
+| Medical Image Segmentation: A Comprehensive ReviΓÇª | 2025 | 65    | openalex | doi:10.3390/tomography11050052        |
+| OrbitalBrain: A Distributed Framework for TrainiΓÇª | 2026 | 57    | openalex | doi:10.4230/oasics.nines.2026.5       |
+| A Survey of Deep Learning Road Extraction AlgoriΓÇª | 2024 | 47    | openalex | doi:10.3390/s24051708                 |
+| Towards more precise automatic analysis: a systeΓÇª | 2024 | 40    | openalex | doi:10.1186/s12938-024-01238-8        |
++---------------------------------------------------+------+-------+----------+---------------------------------------+
+  ΓÇª and 133 more works.
+
+  ΓÅ▒  Completed in 3735ms  (exit=0)
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  [5/14] AG_SOD01 ΓÇö small_object_detection
+  Priority : high
+  Years    : 2024 ΓÇô 2026  |  max=50
+  Term     : ("Slicing Aided Hyper Inference" OR "SAHI") AND (agriculture OR fruit OR plant OR tomato OR crop)
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ

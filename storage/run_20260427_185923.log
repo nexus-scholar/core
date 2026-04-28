@@ -1,0 +1,15 @@
+════════════════════════════════════════════════════════════════════════
+  NEXUS SCHOLARLY — BATCH RUN
+  Project : tomatomap_slr
+  Queries : 1 / 14
+  Mode    : LIVE
+  Log     : C:\Users\mouadh\Desktop\projects\nexus-scholarly/storage/run_20260427_185923.log
+  Started : 2026-04-27 18:59:23
+════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
+  [1/1] AG_SAM01 — foundation_models
+  Priority : high
+  Years    : 2024 – 2026  |  max=5
+  Term     : "Segment Anything" AND (agriculture OR "plant phenotyping" OR greenhouse OR tomato OR fruit OR leaf OR crop)
+════════════════════════════════════════════════════════════════════════

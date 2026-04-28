@@ -148,7 +148,10 @@ final class ScholarlyWork
         $merged->year     = $this->year     ?? $other->year;
         $merged->venue    = $this->venue    ?? $other->venue;
         $merged->abstract = $this->abstract ?? $other->abstract;
-        $merged->citedByCount = $this->citedByCount ?? $other->citedByCount;
+        $merged->citedByCount = max($this->citedByCount ?? 0, $other->citedByCount ?? 0);
+        if ($merged->citedByCount === 0 && $this->citedByCount === null && $other->citedByCount === null) {
+            $merged->citedByCount = null;
+        }
 
         return $merged;
     }
@@ -222,7 +225,9 @@ final class ScholarlyWork
             $score += 1;
         }
 
-        // bonus: any author has ORCID
+        $score = min($score, 10);
+
+        // bonus: any author has ORCID (additive, outside the 0-10 base scale)
         foreach ($this->authors->all() as $author) {
             if ($author->hasOrcid()) {
                 $score += 1;
@@ -230,6 +235,6 @@ final class ScholarlyWork
             }
         }
 
-        return min($score, 10);
+        return $score;
     }
 }

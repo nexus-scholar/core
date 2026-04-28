@@ -27,10 +27,7 @@ afterEach(function () {
     VCR::turnOff();
 });
 
-it('bails out when no api key is provided', function () {
-    // VCR shouldn't even trigger since it bails early, but we wrap anyway
-    VCR::insertCassette('ieee_no_key.yml');
-
+it('throws when no api key is provided', function () {
     $config = ProviderConfigRegistry::defaults(ieeeApiKey: null)['ieee'];
     $adapter = new IeeeAdapter(
         config: $config,
@@ -44,12 +41,10 @@ it('bails out when no api key is provided', function () {
         maxResults: 10,
     );
 
-    $results = $adapter->search($query);
-    expect($results)->toBeEmpty();
+    expect(fn () => $adapter->search($query))->toThrow(\Nexus\Search\Domain\Exception\ProviderUnavailable::class);
 
     $id = new WorkId(WorkIdNamespace::DOI, '10.1109/TNNLS.2020.123456');
-    $work = $adapter->fetchById($id);
-    expect($work)->toBeNull();
+    expect(fn () => $adapter->fetchById($id))->toThrow(\Nexus\Search\Domain\Exception\ProviderUnavailable::class);
 });
 
 it('searches and fetches when api key is present', function () {

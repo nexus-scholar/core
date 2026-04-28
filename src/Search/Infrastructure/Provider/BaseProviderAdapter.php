@@ -148,18 +148,72 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
     /**
      * Async version of request.
-     *
-     * TODO: Implement async-safe rate limiting and retries.
-     * Currently blocks for the rate limit token then returns an async HTTP promise.
+     * Delegates to a private helper for recursive retries without changing signature.
      */
     final protected function requestAsync(
         string $url,
         array  $query   = [],
         array  $headers = [],
     ): PromiseInterface {
-        $this->rateLimiter->waitForToken();
+        return $this->doRequestAsync($url, $query, $headers, 0, 1.0);
+    }
 
-        return $this->http->getAsync($url, $query, $headers);
+    private function doRequestAsync(
+        string $url,
+        array  $query,
+        array  $headers,
+        int    $attempt,
+        float  $backoff
+    ): PromiseInterface {
+        if (! $this->rateLimiter->tryConsume()) {
+            $this->rateLimiter->waitForToken();
+        }
+
+        return $this->http->getAsync($url, $query, $headers)->then(
+            function (HttpResponse $response) use ($url, $query, $headers, $attempt, $backoff) {
+                if ($response->ok() && !$response->rateLimited() && !$response->serverError()) {
+                    return $response;
+                }
+
+                if ($response->statusCode >= 400 && $response->statusCode < 500 && !$response->rateLimited()) {
+                    return $response;
+                }
+
+                $attempt++;
+                if ($attempt >= $this->config->maxRetries) {
+                    throw new ProviderUnavailable(
+                        $this->alias(),
+                        "HTTP {$response->statusCode} after {$attempt} async attempt(s)."
+                    );
+                }
+
+                $this->logger?->warning("Provider {$this->alias()} async retry {$attempt}", [
+                    'status' => $response->statusCode,
+                    'url'    => $url,
+                ]);
+
+                $jitter = (random_int(0, 1000) / 1000.0);
+                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
+
+                return $this->doRequestAsync($url, $query, $headers, $attempt, $backoff * 2);
+            },
+            function (\Throwable $e) use ($url, $query, $headers, $attempt, $backoff) {
+                $attempt++;
+                if ($attempt >= $this->config->maxRetries) {
+                    throw $e instanceof ProviderUnavailable ? $e : new ProviderUnavailable($this->alias(), $e->getMessage());
+                }
+
+                $this->logger?->warning("Provider {$this->alias()} async connection retry {$attempt}", [
+                    'error' => $e->getMessage(),
+                    'url'   => $url,
+                ]);
+
+                $jitter = (random_int(0, 1000) / 1000.0);
+                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
+
+                return $this->doRequestAsync($url, $query, $headers, $attempt, $backoff * 2);
+            }
+        );
     }
 
     // ── Shared utilities ─────────────────────────────────────────────────────

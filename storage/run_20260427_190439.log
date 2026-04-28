@@ -1,0 +1,450 @@
+════════════════════════════════════════════════════════════════════════
+  NEXUS SCHOLARLY — BATCH RUN
+  Project : tomatomap_slr
+  Queries : 10 / 14
+  Mode    : LIVE
+  Log     : C:\Users\mouadh\Desktop\projects\nexus-scholarly/storage/run_20260427_190439.log
+  Started : 2026-04-27 19:04:39
+════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
+  [1/10] AG_WS01 — weakly_supervised_segmentation
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : ("weakly supervised" OR "box-supervised" OR "box supervised") AND "instance segmentation" AND (agriculture OR plant OR crop OR tomato OR fruit)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 11310ms
++------------------+---------+---------+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Provider         | Results | Latency | Status | Message                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
++------------------+---------+---------+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| arxiv            | 3       | 8517ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| crossref         | 0       | 11167ms | Failed | Provider "http" is unavailable: cURL error 6: Could not resolve host: api.crossref.org (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for https://api.crossref.org/works?query=%28%22weakly%20supervised%22%20OR%20%22box-supervised%22%20OR%20%22box%20supervised%22%29%20AND%20%22instance%20segmentation%22%20AND%20%28agriculture%20OR%20plant%20OR%20crop%20OR%20tomato%20OR%20fruit%29&mailto=admin%40example.com&rows=50&offset=0&filter=from-pub-date%3A2024%2Cuntil-pub-date%3A2026 |
+| doaj             | 23      | 600ms   | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ieee             | 0       | 3ms     | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| openalex         | 50      | 4921ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| pubmed           | 3       | 1994ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| semantic_scholar | 3       | 1325ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
++------------------+---------+---------+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  Raw: 82  →  Unique: 75
++---------------------------------------------------+------+-------+----------+----------------------------------+
+| Title                                             | Year | Cites | Provider | Primary ID                       |
++---------------------------------------------------+------+-------+----------+----------------------------------+
+| A Review of Machine Learning and Deep Learning f… | 2024 | 224   | openalex | doi:10.3390/technologies12020015 |
+| Remote Sensing Object Detection in the Deep Lear… | 2024 | 209   | openalex | doi:10.3390/rs16020327           |
+| A Comprehensive Survey of Convolutions in Deep L… | 2024 | 139   | openalex | doi:10.1109/access.2024.3376441  |
+| Towards Open Vocabulary Learning: A Survey        | 2024 | 125   | openalex | doi:10.1109/tpami.2024.3361862   |
+| Computational pathology: A survey review and the… | 2024 | 92    | openalex | doi:10.1016/j.jpi.2023.100357    |
+| PCB defect detection algorithm based on CDI-YOLO  | 2024 | 88    | openalex | doi:10.1038/s41598-024-57491-3   |
+| A systematic review of deep learning based image… | 2024 | 78    | openalex | doi:10.1007/s10462-023-10621-1   |
+| AVSegFormer: Audio-Visual Segmentation with Tran… | 2024 | 52    | openalex | doi:10.1609/aaai.v38i11.29104    |
+| Vision Transformers with Hierarchical Attention   | 2024 | 48    | openalex | doi:10.1007/s11633-024-1393-8    |
+| Towards the next generation of Geospatial Artifi… | 2025 | 45    | openalex | doi:10.1016/j.jag.2025.104368    |
+| Enhancing waste sorting and recycling efficiency… | 2024 | 43    | openalex | doi:10.1007/s00521-024-10855-2   |
+| A review of deep learning techniques for detecti… | 2024 | 42    | openalex | doi:10.1016/j.jag.2024.103732    |
+| SFC: Shared Feature Calibration in Weakly Superv… | 2024 | 40    | openalex | doi:10.1609/aaai.v38i7.28584     |
+| Advancements in point cloud-based 3D defect clas… | 2024 | 36    | openalex | doi:10.1016/j.inffus.2024.102575 |
+| Synchronizing Object Detection: Applications, Ad… | 2024 | 36    | openalex | doi:10.1109/access.2024.3388889  |
++---------------------------------------------------+------+-------+----------+----------------------------------+
+  … and 60 more works.
+
+  ⏱  Completed in 11491ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [2/10] AG_WS02 — weakly_supervised_segmentation
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : ("pseudo-label" OR "pseudo label") AND segmentation AND (agriculture OR plant OR greenhouse OR tomato OR crop)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 3766ms
++------------------+---------+---------+--------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Provider         | Results | Latency | Status | Message                                                                                                                                                                                                                                                                                                                                                                                                                                               |
++------------------+---------+---------+--------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| arxiv            | 18      | 3543ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| crossref         | 0       | 467ms   | Failed | Provider "http" is unavailable: cURL error 6: Could not resolve host: api.crossref.org (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for https://api.crossref.org/works?query=%28%22pseudo-label%22%20OR%20%22pseudo%20label%22%29%20AND%20segmentation%20AND%20%28agriculture%20OR%20plant%20OR%20greenhouse%20OR%20tomato%20OR%20crop%29&mailto=admin%40example.com&rows=50&offset=0&filter=from-pub-date%3A2024%2Cuntil-pub-date%3A2026 |
+| doaj             | 50      | 915ms   | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ieee             | 0       | 1ms     | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| openalex         | 50      | 3293ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| pubmed           | 3       | 1569ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| semantic_scholar | 38      | 1422ms  | OK     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
++------------------+---------+---------+--------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  Raw: 159  →  Unique: 130
++---------------------------------------------------+------+-------+----------+-------------------------------------+
+| Title                                             | Year | Cites | Provider | Primary ID                          |
++---------------------------------------------------+------+-------+----------+-------------------------------------+
+| Remote Sensing Object Detection in the Deep Lear… | 2024 | 209   | openalex | doi:10.3390/rs16020327              |
+| Change Detection Methods for Remote Sensing in t… | 2024 | 176   | openalex | doi:10.3390/rs16132355              |
+| A Comprehensive Survey of Deep Transfer Learning… | 2024 | 152   | openalex | doi:10.1109/access.2023.3349132     |
+| Deep learning techniques for hyperspectral image… | 2024 | 148   | openalex | doi:10.1016/j.ophoto.2024.100062    |
+| Towards Open Vocabulary Learning: A Survey        | 2024 | 125   | openalex | doi:10.1109/tpami.2024.3361862      |
+| Automated data processing and feature engineerin… | 2024 | 121   | openalex | doi:10.1016/j.jiixd.2024.01.002     |
+| Generative Adversarial Networks (GANs) in Medica… | 2024 | 121   | openalex | doi:10.1109/access.2024.3370848     |
+| ScribFormer: Transformer Makes CNN Work Better f… | 2024 | 115   | openalex | doi:10.1109/tmi.2024.3363190        |
+| Clinical Applications of Artificial Intelligence… | 2024 | 79    | openalex | doi:10.3390/cancers16101870         |
+| A review of remote sensing image segmentation by… | 2024 | 74    | openalex | doi:10.1080/17538947.2024.2328827   |
+| Mine yOur owN Anatomy: Revisiting Medical Image … | 2024 | 67    | openalex | doi:10.1109/tpami.2024.3461321      |
+| Deep Learning for Satellite Image Time-Series An… | 2024 | 66    | openalex | doi:10.1109/mgrs.2024.3393010       |
+| Medical Image Segmentation: A Comprehensive Revi… | 2025 | 65    | openalex | doi:10.3390/tomography11050052      |
+| A cost-effective and robust mapping method for d… | 2024 | 26    | openalex | doi:10.1016/j.isprsjprs.2024.09.017 |
+| A Segment Anything Model based weakly supervised… | 2024 | 19    | openalex | doi:10.1016/j.jag.2024.104085       |
++---------------------------------------------------+------+-------+----------+-------------------------------------+
+  … and 115 more works.
+
+  ⏱  Completed in 3778ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [3/10] AG_SAM01 — foundation_models
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : "Segment Anything" AND (agriculture OR "plant phenotyping" OR greenhouse OR tomato OR fruit OR leaf OR crop)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 7505ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 44      | 2841ms  | OK     | —       |
+| crossref         | 50      | 7003ms  | OK     | —       |
+| doaj             | 50      | 1155ms  | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 3062ms  | OK     | —       |
+| pubmed           | 46      | 2745ms  | OK     | —       |
+| semantic_scholar | 50      | 2225ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 290  →  Unique: 237
++---------------------------------------------------+------+-------+------------------+----------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                       |
++---------------------------------------------------+------+-------+------------------+----------------------------------+
+| Segment Anything Is Not Always Perfect: An Inves… | 2024 | 176   | openalex         | doi:10.1007/s11633-023-1385-0    |
+| Semantic segmentation of microbial alterations b… | 2024 | 114   | semantic_scholar | doi:10.3389/fpls.2024.1352935    |
+| Optimizing tomato plant phenotyping detection: B… | 2024 | 96    | crossref         | doi:10.1016/j.compag.2024.108728 |
+| Super-Resolution AI-Based Approach for Extractin… | 2025 | 64    | openalex         | doi:10.1109/jstars.2025.3530714  |
+| Leaf only SAM: A segment anything pipeline for z… | 2024 | 43    | openalex         | doi:10.1016/j.atech.2024.100515  |
+| Evaluating the Efficacy of Segment Anything Mode… | 2024 | 42    | openalex         | doi:10.3390/rs16020414           |
+| On-tree fruit image segmentation comparing Mask … | 2024 | 32    | openalex         | doi:10.1016/j.compag.2024.109077 |
+| Tea Leaf Disease Detection using Segment Anythin… | 2024 | 30    | semantic_scholar | doi:10.1016/j.rineng.2024.103784 |
+| A Segment Anything Model based weakly supervised… | 2024 | 29    | semantic_scholar | doi:10.1016/j.jag.2024.104085    |
+| Segment Anything Model Can Not Segment Anything:… | 2024 | 28    | openalex         | doi:10.3390/rs16050797           |
+| A Multispectral Remote Sensing Crop Segmentation… | 2024 | 27    | openalex         | doi:10.1109/tgrs.2024.3411398    |
+| Enhancing Crop Mapping through Automated Sample … | 2024 | 25    | semantic_scholar | doi:10.3390/rs16091505           |
+| An innovative segment anything model for precisi… | 2024 | 25    | openalex         | doi:10.1016/j.compag.2024.109045 |
+| Segment Anything Model and Fully Convolutional D… | 2024 | 23    | semantic_scholar | doi:10.1109/access.2024.3433495  |
+| Segment Anything Model Combined with Multi-Scale… | 2024 | 23    | semantic_scholar | doi:10.3390/rs16183489           |
++---------------------------------------------------+------+-------+------------------+----------------------------------+
+  … and 222 more works.
+
+  ⏱  Completed in 7518ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [4/10] AG_SOD01 — small_object_detection
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : ("Slicing Aided Hyper Inference" OR "SAHI") AND (agriculture OR fruit OR plant OR tomato OR crop)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 3783ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 1       | 852ms   | OK     | —       |
+| crossref         | 50      | 3557ms  | OK     | —       |
+| doaj             | 24      | 493ms   | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 2418ms  | OK     | —       |
+| pubmed           | 17      | 3050ms  | OK     | —       |
+| semantic_scholar | 21      | 669ms   | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 163  →  Unique: 126
++---------------------------------------------------+------+-------+------------------+-----------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                        |
++---------------------------------------------------+------+-------+------------------+-----------------------------------+
+| phytools 2.0: an updated R ecosystem for phyloge… | 2024 | 833   | openalex         | doi:10.7717/peerj.16505           |
+| A review on green synthesis of silver nanopartic… | 2025 | 233   | openalex         | doi:10.1039/d4ra07519f            |
+| Uptake, Translocation, Toxicity, and Impact of N… | 2024 | 98    | openalex         | doi:10.3390/plants13223137        |
+| Nanoparticles in agriculture: balancing food sec… | 2025 | 98    | openalex         | doi:10.1007/s44279-025-00159-x    |
+| Soil and Mineral Nutrients in Plant Health: A Pr… | 2024 | 87    | openalex         | doi:10.3390/cimb46060312          |
+| Silicon nanoparticles in sustainable agriculture… | 2024 | 72    | openalex         | doi:10.3389/fpls.2024.1393458     |
+| Fungal Endophytes as Mitigators against Biotic a… | 2024 | 69    | openalex         | doi:10.3390/jof10020116           |
+| Biosynthesis of nanoparticles using microorganis… | 2024 | 67    | openalex         | doi:10.1016/j.heliyon.2024.e39636 |
+| Remote Sensing Micro-Object Detection under Glob… | 2024 | 63    | openalex         | doi:10.3390/rs16040644            |
+| Enhancing UAV Aerial Image Analysis: Integrating… | 2024 | 55    | openalex         | doi:10.1109/access.2024.3363413   |
+| Nanoparticles for Sustainable Agriculture: Asses… | 2025 | 53    | openalex         | doi:10.3390/agronomy15051131      |
+| Titanium Dioxide Nanoparticle: A Comprehensive R… | 2024 | 53    | openalex         | doi:10.3390/plants13212964        |
+| WRKY Transcription Factor Responses and Toleranc… | 2024 | 45    | openalex         | doi:10.3390/ijms25136845          |
+| Improved YOLOv8 and SAHI Model for the Collabora… | 2024 | 43    | semantic_scholar | doi:10.3390/agronomy14051034      |
+| Revisiting the role of light signaling in plant … | 2024 | 43    | openalex         | doi:10.1093/hr/uhae262            |
++---------------------------------------------------+------+-------+------------------+-----------------------------------+
+  … and 111 more works.
+
+  ⏱  Completed in 3795ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [5/10] AG_SOD02 — small_object_detection
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : "small object detection" AND (fruit OR tomato OR flower OR bud OR plant OR crop)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 4486ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 6       | 1216ms  | OK     | —       |
+| crossref         | 50      | 4105ms  | OK     | —       |
+| doaj             | 50      | 898ms   | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 3040ms  | OK     | —       |
+| pubmed           | 40      | 4072ms  | OK     | —       |
+| semantic_scholar | 50      | 1741ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 246  →  Unique: 209
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                           |
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+| Optimizing tomato plant phenotyping detection: B… | 2024 | 93    | openalex         | doi:10.1016/j.compag.2024.108728     |
+| The YOLO Framework: A Comprehensive Review of Ev… | 2024 | 85    | openalex         | doi:10.20944/preprints202410.1785.v1 |
+| Lightweight tomato ripeness detection algorithm … | 2024 | 54    | semantic_scholar | doi:10.3389/fpls.2024.1415297        |
+| PC-YOLO11s: A Lightweight and Effective Feature … | 2025 | 52    | semantic_scholar | doi:10.3390/s25020348                |
+| YOLO-MECD: Citrus Detection Algorithm Based on Y… | 2025 | 48    | openalex         | doi:10.3390/agronomy15030687         |
+| Starting from the structure: A review of small o… | 2024 | 44    | openalex         | doi:10.1016/j.imavis.2024.105054     |
+| Ripe Tomato Detection Algorithm Based on Improve… | 2024 | 27    | semantic_scholar | doi:10.3390/plants13223253           |
+| GLU-YOLOv8: An Improved Pest and Disease Target … | 2024 | 21    | semantic_scholar | doi:10.3390/f15091486                |
+| Excellent tomato detector based on pruning and d… | 2024 | 19    | openalex         | doi:10.1016/j.compag.2024.109520     |
+| YOLOv8 with Post-Processing for Small Object Det… | 2025 | 17    | semantic_scholar | doi:10.3390/app15137275              |
+| Small object detection algorithm incorporating s… | 2024 | 16    | openalex         | doi:10.1371/journal.pone.0299902     |
+| Cassava crop disease prediction and localization… | 2025 | 14    | crossref         | doi:10.1016/j.cropro.2024.107001     |
+| ESM-YOLOv11: A lightweight deep learning framewo… | 2025 | 14    | openalex         | doi:10.1016/j.compag.2025.110801     |
+| Small target tea bud detection based on improved… | 2024 | 13    | crossref         | doi:10.3389/fpls.2024.1393138        |
+| Toward High-Accuracy and Real-Time Two-Stage Sma… | 2024 | 12    | semantic_scholar | doi:10.1109/tcsvt.2024.3385121       |
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+  … and 194 more works.
+
+  ⏱  Completed in 4499ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [6/10] AG_AL01 — active_learning
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : "active learning" AND (annotation OR labeling OR "instance segmentation") AND (agriculture OR plant OR phenotyping OR crop)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 4084ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 23      | 1519ms  | OK     | —       |
+| crossref         | 50      | 3829ms  | OK     | —       |
+| doaj             | 50      | 654ms   | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 2721ms  | OK     | —       |
+| pubmed           | 12      | 2549ms  | OK     | —       |
+| semantic_scholar | 39      | 1559ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 224  →  Unique: 186
++---------------------------------------------------+------+-------+----------+----------------------------------+
+| Title                                             | Year | Cites | Provider | Primary ID                       |
++---------------------------------------------------+------+-------+----------+----------------------------------+
+| Artificial intelligence for geoscience: Progress… | 2024 | 302   | openalex | doi:10.1016/j.xinn.2024.100691   |
+| How to build the virtual cell with artificial in… | 2024 | 233   | openalex | doi:10.1016/j.cell.2024.11.015   |
+| Clinical applications of artificial intelligence… | 2024 | 210   | openalex | doi:10.1007/s11701-024-01867-0   |
+| Simple Behavioral Analysis (SimBA) as a platform… | 2024 | 167   | openalex | doi:10.1038/s41593-024-01649-9   |
+| Trustworthy clinical AI solutions: A unified rev… | 2024 | 161   | openalex | doi:10.1016/j.artmed.2024.102830 |
+| An Improved YOLOv8 to Detect Moving Objects       | 2024 | 151   | openalex | doi:10.1109/access.2024.3393835  |
+| Deep learning techniques for hyperspectral image… | 2024 | 148   | openalex | doi:10.1016/j.ophoto.2024.100062 |
+| Knowledge-guided machine learning can improve ca… | 2024 | 131   | openalex | doi:10.1038/s41467-023-43860-5   |
+| Towards Open Vocabulary Learning: A Survey        | 2024 | 125   | openalex | doi:10.1109/tpami.2024.3361862   |
+| Strategies for tailoring functional microbial sy… | 2024 | 123   | openalex | doi:10.1093/ismejo/wrae049       |
+| Automated data processing and feature engineerin… | 2024 | 121   | openalex | doi:10.1016/j.jiixd.2024.01.002  |
+| Machine Learning and Deep Learning in Synthetic … | 2024 | 118   | openalex | doi:10.1021/acsomega.3c05913     |
+| Towards realizing nano-enabled precision deliver… | 2024 | 100   | openalex | doi:10.1038/s41565-024-01667-5   |
+| Computational pathology: A survey review and the… | 2024 | 92    | openalex | doi:10.1016/j.jpi.2023.100357    |
+| Mapping the diversity of land uses following def… | 2024 | 80    | openalex | doi:10.1038/s41598-024-52138-9   |
++---------------------------------------------------+------+-------+----------+----------------------------------+
+  … and 171 more works.
+
+  ⏱  Completed in 4097ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [7/10] AG_BENCH01 — phenotyping_benchmarks
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : tomato AND (dataset OR benchmark) AND ("instance segmentation" OR "object detection" OR segmentation OR detection OR phenotyping)
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 4410ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 33      | 1629ms  | OK     | —       |
+| crossref         | 50      | 4044ms  | OK     | —       |
+| doaj             | 2       | 354ms   | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 2388ms  | OK     | —       |
+| pubmed           | 50      | 3619ms  | OK     | —       |
+| semantic_scholar | 50      | 3988ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 235  →  Unique: 223
++---------------------------------------------------+------+-------+------------------+-----------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                        |
++---------------------------------------------------+------+-------+------------------+-----------------------------------+
+| Revolutionizing agriculture with artificial inte… | 2024 | 230   | openalex         | doi:10.3389/fpls.2024.1356260     |
+| NVW-YOLOv8s: An improved YOLOv8s network for rea… | 2024 | 86    | openalex         | doi:10.1016/j.compag.2024.108833  |
+| An optimized capsule neural networks for tomato … | 2024 | 69    | openalex         | doi:10.1186/s13640-023-00618-9    |
+| Tomato Health Monitoring System: Tomato Classifi… | 2024 | 65    | openalex         | doi:10.1109/access.2024.3351805   |
+| Tomato leaf disease detection based on attention… | 2024 | 62    | openalex         | doi:10.3389/fpls.2024.1382802     |
+| An efficient deep learning model for tomato dise… | 2024 | 57    | semantic_scholar | doi:10.1186/s13007-024-01188-1    |
+| GFS-YOLO11: A Maturity Detection Model for Multi… | 2024 | 49    | openalex         | doi:10.3390/agronomy14112644      |
+| Semantic segmentation for plant leaf disease cla… | 2024 | 45    | openalex         | doi:10.1016/j.atech.2024.100526   |
+| Using a Hybrid Convolutional Neural Network with… | 2024 | 43    | openalex         | doi:10.3390/agronomy14040673      |
+| Deep Learning for Tomato Disease Detection with … | 2024 | 42    | openalex         | doi:10.48084/etasr.7064           |
+| Bangladeshi crops leaf disease detection using Y… | 2024 | 40    | openalex         | doi:10.1016/j.heliyon.2024.e36694 |
+| D3-YOLOv10: Improved YOLOv10-Based Lightweight T… | 2024 | 35    | openalex         | doi:10.3390/agriculture14122268   |
+| ViT-SENet-Tom: machine learning-based novel hybr… | 2025 | 33    | openalex         | doi:10.1007/s00521-025-10973-5    |
+| Efficient deep learning-based tomato leaf diseas… | 2025 | 32    | openalex         | doi:10.1186/s12870-025-06247-w    |
+| A real time monitoring system for accurate plant… | 2025 | 32    | openalex         | doi:10.1016/j.cropd.2024.100092   |
++---------------------------------------------------+------+-------+------------------+-----------------------------------+
+  … and 208 more works.
+
+  ⏱  Completed in 4423ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [8/10] TR_WS01 — weakly_supervised_segmentation
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : "box-supervised instance segmentation" OR "mask auto-labeling" OR "mask auto labeling" OR "box-supervised segmentation"
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 3918ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 17      | 2520ms  | OK     | —       |
+| crossref         | 50      | 3786ms  | OK     | —       |
+| doaj             | 0       | 364ms   | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 2798ms  | OK     | —       |
+| pubmed           | 16      | 1942ms  | OK     | —       |
+| semantic_scholar | 14      | 1217ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 147  →  Unique: 116
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                           |
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+| DCTC: Fast and Accurate Contour-Based Instance S… | 2024 | 21    | openalex         | doi:10.1109/jstars.2024.3386754      |
+| U3DS<sup>3</sup>: Unsupervised 3D Semantic Scene… | 2024 | 15    | openalex         | doi:10.1109/wacv57701.2024.00372     |
+| Ultra-High Resolution Segmentation via Boundary-… | 2025 | 14    | openalex         | doi:10.1609/aaai.v39i7.32761         |
+| Mask-free Iterative Refinement Network for weakl… | 2025 | 9     | crossref         | doi:10.1016/j.neucom.2024.128600     |
+| Weakly supervised image segmentation beyond tigh… | 2024 | 9     | crossref         | doi:10.1016/j.compbiomed.2023.107913 |
+| BSNet: Box-Supervised Simulation-Assisted Mean T… | 2024 | 8     | crossref         | doi:10.1109/cvpr52733.2024.01926     |
+| Bounding boxes for weakly-supervised breast canc… | 2025 | 7     | openalex         | doi:10.1016/j.bspc.2025.107656       |
+| MWSIS: Multimodal Weakly Supervised Instance Seg… | 2024 | 6     | crossref         | doi:10.1609/aaai.v38i3.28027         |
+| MonoBox: Tightness-Free Box-Supervised Polyp Seg… | 2025 | 4     | openalex         | doi:10.1609/aaai.v39i4.32371         |
+| BLADE: Box-Level Supervised Amodal Segmentation … | 2024 | 4     | crossref         | doi:10.1609/aaai.v38i4.28176         |
+| TADAP: Trajectory-Aided Drivable area Auto-label… | 2024 | 4     | crossref         | doi:10.1109/tiv.2024.3397853         |
+| MISA: MIning Saliency-Aware Semantic Prior for B… | 2024 | 4     | semantic_scholar | doi:10.24963/ijcai.2024/199          |
+| Subdivided Mask Dispersion Framework for semi-su… | 2024 | 3     | crossref         | doi:10.1016/j.patrec.2024.01.025     |
+| MWVOS: Mask-Free Weakly Supervised Video Object … | 2025 | 3     | crossref         | doi:10.1016/j.patcog.2024.111100     |
+| WeakSAM: Segment Anything Meets Weakly-supervise… | 2024 | 3     | openalex         | doi:10.48550/arxiv.2402.14812        |
++---------------------------------------------------+------+-------+------------------+--------------------------------------+
+  … and 101 more works.
+
+  ⏱  Completed in 3932ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [9/10] TR_WS02 — weakly_supervised_segmentation
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : ("teacher-student" OR "mean teacher") AND segmentation AND "pseudo-label"
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 3695ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 50      | 2095ms  | OK     | —       |
+| crossref         | 50      | 3402ms  | OK     | —       |
+| doaj             | 19      | 506ms   | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 2568ms  | OK     | —       |
+| pubmed           | 20      | 2369ms  | OK     | —       |
+| semantic_scholar | 50      | 2187ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 239  →  Unique: 176
++---------------------------------------------------+------+-------+------------------+------------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                         |
++---------------------------------------------------+------+-------+------------------+------------------------------------+
+| Cross teacher pseudo supervision: Enhancing semi… | 2024 | 29    | crossref         | doi:10.1016/j.aei.2023.102279      |
+| Unsupervised Domain Adaptation for Semantic Segm… | 2024 | 27    | openalex         | doi:10.1109/wacv57701.2024.00239   |
+| Iterative pseudo-labeling based adaptive copy-pa… | 2025 | 27    | openalex         | doi:10.1016/j.knosys.2025.113785   |
+| SDCL: Students Discrepancy-Informed Correction L… | 2024 | 25    | semantic_scholar | doi:10.1007/978-3-031-72111-3_53   |
+| Latent domain knowledge distillation for nightti… | 2024 | 17    | openalex         | doi:10.1016/j.engappai.2024.107940 |
+| MMSeg: A novel multi-task learning framework for… | 2024 | 17    | openalex         | doi:10.1016/j.knosys.2024.112835   |
+| Improving cross-domain generalizability of medic… | 2024 | 17    | openalex         | doi:10.1016/j.media.2024.103422    |
+| Exploring Semantic Prompts in the Segment Anythi… | 2024 | 16    | openalex         | doi:10.3390/rs16050758             |
+| Continual-MAE: Adaptive Distribution Masked Auto… | 2024 | 15    | openalex         | doi:10.1109/cvpr52733.2024.02707   |
+| Correlation Among Teacher ICT Teaching, Teacher … | 2024 | 14    | crossref         | doi:10.3390/su16219592             |
+| Polite Teacher: Semi-Supervised Instance Segment… | 2024 | 14    | openalex         | doi:10.1109/access.2024.3374073    |
+| Prototype-augmented mean teacher for robust semi… | 2025 | 14    | openalex         | doi:10.1016/j.patcog.2025.111722   |
+| Uncertainty-aware representation calibration for… | 2024 | 13    | openalex         | doi:10.1016/j.neucom.2024.127912   |
+| AIO2: Online Correction of Object Labels for Dee… | 2024 | 13    | openalex         | doi:10.1109/tgrs.2024.3373908      |
+| Automatic 4D mitral valve segmentation from tran… | 2025 | 12    | semantic_scholar | doi:10.1007/s11517-024-03275-w     |
++---------------------------------------------------+------+-------+------------------+------------------------------------+
+  … and 161 more works.
+
+  ⏱  Completed in 3712ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  [10/10] TR_SAM01 — foundation_models
+  Priority : high
+  Years    : 2024 – 2026  |  max=50
+  Term     : "Segment Anything" AND ("pseudo-label" OR "auto-label" OR "mask generation" OR annotation OR "fine-tuning")
+════════════════════════════════════════════════════════════════════════
+  Querying providers… done in 8257ms
++------------------+---------+---------+--------+---------+
+| Provider         | Results | Latency | Status | Message |
++------------------+---------+---------+--------+---------+
+| arxiv            | 50      | 2847ms  | OK     | —       |
+| crossref         | 50      | 4093ms  | OK     | —       |
+| doaj             | 50      | 1049ms  | OK     | —       |
+| ieee             | 0       | 1ms     | OK     | —       |
+| openalex         | 50      | 3631ms  | OK     | —       |
+| pubmed           | 50      | 3878ms  | OK     | —       |
+| semantic_scholar | 50      | 7816ms  | OK     | —       |
++------------------+---------+---------+--------+---------+
+  Raw: 300  →  Unique: 269
++---------------------------------------------------+------+-------+------------------+---------------------------------------+
+| Title                                             | Year | Cites | Provider         | Primary ID                            |
++---------------------------------------------------+------+-------+------------------+---------------------------------------+
+| Depth Anything: Unleashing the Power of Large-Sc… | 2024 | 798   | openalex         | doi:10.1109/cvpr52733.2024.00987      |
+| Medical SAM adapter: Adapting segment anything m… | 2025 | 281   | openalex         | doi:10.1016/j.media.2025.103547       |
+| MA-SAM: Modality-agnostic SAM adaptation for 3D … | 2024 | 168   | openalex         | doi:10.1016/j.media.2024.103310       |
+| Segment Anything for Microscopy                   | 2025 | 155   | openalex         | doi:10.1038/s41592-024-02580-4        |
+| Grounded SAM: Assembling Open-World Models for D… | 2024 | 89    | openalex         | doi:10.48550/arxiv.2401.14159         |
+| 3DSAM-adapter: Holistic adaptation of SAM from 2… | 2024 | 89    | openalex         | doi:10.1016/j.media.2024.103324       |
+| Segment Anything in Medical Images and Videos: B… | 2024 | 70    | semantic_scholar | doi:10.48550/arxiv.2408.03322         |
+| Fine-tuning vision foundation model for crack se… | 2024 | 55    | openalex         | doi:10.1016/j.conbuildmat.2024.136573 |
+| MemSAM: Taming Segment Anything Model for Echoca… | 2024 | 53    | semantic_scholar | doi:10.1109/cvpr52733.2024.00919      |
+| A Comparative Performance Analysis of Popular De… | 2024 | 47    | openalex         | doi:10.1109/access.2024.3385425       |
+| A review of the Segment Anything Model (SAM) for… | 2024 | 45    | openalex         | doi:10.1016/j.compmedimag.2024.102473 |
+| Leaf only SAM: A segment anything pipeline for z… | 2024 | 43    | openalex         | doi:10.1016/j.atech.2024.100515       |
+| ClassWise-SAM-Adapter: Parameter-Efficient Fine-… | 2025 | 41    | openalex         | doi:10.1109/jstars.2025.3532690       |
+| PointSAM: Pointly-Supervised Segment Anything Mo… | 2025 | 40    | openalex         | doi:10.1109/tgrs.2025.3529031         |
+| Hi-SAM: Marrying Segment Anything Model for Hier… | 2024 | 39    | semantic_scholar | doi:10.1109/tpami.2024.3495831        |
++---------------------------------------------------+------+-------+------------------+---------------------------------------+
+  … and 254 more works.
+
+  ⏱  Completed in 8271ms  (exit=0)
+
+════════════════════════════════════════════════════════════════════════
+  BATCH SUMMARY
+════════════════════════════════════════════════════════════════════════
+  ID           Theme                            Priority    Raw Unique Time(ms)   OK?
+  ──────────────────────────────────────────────────────────────────────
+  AG_WS01      weakly_supervised_segmentation   high          ?      ?    11491   ✓
+  AG_WS02      weakly_supervised_segmentation   high          ?      ?     3778   ✓
+  AG_SAM01     foundation_models                high          ?      ?     7518   ✓
+  AG_SOD01     small_object_detection           high          ?      ?     3795   ✓
+  AG_SOD02     small_object_detection           high          ?      ?     4499   ✓
+  AG_AL01      active_learning                  high          ?      ?     4097   ✓
+  AG_BENCH01   phenotyping_benchmarks           high          ?      ?     4423   ✓
+  TR_WS01      weakly_supervised_segmentation   high          ?      ?     3932   ✓
+  TR_WS02      weakly_supervised_segmentation   high          ?      ?     3712   ✓
+  TR_SAM01     foundation_models                high          ?      ?     8271   ✓
+  ──────────────────────────────────────────────────────────────────────
+  TOTAL                                                       0      0
+
+  Failures: 0 / 10
+  Finished: 2026-04-27 17:05:53
+════════════════════════════════════════════════════════════════════════
