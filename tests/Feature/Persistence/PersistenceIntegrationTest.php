@@ -42,9 +42,6 @@ it('work delete cascades to work_authors', function () {
     $this->assertDatabaseMissing('work_authors', ['work_id' => $id]);
 });
 
-it('project delete cascades to scholarly_works', function () {
-    $this->markTestSkipped('bug: scholarly_works does not have project_id in current schema');
-});
 
 it('all repository port bindings resolve from the container', function () {
     expect(app(WorkRepositoryPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\Repository\EloquentWorkRepository::class)

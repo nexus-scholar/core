@@ -47,9 +47,6 @@ it('save is idempotent: saving the same query twice does not duplicate rows', fu
     expect(DB::table('search_queries')->count())->toBe($count);
 });
 
-it('save updates status when query status changes', function () {
-    $this->markTestSkipped('bug: SearchQuery domain object does not have a status property to change');
-});
 
 it('records provider progress for a single provider', function () {
     $query = PersistenceFactory::makeSearchQuery($this->project->id);
