@@ -32,13 +32,13 @@ jobs:
       - name: Require specified Laravel and Testbench versions
         run: |
           if [ "${{ matrix.laravel }}" == "12.*" ]; then
-            composer require "illuminate/contracts:^12.0" "orchestra/testbench:^11.0" --dev --no-interaction --no-update
+            composer require "illuminate/contracts:^12.0" "orchestra/testbench:^10.0" --dev --no-interaction --no-update
           elif [ "${{ matrix.laravel }}" == "13.*" ]; then
-            composer require "illuminate/contracts:^13.0" "orchestra/testbench:^12.0" --dev --no-interaction --no-update
+            composer require "illuminate/contracts:^13.0" "orchestra/testbench:^11.0" --dev --no-interaction --no-update
           fi
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress
 
       - name: Execute tests
-        run: php -d memory_limit=512M vendor/bin/pest
+        run: php -d memory_limit=-1 vendor/bin/pest
