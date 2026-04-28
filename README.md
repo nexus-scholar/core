@@ -1,29 +1,61 @@
-# Architecture Index
+# Nexus Scholarly Core
 
-Read these in order:
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/nexus-scholar/core.svg?style=flat-square)](https://packagist.org/packages/nexus-scholar/core)
+[![Tests](https://github.com/nexus-scholar/core/actions/workflows/test.yml/badge.svg)](https://github.com/nexus-scholar/core/actions/workflows/test.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/nexus-scholar/core.svg?style=flat-square)](https://packagist.org/packages/nexus-scholar/core)
+[![License](https://img.shields.io/packagist/l/nexus-scholar/core.svg?style=flat-square)](https://packagist.org/packages/nexus-scholar/core)
 
-1. `docs/00-product-vision.md` — purpose, goals, non-goals
-2. `docs/01-ubiquitous-language.md` — canonical terms
-3. `docs/02-bounded-contexts.md` — context map
-4. `docs/03-architecture-rules.md` — absolute rules
-5. `docs/04-shared-kernel.md` — WorkId, WorkIdSet, Author, Venue
-6. `docs/05-search-module.md` — search domain detail
-7. `docs/06-deduplication-module.md` — dedup policies and Union-Find
-8. `docs/07-citation-network-module.md` — graphs, snowballing, metrics
-9. `docs/08-dissemination-module.md` — exports, PDF retrieval
-10. `docs/09-laravel-integration.md` — service provider rules
-11. `docs/10-persistence-model.md` — table design philosophy
-12. `docs/11-contracts-and-ports.md` — port catalogue
-13. `docs/12-tdd-strategy.md` — test-first layers
-14. `docs/13-known-lessons-from-old-package.md` — what not to repeat
-15. `docs/14-module-checklists.md` — per-module completion gates
-16. `docs/15-agent-operating-rules.md` — agent operating contract
-17. `docs/spec-shared-kernel.md` — class-level specs for Shared Kernel
-18. `docs/spec-search-domain.md` — class-level specs for Search Domain
-19. `docs/spec-search-ports.md` — interface contracts for Search
-20. `docs/spec-search-infrastructure.md` — adapter & infra class specs
-21. `docs/spec-search-application.md` — application service specs
-22. `docs/spec-deduplication.md` — dedup class specs
-23. `docs/spec-citation-network.md` — citation network class specs
-24. `docs/old-nexus-review/nexus-php-code-review.md` — 16 bugs in the original package
-25. `docs/old-nexus-review/nexus-php-database-schema.md` — full schema design
+A Systematic Literature Review (SLR) toolkit for PHP 8.3+. Nexus Scholarly provides a robust, hexagonal-architecture-driven framework to search, deduplicate, and analyze scholarly literature from multiple providers.
+
+## Features
+- **Multi-Provider Search:** Concurrently search arXiv, Crossref, DOAJ, IEEE, OpenAlex, PubMed, and Semantic Scholar.
+- **Advanced Deduplication:** Rule-based and fuzzy-matching strategies to detect overlapping works.
+- **Citation Networks:** Build and persist citation graphs (citation, co-citation, and bibliographic coupling).
+- **Framework Agnostic Domain:** Core logic operates independently, with an included Laravel integration layer.
+
+## Installation
+
+You can install the package via composer:
+
+```bash
+composer require nexus-scholar/core
+```
+
+For Laravel usage, publish the configuration file:
+
+```bash
+php artisan vendor:publish --tag="nexus-config"
+```
+
+## Basic Usage
+
+Using the included Artisan command to run a batch search:
+
+```bash
+php artisan nexus:search "Segment Anything AND tomato" --from-year=2024 --max=50
+```
+
+Alternatively, use a YAML file for batch processing:
+
+```bash
+php artisan nexus:search --file=queries.yml
+```
+
+## Documentation
+
+For full architecture notes and domain rules, please refer to the `docs/` directory.
+- [Product Vision](docs/00-product-vision.md)
+- [Architecture Rules](docs/03-architecture-rules.md)
+- [Old Readme](docs/README-OLD.md)
+
+## Testing
+
+To run the robust Pest test suite included with the core, make sure you bump the memory limit since the integration test's VCR YAML recordings can exceed defaults.
+
+```bash
+php -d memory_limit=512M vendor/bin/pest
+```
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
