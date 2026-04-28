@@ -189,9 +189,11 @@ final class ScholarlyWork
     }
 
     /**
-     * Completeness score 0–10 for representative election.
+     * Completeness score 0–11 for representative election.
      * Fields scored: doi(2), abstract(2), venue(1), authors(1), year(1),
      *                citedByCount(1), hasOrcid(1), isNotRetracted(1)
+     *
+     * @return int<0, 11>
      */
     public function completenessScore(): int
     {
