@@ -17,6 +17,7 @@ final class SearchAcrossProviders
 
     public function __construct(
         string $query,
+        string $projectId = 'default-project',
         int    $maxResults = 50,
         ?int   $yearFrom = null,
         ?int   $yearTo = null,
@@ -27,8 +28,9 @@ final class SearchAcrossProviders
 
         $this->query = new SearchQuery(
             term:       new SearchTerm($query),
-            maxResults: $maxResults,
-            yearRange:  $yearRange
+            projectId:  $projectId,
+            yearRange:  $yearRange,
+            maxResults: $maxResults
         );
     }
 }

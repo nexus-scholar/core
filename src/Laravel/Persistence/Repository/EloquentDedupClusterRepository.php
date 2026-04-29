@@ -34,6 +34,7 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
                     'representative_work_id' => $cluster->representative()?->primaryId()?->value,
                     'cluster_size'           => $cluster->size(),
                     'confidence'             => $cluster->confidence,
+                    'is_locked'              => $cluster->isLocked,
                 ]
             );
 
@@ -133,6 +134,7 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
                 strategy:       $row->strategy ?? 'default',
                 thresholds:     $row->thresholds ?? [],
                 confidence:     $row->confidence ? (float) $row->confidence : null,
+                isLocked:       (bool) $row->is_locked,
             );
         } catch (\InvalidArgumentException $e) {
             return null;

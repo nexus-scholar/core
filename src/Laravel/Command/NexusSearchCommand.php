@@ -108,7 +108,7 @@ final class NexusSearchCommand extends Command
                 $q['max_results'] = (int) $this->option('max');
             }
 
-            $exitCode  = $this->runSingle($handler, $q);
+            $exitCode  = $this->runSingle($handler, $q, $yaml['project'] ?? 'default-project');
             $failures += $exitCode !== self::SUCCESS ? 1 : 0;
 
             $summary[] = ['id' => $q['id'], 'exit' => $exitCode];

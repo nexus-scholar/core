@@ -20,6 +20,8 @@ final class SlrProject extends Model
         'metadata'   => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'locked_at'  => 'datetime',
+        'archived_at'=> 'datetime',
     ];
 
     public function searchQueries(): HasMany

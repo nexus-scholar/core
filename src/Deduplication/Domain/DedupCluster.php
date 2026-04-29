@@ -34,6 +34,7 @@ final class DedupCluster
         public readonly string         $strategy = 'default',
         public readonly array          $thresholds = [],
         public readonly ?float         $confidence = null,
+        public bool                    $isLocked = false,
     ) {
         $this->members[]     = $seed;
         $this->representative = $seed;
@@ -53,6 +54,7 @@ final class DedupCluster
         string         $strategy = 'default',
         array          $thresholds = [],
         ?float         $confidence = null,
+        bool           $isLocked = false,
     ): self {
         if ($representative === null && empty($members)) {
              throw new \InvalidArgumentException('Cannot reconstitute empty cluster');
@@ -60,7 +62,7 @@ final class DedupCluster
 
         $seed = $representative ?? $members[0];
         
-        $cluster = new self($id, $projectId, $seed, $strategy, $thresholds, $confidence);
+        $cluster = new self($id, $projectId, $seed, $strategy, $thresholds, $confidence, $isLocked);
         $cluster->members = $members;
         $cluster->duplicates = $duplicates;
         $cluster->representative = $representative;
@@ -74,6 +76,10 @@ final class DedupCluster
      */
     public function absorb(ScholarlyWork $work, Duplicate $evidence): void
     {
+        if ($this->isLocked) {
+            throw new \Nexus\Shared\Exception\ProjectLockedException("Cannot absorb new members into a locked cluster.");
+        }
+
         $incomingKey = $work->primaryId()?->value ?? spl_object_hash($work);
 
         foreach ($this->members as $existing) {

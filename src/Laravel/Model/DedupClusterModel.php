@@ -23,6 +23,7 @@ final class DedupClusterModel extends Model
         'metadata'               => 'array',
         'confidence'             => 'float',
         'cluster_size'           => 'integer',
+        'is_locked'              => 'boolean',
         'created_at'             => 'datetime',
         'updated_at'             => 'datetime',
     ];
