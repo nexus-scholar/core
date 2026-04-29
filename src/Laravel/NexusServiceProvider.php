@@ -137,10 +137,16 @@ final class NexusServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->loadMigrationsFrom(__DIR__.'/Migration');
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/config/nexus.php' => $this->app->configPath('nexus.php'),
             ], 'nexus-config');
+
+            $this->publishes([
+                __DIR__.'/Migration' => $this->app->databasePath('migrations'),
+            ], 'nexus-migrations');
 
             $this->commands([
                 \Nexus\Laravel\Command\NexusSearchCommand::class,
