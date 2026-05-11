@@ -8,4 +8,5 @@ enum NetworkExportFormat: string
 {
     case GEXF    = 'gexf';
     case GRAPHML = 'graphml';
+    case CYTOSCAPE = 'cytoscape';
 }
