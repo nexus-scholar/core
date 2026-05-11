@@ -130,6 +130,38 @@ final class NexusServiceProvider extends ServiceProvider
                 $app->bound(\Psr\Log\LoggerInterface::class) ? $app->make(\Psr\Log\LoggerInterface::class) : null
             );
         });
+
+        // Dissemination Module
+        $this->app->singleton(\Nexus\Dissemination\Domain\Port\FileStoragePort::class, function ($app) {
+            $disk = $app['config']->get('nexus.dissemination.pdf_storage_disk', 'public');
+            return new \Nexus\Dissemination\Infrastructure\Storage\LaravelFileStorage($disk);
+        });
+
+        $this->app->singleton(
+            \Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort::class,
+            \Nexus\Laravel\Persistence\EloquentPdfFetchRepository::class
+        );
+
+        $this->app->singleton(
+            \Nexus\Dissemination\Domain\Port\PdfDownloaderPort::class,
+            \Nexus\Dissemination\Infrastructure\PdfSource\GuzzlePdfDownloader::class
+        );
+
+        $this->app->singleton(\Nexus\Dissemination\Domain\Port\SerializerCollection::class, function ($app) {
+            return new \Nexus\Dissemination\Domain\Port\SerializerCollection(
+                new \Nexus\Dissemination\Infrastructure\Serializer\BibTexSerializer(),
+                new \Nexus\Dissemination\Infrastructure\Serializer\CsvSerializer(),
+                new \Nexus\Dissemination\Infrastructure\Serializer\JsonSerializer(),
+            );
+        });
+
+        $this->app->singleton(\Nexus\Dissemination\Domain\Port\FullTextSourceCollection::class, function ($app) {
+            return new \Nexus\Dissemination\Domain\Port\FullTextSourceCollection(
+                new \Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource(),
+                new \Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource(),
+                new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource(),
+            );
+        });
     }
 
     /**

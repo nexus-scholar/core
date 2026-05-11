@@ -26,4 +26,8 @@ return [
             'api_key' => env('NEXUS_PUBMED_API_KEY'),
         ],
     ],
+
+    'dissemination' => [
+        'pdf_storage_disk' => env('NEXUS_PDF_DISK', 'public'),
+    ],
 ];
