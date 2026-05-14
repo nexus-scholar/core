@@ -177,6 +177,44 @@ it('elects_most_complete_work_as_representative', function (): void {
     expect($cluster->representative()->hasAbstract())->toBeTrue();
 });
 
+it('fills missing representative fields from duplicate members in exported corpus', function (): void {
+    $openAlex = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([
+            new WorkId(WorkIdNamespace::OPENALEX, 'https://openalex.org/W1'),
+            new WorkId(WorkIdNamespace::ARXIV, '2301.00001'),
+        ]),
+        title: 'Universal ultrasound foundation model',
+        sourceProvider: 'openalex',
+        year: 2024,
+        abstract: null,
+    );
+
+    $arxiv = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::ARXIV, '2301.00001')]),
+        title: 'Universal ultrasound foundation model',
+        sourceProvider: 'arxiv',
+        year: 2024,
+        abstract: 'Abstract from arXiv.',
+    );
+
+    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($openAlex, 'test-project');
+    $cluster->absorb($arxiv, new \Nexus\Deduplication\Domain\Duplicate(
+        primaryId: $openAlex->primaryId(),
+        secondaryId: $arxiv->primaryId(),
+        reason: \Nexus\Deduplication\Domain\DuplicateReason::ARXIV_MATCH,
+        confidence: 1.0,
+    ));
+    $cluster->electRepresentative(new CompletenessElectionPolicy());
+
+    expect($cluster->representative()->sourceProvider())->toBe('openalex');
+    expect($cluster->representative()->abstract())->toBeNull();
+
+    $corpus = (new \Nexus\Deduplication\Domain\DedupClusterCollection($cluster))->toCorpusSlice();
+
+    expect($corpus->all()[0]->sourceProvider())->toBe('openalex');
+    expect($corpus->all()[0]->abstract())->toBe('Abstract from arXiv.');
+});
+
 // ── DeduplicateCorpusHandler ──────────────────────────────────────────────────
 
 it('clusters_two_works_with_same_doi_into_one_cluster', function (): void {

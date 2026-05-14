@@ -56,9 +56,28 @@ final class DedupClusterCollection
      */
     public function toCorpusSlice(): CorpusSlice
     {
-        $reps = array_map(fn(DedupCluster $c) => $c->representative(), $this->clusters);
+        $reps = array_map(fn (DedupCluster $c) => $this->mergedRepresentative($c), $this->clusters);
 
         return CorpusSlice::fromWorks(...$reps);
+    }
+
+    private function mergedRepresentative(DedupCluster $cluster): ?\Nexus\Search\Domain\ScholarlyWork
+    {
+        $representative = $cluster->representative();
+
+        if ($representative === null) {
+            return null;
+        }
+
+        foreach ($cluster->members() as $member) {
+            if ($member === $representative) {
+                continue;
+            }
+
+            $representative = $representative->mergeWith($member);
+        }
+
+        return $representative;
     }
 
     /**

@@ -37,7 +37,7 @@ final class ArXivAdapter extends BaseProviderAdapter
     public function search(SearchQuery $query): array
     {
         $params = array_merge(
-            ['search_query' => "all:{$query->term->value}"],
+            ['search_query' => $this->searchQuery($query)],
             $this->paginationParams($query),
         );
 
@@ -49,13 +49,16 @@ final class ArXivAdapter extends BaseProviderAdapter
 
         $entries = $this->parseAtomXml($response->rawBody);
 
-        return array_map(fn (array $entry) => $this->normalize($entry, $query), $entries);
+        return $this->filterByYearRange(
+            array_map(fn (array $entry) => $this->normalize($entry, $query), $entries),
+            $query,
+        );
     }
 
     public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
     {
         $params = array_merge(
-            ['search_query' => "all:{$query->term->value}"],
+            ['search_query' => $this->searchQuery($query)],
             $this->paginationParams($query),
         );
 
@@ -67,7 +70,10 @@ final class ArXivAdapter extends BaseProviderAdapter
 
                 $entries = $this->parseAtomXml($response->rawBody);
 
-                return array_map(fn (array $entry) => $this->normalize($entry, $query), $entries);
+                return $this->filterByYearRange(
+                    array_map(fn (array $entry) => $this->normalize($entry, $query), $entries),
+                    $query,
+                );
             });
     }
 
@@ -152,6 +158,42 @@ final class ArXivAdapter extends BaseProviderAdapter
             'start'       => $query->offset,
             'max_results' => $query->maxResults,
         ];
+    }
+
+    private function searchQuery(SearchQuery $query): string
+    {
+        $searchQuery = "all:{$query->term->value}";
+
+        if ($query->yearRange === null || $query->yearRange->isUnbounded()) {
+            return $searchQuery;
+        }
+
+        $from = $query->yearRange->from ?? 1000;
+        $to = $query->yearRange->to ?? 9999;
+
+        return sprintf(
+            '(%s) AND submittedDate:[%04d01010000 TO %04d12312359]',
+            $searchQuery,
+            $from,
+            $to,
+        );
+    }
+
+    /**
+     * @param  ScholarlyWork[]  $works
+     * @return ScholarlyWork[]
+     */
+    private function filterByYearRange(array $works, SearchQuery $query): array
+    {
+        if ($query->yearRange === null || $query->yearRange->isUnbounded()) {
+            return $works;
+        }
+
+        return array_values(array_filter(
+            $works,
+            fn (ScholarlyWork $work): bool => $work->year() !== null
+                && $query->yearRange->contains($work->year()),
+        ));
     }
 
     protected function extractItems(array $body): array

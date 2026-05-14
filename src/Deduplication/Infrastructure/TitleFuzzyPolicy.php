@@ -79,7 +79,7 @@ final class TitleFuzzyPolicy implements DeduplicationPolicyPort
                 continue;
             }
 
-            $ratio = $this->normalizer->fuzzyRatio($currNorm, $nextNorm);
+            $ratio = $this->fuzzyRatioForNormalizedTitles($currNorm, $nextNorm);
 
             if ($ratio < $this->threshold) {
                 continue;
@@ -101,5 +101,22 @@ final class TitleFuzzyPolicy implements DeduplicationPolicyPort
         }
 
         return $duplicates;
+    }
+
+    private function fuzzyRatioForNormalizedTitles(string $a, string $b): int
+    {
+        if ($a === $b) {
+            return 100;
+        }
+
+        if ($a === '' || $b === '') {
+            return 0;
+        }
+
+        $lenA = strlen($a);
+        $lenB = strlen($b);
+        $dist = levenshtein($a, $b);
+
+        return (int) round((1 - $dist / max($lenA, $lenB)) * 100);
     }
 }
