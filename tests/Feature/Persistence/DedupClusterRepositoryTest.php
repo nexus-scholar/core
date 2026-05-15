@@ -177,8 +177,13 @@ it('returns null when cluster representative work has been deleted', function ()
     $this->workRepo->save($work);
     $cluster = PersistenceFactory::makeCluster($this->project->id, $work);
     $this->repo->save($cluster);
+
+    $internalWorkId = $this->workRepo->findById($work->primaryId())
+        ->ids()
+        ->findByNamespace(\Nexus\Shared\ValueObject\WorkIdNamespace::INTERNAL)
+        ->value;
     
-    DB::table('scholarly_works')->where('id', $work->primaryId()->value)->delete();
+    DB::table('scholarly_works')->where('id', $internalWorkId)->delete();
     
     expect($this->repo->findById($cluster->id->toString()))->toBeNull();
 });

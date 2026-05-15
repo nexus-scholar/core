@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Laravel\Persistence\Repository;
 
 use Illuminate\Support\Str;
+use Nexus\Laravel\Model\WorkExternalIdModel;
 use Nexus\Laravel\Model\SearchQueryModel;
 use Nexus\Laravel\Model\SearchQueryProviderModel;
 use Nexus\Laravel\Model\QueryWorkModel;
@@ -13,6 +14,8 @@ use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
 use Nexus\Search\Domain\ProviderProgress;
 use Nexus\Shared\ValueObject\LanguageCode;
+use Nexus\Shared\ValueObject\WorkId;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Search\Domain\Port\SearchQueryRepositoryPort;
 
 final class EloquentSearchQueryRepository implements SearchQueryRepositoryPort
@@ -61,14 +64,12 @@ final class EloquentSearchQueryRepository implements SearchQueryRepositoryPort
         string $providerWorkId,
         int $rank
     ): void {
-        // workId passed here might be the toString() with prefix, but query_works FK 
-        // references scholarly_works.id which is the bare value.
-        $bareWorkId = str_contains($workId, ':') ? explode(':', $workId, 2)[1] : $workId;
+        $internalWorkId = $this->resolveInternalWorkId($workId);
 
         QueryWorkModel::firstOrCreate(
             [
                 'search_query_id' => $searchQueryId,
-                'work_id'         => $bareWorkId,
+                'work_id'         => $internalWorkId,
                 'provider_alias'  => $providerAlias,
             ],
             [
@@ -107,5 +108,25 @@ final class EloquentSearchQueryRepository implements SearchQueryRepositoryPort
             ->get()
             ->map(fn ($row) => $this->findById($row->id))
             ->all();
+    }
+
+    private function resolveInternalWorkId(string $workId): string
+    {
+        if (! str_contains($workId, ':')) {
+            return $workId;
+        }
+
+        $id = WorkId::fromString($workId);
+
+        if ($id->namespace === WorkIdNamespace::INTERNAL) {
+            return $id->value;
+        }
+
+        $externalId = WorkExternalIdModel::query()
+            ->where('namespace', $id->namespace->value)
+            ->where('value', $id->value)
+            ->first();
+
+        return $externalId?->work_id ?? $id->value;
     }
 }

@@ -186,7 +186,12 @@ it('toDomain does not reconstruct edges for works not in the work repository', f
     $graph->recordCitation($w1->primaryId(), $w2->primaryId());
     $this->repo->save($graph);
 
-    DB::table('scholarly_works')->where('id', $w1->primaryId()->value)->delete();
+    $internalWorkId = $this->workRepo->findById($w1->primaryId())
+        ->ids()
+        ->findByNamespace(\Nexus\Shared\ValueObject\WorkIdNamespace::INTERNAL)
+        ->value;
+
+    DB::table('scholarly_works')->where('id', $internalWorkId)->delete();
 
     $loaded = $this->repo->findById($graph->id);
     expect($loaded->edgeCount())->toBe(0);

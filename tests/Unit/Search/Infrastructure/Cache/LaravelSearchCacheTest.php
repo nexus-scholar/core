@@ -6,8 +6,8 @@ namespace Tests\Unit\Search\Infrastructure\Cache;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Mockery;
+use Nexus\Laravel\Persistence\LaravelSearchCache;
 use Nexus\Search\Domain\ScholarlyWork;
-use Nexus\Search\Infrastructure\Cache\LaravelSearchCache;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;

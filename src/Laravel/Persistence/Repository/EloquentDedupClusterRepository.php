@@ -25,33 +25,47 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
     public function save(DedupCluster $cluster): void
     {
         DB::transaction(function () use ($cluster): void {
+            $representativeWorkId = $cluster->representative() !== null
+                ? $this->internalIdForWork($cluster->representative())
+                : null;
+
             $clusterRow = DedupClusterModel::updateOrCreate(
                 ['id' => $cluster->id->toString()],
                 [
                     'project_id'             => $cluster->projectId,
                     'strategy'               => $cluster->strategy,
                     'thresholds'             => $cluster->thresholds,
-                    'representative_work_id' => $cluster->representative()?->primaryId()?->value,
+                    'representative_work_id' => $representativeWorkId,
                     'cluster_size'           => $cluster->size(),
                     'confidence'             => $cluster->confidence,
                     'is_locked'              => $cluster->isLocked,
                 ]
             );
 
-            $currentMemberIds = array_map(
-                fn ($m) => $m->primaryId()?->value,
+            $currentMemberIds = array_values(array_filter(array_map(
+                fn ($member) => $this->internalIdForWork($member),
                 $cluster->members()
-            );
+            )));
 
-            ClusterMemberModel::where('cluster_id', $clusterRow->id)
-                ->whereNotIn('work_id', $currentMemberIds)
-                ->delete();
+            $memberQuery = ClusterMemberModel::where('cluster_id', $clusterRow->id);
+
+            if ($currentMemberIds === []) {
+                $memberQuery->delete();
+            } else {
+                $memberQuery->whereNotIn('work_id', $currentMemberIds)->delete();
+            }
 
             foreach ($cluster->members() as $member) {
+                $memberId = $this->internalIdForWork($member);
+
+                if ($memberId === null) {
+                    continue;
+                }
+
                 ClusterMemberModel::updateOrCreate(
                     [
                         'cluster_id' => $clusterRow->id,
-                        'work_id'    => $member->primaryId()?->value,
+                        'work_id'    => $memberId,
                     ],
                     ['id' => (string) Str::uuid()]
                 );
@@ -139,5 +153,26 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
         } catch (\InvalidArgumentException $e) {
             return null;
         }
+    }
+
+    private function internalIdForWork(\Nexus\Search\Domain\ScholarlyWork $work): ?string
+    {
+        $internalId = $work->ids()->findByNamespace(WorkIdNamespace::INTERNAL);
+
+        if ($internalId !== null) {
+            return $internalId->value;
+        }
+
+        $primaryId = $work->primaryId();
+
+        if ($primaryId === null) {
+            return null;
+        }
+
+        return $this->workRepository
+            ->findById($primaryId)
+            ?->ids()
+            ->findByNamespace(WorkIdNamespace::INTERNAL)
+            ?->value;
     }
 }

@@ -23,6 +23,7 @@ final class WorkIdSet
         WorkIdNamespace::PUBMED,
         WorkIdNamespace::IEEE,
         WorkIdNamespace::DOAJ,
+        WorkIdNamespace::INTERNAL,
     ];
 
     public function __construct(WorkId ...$ids)

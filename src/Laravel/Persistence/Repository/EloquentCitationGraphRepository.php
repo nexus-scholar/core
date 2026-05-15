@@ -39,11 +39,18 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
             CitationEdgeModel::where('graph_id', $graphRow->id)->delete();
 
             foreach ($graph->allEdges() as $edge) {
+                $citingWorkId = $this->internalIdForGraphWork($graph, $edge->citing);
+                $citedWorkId = $this->internalIdForGraphWork($graph, $edge->cited);
+
+                if ($citingWorkId === null || $citedWorkId === null) {
+                    continue;
+                }
+
                 CitationEdgeModel::create([
                     'id'             => (string) Str::uuid(),
                     'graph_id'       => $graphRow->id,
-                    'citing_work_id' => $edge->citing->value,
-                    'cited_work_id'  => $edge->cited->value,
+                    'citing_work_id' => $citingWorkId,
+                    'cited_work_id'  => $citedWorkId,
                     'weight'         => $edge->weight,
                 ]);
             }
@@ -119,5 +126,24 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
         }
 
         return $graph;
+    }
+
+    private function internalIdForGraphWork(CitationGraph $graph, WorkId $id): ?string
+    {
+        $work = $graph->workByIdString($id->toString()) ?? $graph->workByIdString($id->value);
+
+        if ($work !== null) {
+            $internalId = $work->ids()->findByNamespace(WorkIdNamespace::INTERNAL);
+
+            if ($internalId !== null) {
+                return $internalId->value;
+            }
+        }
+
+        return $this->workRepository
+            ->findById($id)
+            ?->ids()
+            ->findByNamespace(WorkIdNamespace::INTERNAL)
+            ?->value;
     }
 }

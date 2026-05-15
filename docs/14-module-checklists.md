@@ -11,7 +11,7 @@
 - [x] provider calls rate-limited
 - [x] raw data off by default
 - [x] provider adapters return domain objects, not arrays
-- [ ] adapter tests use recorded fixtures
+- [x] adapter tests use recorded fixtures
 
 ## Deduplication Checklist
 - [x] exact ID policies run before fuzzy policies
@@ -28,15 +28,21 @@
 - [ ] metrics isolated from persistence concerns
 
 ## Dissemination Checklist
-- [ ] serializers are pure
-- [ ] storage is abstracted
-- [ ] PDF retrieval logs attempts per source
-- [ ] export format handling is explicit
+- [x] serializers are pure
+- [x] storage is abstracted
+- [x] PDF retrieval logs attempts per source
+- [x] export format handling is explicit
 - [ ] graph exports preserve IDs and weights
 
 ## Laravel Checklist
-- [ ] provider registry built once at boot
+- [x] provider registry built once at boot
 - [ ] jobs call application services only
-- [ ] Eloquent models stay in infrastructure
-- [ ] published config contains no personal email defaults
-- [ ] migrations reflect provenance and decision history
+- [x] Eloquent models stay in infrastructure
+- [x] published config contains no personal email defaults
+- [x] migrations reflect provenance and decision history
+
+## P0 Stabilization Notes
+- [x] Application services use ports for project-lock checks and transactions instead of importing Laravel facades directly.
+- [x] Work persistence uses an internal UUID row ID and external ID rows for provider identifiers.
+- [x] Work provider provenance is persisted and round-tripped through `work_providers`.
+- [ ] Empty placeholder source/test files still need either implementation or removal from the public surface.

@@ -16,6 +16,8 @@ use Nexus\Search\Infrastructure\Deduplication\DeduplicationAdapter;
 use Nexus\Deduplication\Application\DeduplicateCorpusHandler;
 use Nexus\Search\Application\Aggregator\SearchAggregator;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
+use Nexus\Shared\Port\ProjectLockPort;
+use Nexus\Shared\Port\TransactionPort;
 
 final class NexusServiceProvider extends ServiceProvider
 {
@@ -27,9 +29,11 @@ final class NexusServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/config/nexus.php', 'nexus');
 
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
+        $this->app->singleton(ProjectLockPort::class, \Nexus\Laravel\Persistence\EloquentProjectLock::class);
+        $this->app->singleton(TransactionPort::class, \Nexus\Laravel\Persistence\LaravelTransaction::class);
 
         $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, function ($app) {
-            return new \Nexus\Search\Infrastructure\Cache\LaravelSearchCache($app['cache.store']);
+            return new \Nexus\Laravel\Persistence\LaravelSearchCache($app['cache.store']);
         });
 
         $this->app->singleton('nexus.provider_configs', function ($app) {
@@ -134,7 +138,7 @@ final class NexusServiceProvider extends ServiceProvider
         // Dissemination Module
         $this->app->singleton(\Nexus\Dissemination\Domain\Port\FileStoragePort::class, function ($app) {
             $disk = $app['config']->get('nexus.dissemination.pdf_storage_disk', 'public');
-            return new \Nexus\Dissemination\Infrastructure\Storage\LaravelFileStorage($disk);
+            return new \Nexus\Laravel\Persistence\LaravelFileStorage($disk);
         });
 
         $this->app->singleton(

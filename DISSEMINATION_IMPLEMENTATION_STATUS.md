@@ -1,6 +1,6 @@
 # Dissemination Module: Implementation Status
 
-**As of May 11, 2026**
+**As of May 15, 2026**
 
 ---
 
@@ -131,14 +131,15 @@ The Dissemination module has **Phase 1 and Phase 2 substantially complete**, wit
 
 ## Test Coverage Status
 
-### Unit Tests
-- ❌ **ExportBibliographyHandlerTest.php** - Scaffold (empty)
-- ❌ **BibTexSerializerTest.php** - Scaffold (empty)
-- ❌ **GexfSerializerTest.php** - Scaffold (empty)
-- ❌ **RisSerializerTest.php** - Scaffold (empty)
+### Current Coverage
+- ✅ **ExportBibliographyHandlerTest.php** validates serializer routing and unsupported formats.
+- ✅ **BibTexSerializerTest.php**, **RisSerializerTest.php**, **CsvSerializerTest.php**, **JsonSerializerTest.php**, **JsonlSerializerTest.php** validate bibliography formats.
+- ✅ **GexfSerializerTest.php**, **GraphMlSerializerTest.php**, **CytoscapeSerializerTest.php** validate graph export shape.
+- ✅ **RetrieveFullTextFeatureTest.php** validates full-text retrieval and PDF fetch audit persistence through ports.
 
-### Observation
-Test files exist but contain only strict-types declarations. According to AGENTS.md, "Implement behavior only when tests/spec docs for that area are added." Tests should be written to validate existing implementations.
+### Remaining Gaps
+- Graph serializers currently cover node shape; edge weights still need explicit tests and implementation coverage.
+- `LocalFileStorage`, `NullFileStorage`, `CompositePdfSource`, and `DirectUrlPdfSource` are still placeholder files and need either implementation or removal.
 
 ---
 
@@ -162,10 +163,9 @@ Test files exist but contain only strict-types declarations. According to AGENTS
 5. **Value objects support**: BibliographyFormat and NetworkExportFormat have helper methods (extension(), mimeType())
 
 ### Gaps
-1. **No test coverage**: All test scaffolds are empty (should add tests)
-2. **No FullText DTO class body**: File exists but is empty (needs implementation)
-3. **No Bibliography DTO class body**: File exists but is empty (needs implementation)
-4. **Repository interface exists but no tests**: PdfFetchRepositoryPort is well-defined; need to verify SQL mapping layer
+1. **Graph edge export**: GEXF/GraphML/Cytoscape need explicit edge and weight preservation coverage.
+2. **Placeholder cleanup**: Remaining empty dissemination source files should be implemented or removed.
+3. **Repository depth**: PdfFetchRepositoryPort has feature coverage through a fake; add SQL mapping tests for the Eloquent adapter.
 
 ---
 

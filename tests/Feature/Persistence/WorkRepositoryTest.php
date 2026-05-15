@@ -12,6 +12,7 @@ use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\Venue;
 use Tests\Support\PersistenceFactory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->repo = app(WorkRepositoryPort::class);
@@ -35,6 +36,47 @@ it('saves a work and retrieves it by id with all scalar fields intact', function
         ->and($loaded->abstract())->toBe($work->abstract())
         ->and($loaded->citedByCount())->toBe($work->citedByCount())
         ->and($loaded->isRetracted())->toBe($work->isRetracted());
+});
+
+it('stores works with an internal uuid and resolves them by external id', function () {
+    $work = PersistenceFactory::makeWork(doi: '10.1111/internal-id', title: 'Internal Identity Test');
+
+    $this->repo->save($work);
+
+    $external = DB::table('work_external_ids')
+        ->where('namespace', 'doi')
+        ->where('value', '10.1111/internal-id')
+        ->first();
+    $row = DB::table('scholarly_works')->where('id', $external->work_id)->first();
+    $loaded = $this->repo->findById($work->primaryId());
+
+    expect(Str::isUuid($row->id))->toBeTrue()
+        ->and($row->id)->not->toBe($work->primaryId()->value)
+        ->and($loaded->ids()->findByNamespace(WorkIdNamespace::INTERNAL)?->value)->toBe($row->id)
+        ->and($loaded->ids()->findByNamespace(WorkIdNamespace::DOI)?->value)->toBe('10.1111/internal-id');
+});
+
+it('round trips source provider provenance through work providers', function () {
+    $ids = WorkIdSet::fromArray([
+        new WorkId(WorkIdNamespace::DOI, '10.1111/provenance'),
+        new WorkId(WorkIdNamespace::OPENALEX, 'W123456789'),
+    ]);
+    $work = ScholarlyWork::reconstitute(
+        ids: $ids,
+        title: 'Provider Provenance Test',
+        sourceProvider: 'openalex'
+    );
+
+    $this->repo->save($work);
+    $loaded = $this->repo->findById(new WorkId(WorkIdNamespace::DOI, '10.1111/provenance'));
+    $internalId = $loaded->ids()->findByNamespace(WorkIdNamespace::INTERNAL)->value;
+
+    expect($loaded->sourceProvider())->toBe('openalex');
+    $this->assertDatabaseHas('work_providers', [
+        'work_id' => $internalId,
+        'provider_alias' => 'openalex',
+        'provider_work_id' => 'w123456789',
+    ]);
 });
 
 it('saves a work with multiple external ids and retrieves them all', function () {
@@ -75,9 +117,11 @@ it('marks exactly one external id as primary', function () {
     
     $loaded = $this->repo->findById($work->primaryId());
     expect($loaded->primaryId()->equals($doi))->toBeTrue();
+
+    $internalId = $loaded->ids()->findByNamespace(WorkIdNamespace::INTERNAL)->value;
     
     $primaryCount = DB::table('work_external_ids')
-        ->where('work_id', $work->primaryId()->value) // Use bare value for DB query
+        ->where('work_id', $internalId)
         ->where('is_primary', true)
         ->count();
     expect($primaryCount)->toBe(1);
@@ -252,7 +296,10 @@ it('deleting a work cascades to work_external_ids', function () {
     $work = PersistenceFactory::makeWork(doi: '10.1212/cascade1');
     $this->repo->save($work);
     
-    $workIdStr = $work->primaryId()->value; // DB uses bare value
+    $workIdStr = $this->repo->findById($work->primaryId())
+        ->ids()
+        ->findByNamespace(WorkIdNamespace::INTERNAL)
+        ->value;
     
     DB::table('scholarly_works')->where('id', $workIdStr)->delete();
     
@@ -265,7 +312,10 @@ it('deleting a work cascades to work_authors', function () {
     $work = PersistenceFactory::makeWork(doi: '10.1212/cascade2');
     $this->repo->save($work);
     
-    $workIdStr = $work->primaryId()->value; // DB uses bare value
+    $workIdStr = $this->repo->findById($work->primaryId())
+        ->ids()
+        ->findByNamespace(WorkIdNamespace::INTERNAL)
+        ->value;
     
     DB::table('scholarly_works')->where('id', $workIdStr)->delete();
     

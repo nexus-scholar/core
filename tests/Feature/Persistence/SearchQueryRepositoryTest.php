@@ -155,10 +155,15 @@ it('links a work to a query', function () {
         'W123', 
         1
     );
+
+    $internalWorkId = DB::table('work_external_ids')
+        ->where('namespace', $work->primaryId()->namespace->value)
+        ->where('value', $work->primaryId()->value)
+        ->value('work_id');
     
     $this->assertDatabaseHas('query_works', [
         'search_query_id' => $query->id,
-        'work_id' => $work->primaryId()->value, // DB uses bare value
+        'work_id' => $internalWorkId,
         'provider_alias' => 'openalex',
         'provider_work_id' => 'W123',
         'rank' => 1

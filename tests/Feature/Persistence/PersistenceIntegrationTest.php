@@ -10,6 +10,9 @@ use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Nexus\Search\Domain\Port\SearchQueryRepositoryPort;
 use Nexus\Deduplication\Domain\Port\ClusterRepositoryPort;
 use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
+use Nexus\Shared\Port\ProjectLockPort;
+use Nexus\Shared\Port\TransactionPort;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Tests\Support\PersistenceFactory;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -20,9 +23,13 @@ it('migrations complete in dependency order without errors', function () {
 
 it('work delete cascades to external ids', function () {
     $work = PersistenceFactory::makeWork(doi: '10.5555/cascade_ids');
-    app(WorkRepositoryPort::class)->save($work);
+    $repo = app(WorkRepositoryPort::class);
+    $repo->save($work);
     
-    $id = $work->primaryId()->value; // DB uses bare value
+    $id = $repo->findById($work->primaryId())
+        ->ids()
+        ->findByNamespace(WorkIdNamespace::INTERNAL)
+        ->value;
     $this->assertDatabaseHas('work_external_ids', ['work_id' => $id]);
     
     DB::table('scholarly_works')->where('id', $id)->delete();
@@ -32,9 +39,13 @@ it('work delete cascades to external ids', function () {
 
 it('work delete cascades to work_authors', function () {
     $work = PersistenceFactory::makeWork(doi: '10.5555/cascade_authors');
-    app(WorkRepositoryPort::class)->save($work);
+    $repo = app(WorkRepositoryPort::class);
+    $repo->save($work);
     
-    $id = $work->primaryId()->value; // DB uses bare value
+    $id = $repo->findById($work->primaryId())
+        ->ids()
+        ->findByNamespace(WorkIdNamespace::INTERNAL)
+        ->value;
     $this->assertDatabaseHas('work_authors', ['work_id' => $id]);
     
     DB::table('scholarly_works')->where('id', $id)->delete();
@@ -47,7 +58,9 @@ it('all repository port bindings resolve from the container', function () {
     expect(app(WorkRepositoryPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\Repository\EloquentWorkRepository::class)
         ->and(app(SearchQueryRepositoryPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\Repository\EloquentSearchQueryRepository::class)
         ->and(app(ClusterRepositoryPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\Repository\EloquentDedupClusterRepository::class)
-        ->and(app(CitationGraphRepositoryPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\Repository\EloquentCitationGraphRepository::class);
+        ->and(app(CitationGraphRepositoryPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\Repository\EloquentCitationGraphRepository::class)
+        ->and(app(ProjectLockPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\EloquentProjectLock::class)
+        ->and(app(TransactionPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\LaravelTransaction::class);
 });
 
 it('full round-trip: save work → save cluster referencing that work → load cluster → representative matches saved work', function () {
