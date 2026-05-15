@@ -53,6 +53,40 @@ it('saves a graph with edges and reconstructs all edges', function () {
     expect($edges[0]->cited->equals($w2->primaryId()))->toBeTrue();
 });
 
+it('preserves edge weights in SQL and domain round trips', function () {
+    $w1 = PersistenceFactory::makeWork(doi: '10.0001/weighted-source');
+    $w2 = PersistenceFactory::makeWork(doi: '10.0001/weighted-target');
+    $this->workRepo->save($w1);
+    $this->workRepo->save($w2);
+
+    $graph = PersistenceFactory::makeCitationGraph($this->project->id, CitationGraphType::CO_CITATION);
+    $graph->addWork($w1);
+    $graph->addWork($w2);
+    $graph->recordCitation($w1->primaryId(), $w2->primaryId(), 2.75);
+
+    $this->repo->save($graph);
+
+    $sourceInternalId = $this->workRepo->findById($w1->primaryId())
+        ->ids()
+        ->findByNamespace(\Nexus\Shared\ValueObject\WorkIdNamespace::INTERNAL)
+        ->value;
+    $targetInternalId = $this->workRepo->findById($w2->primaryId())
+        ->ids()
+        ->findByNamespace(\Nexus\Shared\ValueObject\WorkIdNamespace::INTERNAL)
+        ->value;
+
+    $storedWeight = DB::table('citation_edges')
+        ->where('graph_id', $graph->id->toString())
+        ->where('citing_work_id', $sourceInternalId)
+        ->where('cited_work_id', $targetInternalId)
+        ->value('weight');
+
+    $loaded = $this->repo->findById($graph->id);
+
+    expect((float) $storedWeight)->toBe(2.75)
+        ->and($loaded->allEdges()[0]->weight)->toBe(2.75);
+});
+
 it('reconstructed graph has correct node count from edges', function () {
     $w1 = PersistenceFactory::makeWork(doi: '10.0001/n1');
     $w2 = PersistenceFactory::makeWork(doi: '10.0001/n2');

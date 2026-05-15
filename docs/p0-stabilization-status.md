@@ -11,7 +11,7 @@ Last updated: 2026-05-15
 - Updated persistence repositories that reference works so clusters, citation edges, and query links store internal work IDs.
 - Removed empty PHP placeholder files from source and test directories, then added a regression test to prevent new empty placeholders.
 - Hardened provider configuration so Laravel config controls `enabled`, `rate_limit`, retry count, timeout, API keys, and immutable per-request provider selection.
+- Added SQL-level persistence regressions for PDF fetch audit rows and citation graph edge weight round-trips.
 
 ## Still P0
-- Add SQL-level tests for PDF fetch persistence and graph edge export weight preservation.
 - Continue pruning stale docs that describe planned classes as completed behavior.

@@ -121,7 +121,7 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
             $citedWork  = $internalToWork[$edgeRow->cited_work_id] ?? null;
 
             if ($citingWork && $citedWork) {
-                $graph->recordCitation($citingWork->primaryId(), $citedWork->primaryId());
+                $graph->recordCitation($citingWork->primaryId(), $citedWork->primaryId(), (float) $edgeRow->weight);
             }
         }
 

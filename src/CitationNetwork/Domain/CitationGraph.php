@@ -43,7 +43,7 @@ final class CitationGraph
     /**
      * Record that $citing cites $cited.
      */
-    public function recordCitation(WorkId $citing, WorkId $cited): void
+    public function recordCitation(WorkId $citing, WorkId $cited, float $weight = 1.0): void
     {
         if (!$this->hasWork($citing)) {
             return;
@@ -55,7 +55,7 @@ final class CitationGraph
             }
         }
 
-        $this->edges[] = new CitationLink($citing, $cited);
+        $this->edges[] = new CitationLink($citing, $cited, $weight);
     }
 
     public function hasWork(WorkId $id): bool

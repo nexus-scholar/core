@@ -27,6 +27,7 @@
 - [ ] bibliographic coupling implementation is not O(n²)
 - [ ] snowball returns only new works for each round
 - [ ] metrics isolated from persistence concerns
+- [x] persisted edge weights round-trip from SQL
 
 ## Dissemination Checklist
 - [x] serializers are pure
