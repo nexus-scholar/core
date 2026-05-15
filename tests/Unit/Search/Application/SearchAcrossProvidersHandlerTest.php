@@ -35,10 +35,15 @@ it('delegates to the aggregator when the project is not locked', function (): vo
     };
 
     $handler = new SearchAcrossProvidersHandler($aggregator, $locks);
-    $result = $handler->handle(new SearchAcrossProviders('machine learning', 'project-1'));
+    $result = $handler->handle(new SearchAcrossProviders(
+        query: 'machine learning',
+        projectId: 'project-1',
+        providerAliases: ['OpenAlex', 'arxiv', 'openalex'],
+    ));
 
     expect($result->corpus->isEmpty())->toBeTrue()
         ->and($aggregator->received?->projectId)->toBe('project-1')
+        ->and($aggregator->received?->providerAliases)->toBe(['openalex', 'arxiv'])
         ->and($locks->checked)->toBe(['project-1']);
 });
 

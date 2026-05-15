@@ -27,8 +27,8 @@ final class SearchAggregator implements SearchAggregatorPort
     {
         $startTime = hrtime(true);
 
-        // Build list of active adapters
-        $activeAdapters = $this->adapters->all();
+        // Build an immutable per-query view of the registered adapters.
+        $activeAdapters = $this->adapters->matching($query->providerAliases);
         $sortedAliases  = array_map(fn ($p) => $p->alias(), $activeAdapters);
         sort($sortedAliases);
 

@@ -20,7 +20,7 @@ it('adds submitted date range to arxiv search and drops out of range works', fun
         /** @var array<string, mixed> */
         public array $lastQuery = [];
 
-        public function get(string $url, array $query = [], array $headers = []): HttpResponse
+        public function get(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): HttpResponse
         {
             $this->lastQuery = $query;
 
@@ -49,9 +49,9 @@ XML,
             );
         }
 
-        public function getAsync(string $url, array $query = [], array $headers = []): PromiseInterface
+        public function getAsync(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): PromiseInterface
         {
-            return new FulfilledPromise($this->get($url, $query, $headers));
+            return new FulfilledPromise($this->get($url, $query, $headers, $timeoutSeconds));
         }
     };
 

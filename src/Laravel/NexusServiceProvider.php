@@ -6,18 +6,19 @@ namespace Nexus\Laravel;
 
 use Illuminate\Support\ServiceProvider;
 use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
+use Nexus\Search\Infrastructure\Provider\ProviderConfig;
 use Nexus\Search\Domain\Port\HttpClientPort;
-use Nexus\Search\Domain\Port\RateLimiterPort;
 use Nexus\Search\Domain\Port\DeduplicationPort;
 use Nexus\Search\Domain\Port\AdapterCollection;
 use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
-use Nexus\Search\Infrastructure\RateLimit\NullRateLimiter;
+use Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter;
 use Nexus\Search\Infrastructure\Deduplication\DeduplicationAdapter;
 use Nexus\Deduplication\Application\DeduplicateCorpusHandler;
 use Nexus\Search\Application\Aggregator\SearchAggregator;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\TransactionPort;
+use Psr\Log\LoggerInterface;
 
 final class NexusServiceProvider extends ServiceProvider
 {
@@ -39,11 +40,9 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton('nexus.provider_configs', function ($app) {
             $config = $app['config']->get('nexus');
 
-            return ProviderConfigRegistry::defaults(
-                ieeeApiKey: $config['providers']['ieee']['api_key'] ?? null,
-                s2ApiKey: $config['providers']['semantic_scholar']['api_key'] ?? null,
-                pubmedApiKey: $config['providers']['pubmed']['api_key'] ?? null,
-                mailTo: $config['mail_to'] ?? null,
+            return ProviderConfigRegistry::fromArray(
+                $config['providers'] ?? [],
+                $config['mail_to'] ?? null,
             );
         });
 
@@ -89,49 +88,14 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
             $configs     = $app->make('nexus.provider_configs');
             $http        = $app->make(HttpClientPort::class);
-            $adapters = [
-                new \Nexus\Search\Infrastructure\Provider\ArXivAdapter(
-                    $http, 
-                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['arxiv']->ratePerSecond, $configs['arxiv']->ratePerSecond), 
-                    $configs['arxiv']
-                ),
-                new \Nexus\Search\Infrastructure\Provider\CrossrefAdapter(
-                    $http, 
-                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['crossref']->ratePerSecond, $configs['crossref']->ratePerSecond), 
-                    $configs['crossref']
-                ),
-                new \Nexus\Search\Infrastructure\Provider\DoajAdapter(
-                    $http, 
-                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['doaj']->ratePerSecond, $configs['doaj']->ratePerSecond), 
-                    $configs['doaj']
-                ),
-                new \Nexus\Search\Infrastructure\Provider\IeeeAdapter(
-                    $http, 
-                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['ieee']->ratePerSecond, $configs['ieee']->ratePerSecond), 
-                    $configs['ieee']
-                ),
-                new \Nexus\Search\Infrastructure\Provider\OpenAlexAdapter(
-                    $http, 
-                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['openalex']->ratePerSecond, $configs['openalex']->ratePerSecond), 
-                    $configs['openalex']
-                ),
-                new \Nexus\Search\Infrastructure\Provider\PubMedAdapter(
-                    $http, 
-                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['pubmed']->ratePerSecond, $configs['pubmed']->ratePerSecond), 
-                    $configs['pubmed']
-                ),
-                new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
-                    $http, 
-                    new \Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter($configs['semantic_scholar']->ratePerSecond, $configs['semantic_scholar']->ratePerSecond), 
-                    $configs['semantic_scholar']
-                ),
-            ];
+            $logger      = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
+            $adapters    = $this->searchAdapters($configs, $http, $logger);
 
             return new SearchAggregator(
                 new AdapterCollection(...$adapters),
                 $app->make(DeduplicationPort::class),
                 $app->make(\Nexus\Search\Domain\Port\SearchCachePort::class),
-                $app->bound(\Psr\Log\LoggerInterface::class) ? $app->make(\Psr\Log\LoggerInterface::class) : null
+                $logger,
             );
         });
 
@@ -166,6 +130,80 @@ final class NexusServiceProvider extends ServiceProvider
                 new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource(),
             );
         });
+    }
+
+    /**
+     * @param array<string, ProviderConfig> $configs
+     * @return array<int, \Nexus\Search\Domain\Port\AcademicProviderPort>
+     */
+    private function searchAdapters(array $configs, HttpClientPort $http, ?LoggerInterface $logger): array
+    {
+        $factories = [
+            'arxiv' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\ArXivAdapter(
+                $http,
+                $this->rateLimiterFor($config),
+                $config,
+                $logger,
+            ),
+            'crossref' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\CrossrefAdapter(
+                $http,
+                $this->rateLimiterFor($config),
+                $config,
+                $logger,
+            ),
+            'doaj' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\DoajAdapter(
+                $http,
+                $this->rateLimiterFor($config),
+                $config,
+                $logger,
+            ),
+            'ieee' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\IeeeAdapter(
+                $http,
+                $this->rateLimiterFor($config),
+                $config,
+                $logger,
+            ),
+            'openalex' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\OpenAlexAdapter(
+                $http,
+                $this->rateLimiterFor($config),
+                $config,
+                $logger,
+            ),
+            'pubmed' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\PubMedAdapter(
+                $http,
+                $this->rateLimiterFor($config),
+                $config,
+                $logger,
+            ),
+            'semantic_scholar' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
+                $http,
+                $this->rateLimiterFor($config),
+                $config,
+                $logger,
+            ),
+        ];
+
+        $adapters = [];
+
+        foreach ($factories as $alias => $factory) {
+            $config = $configs[$alias] ?? null;
+
+            if (! $config instanceof ProviderConfig || ! $config->enabled) {
+                continue;
+            }
+
+            $adapters[] = $factory($config);
+        }
+
+        return $adapters;
+    }
+
+    private function rateLimiterFor(ProviderConfig $config): TokenBucketRateLimiter
+    {
+        return new TokenBucketRateLimiter(
+            ratePerSecond: $config->ratePerSecond,
+            capacity: max(1.0, $config->ratePerSecond),
+        );
     }
 
     /**

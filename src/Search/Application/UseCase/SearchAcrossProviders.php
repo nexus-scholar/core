@@ -21,6 +21,7 @@ final class SearchAcrossProviders
         int    $maxResults = 50,
         ?int   $yearFrom = null,
         ?int   $yearTo = null,
+        array  $providerAliases = [],
     ) {
         $yearRange = ($yearFrom !== null || $yearTo !== null)
             ? new YearRange($yearFrom, $yearTo)
@@ -30,7 +31,8 @@ final class SearchAcrossProviders
             term:       new SearchTerm($query),
             projectId:  $projectId,
             yearRange:  $yearRange,
-            maxResults: $maxResults
+            maxResults: $maxResults,
+            providerAliases: $providerAliases,
         );
     }
 }

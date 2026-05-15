@@ -123,6 +123,13 @@ it('is_provider_order_insensitive_in_cache_key', function (): void {
     expect($q->cacheKey(['crossref', 'openalex']))->toBe($q->cacheKey(['openalex', 'crossref']));
 });
 
+it('normalizes_selected_provider_aliases_and_uses_them_in_default_cache_key', function (): void {
+    $q = new SearchQuery(new SearchTerm('AI'), providerAliases: [' OpenAlex ', 'arxiv', 'openalex', '']);
+
+    expect($q->providerAliases)->toBe(['openalex', 'arxiv'])
+        ->and($q->cacheKey())->toBe($q->cacheKey(['openalex', 'arxiv']));
+});
+
 it('advances_offset_on_next_page', function (): void {
     $q    = new SearchQuery(new SearchTerm('AI'), maxResults: 25, offset: 0);
     $next = $q->nextPage();

@@ -79,8 +79,12 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
     };
     
     $http = new class implements HttpClientPort {
-        public function get(string $url, array $query = [], array $headers = []): HttpResponse
+        public ?int $lastTimeout = null;
+
+        public function get(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): HttpResponse
         {
+            $this->lastTimeout = $timeoutSeconds;
+
             return new HttpResponse(
                 statusCode: 429,
                 body: [],
@@ -88,9 +92,9 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
                 headers: [],
             );
         }
-        public function getAsync(string $url, array $query = [], array $headers = []): \GuzzleHttp\Promise\PromiseInterface
+        public function getAsync(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): \GuzzleHttp\Promise\PromiseInterface
         {
-            return new \GuzzleHttp\Promise\FulfilledPromise($this->get($url, $query, $headers));
+            return new \GuzzleHttp\Promise\FulfilledPromise($this->get($url, $query, $headers, $timeoutSeconds));
         }
     };
 
@@ -106,6 +110,7 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
         alias: 'stub',
         baseUrl: 'http://example.com',
         ratePerSecond: 1.0,
+        timeoutSeconds: 12,
         maxRetries: 2
     );
 
@@ -121,4 +126,5 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
 
     expect($logger->hasWarningThatContains('rate limited'))->toBeTrue();
     expect($logger->hasErrorThatContains('failed permanently'))->toBeTrue();
+    expect($http->lastTimeout)->toBe(12);
 });

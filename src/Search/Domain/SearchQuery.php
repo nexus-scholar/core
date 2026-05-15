@@ -13,6 +13,7 @@ use Nexus\Shared\ValueObject\LanguageCode;
 final class SearchQuery
 {
     public readonly string $id;
+    public readonly array $providerAliases;
 
     public function __construct(
         public readonly SearchTerm    $term,
@@ -22,10 +23,12 @@ final class SearchQuery
         public readonly int           $maxResults     = 100,
         public readonly int           $offset         = 0,
         public readonly bool          $includeRawData = false,
+        array                         $providerAliases = [],
         ?string $id                                   = null,
     ) {
         // NEVER use uniqid() — see known bug #13
         $this->id = $id ?? ('Q' . bin2hex(random_bytes(5)));
+        $this->providerAliases = self::normalizeProviderAliases($providerAliases);
     }
 
     /**
@@ -34,8 +37,9 @@ final class SearchQuery
      *
      * @param string[] $sortedProviderAliases
      */
-    public function cacheKey(array $sortedProviderAliases = []): string
+    public function cacheKey(?array $sortedProviderAliases = null): string
     {
+        $sortedProviderAliases ??= $this->providerAliases;
         sort($sortedProviderAliases);
 
         $parts = [
@@ -61,6 +65,7 @@ final class SearchQuery
             maxResults:     $this->maxResults,
             offset:         $offset,
             includeRawData: $this->includeRawData,
+            providerAliases: $this->providerAliases,
             id:             $this->id,
         );
     }
@@ -75,6 +80,7 @@ final class SearchQuery
             maxResults:     $max,
             offset:         $this->offset,
             includeRawData: $this->includeRawData,
+            providerAliases: $this->providerAliases,
             id:             $this->id,
         );
     }
@@ -87,5 +93,39 @@ final class SearchQuery
     public function isFirstPage(): bool
     {
         return $this->offset === 0;
+    }
+
+    public function withProviderAliases(array $providerAliases): self
+    {
+        return new self(
+            term:            $this->term,
+            projectId:       $this->projectId,
+            yearRange:       $this->yearRange,
+            language:        $this->language,
+            maxResults:      $this->maxResults,
+            offset:          $this->offset,
+            includeRawData:  $this->includeRawData,
+            providerAliases: $providerAliases,
+            id:              $this->id,
+        );
+    }
+
+    /**
+     * @param array<int, string> $aliases
+     * @return array<int, string>
+     */
+    private static function normalizeProviderAliases(array $aliases): array
+    {
+        $normalized = [];
+
+        foreach ($aliases as $alias) {
+            $alias = strtolower(trim($alias));
+
+            if ($alias !== '') {
+                $normalized[$alias] = $alias;
+            }
+        }
+
+        return array_values($normalized);
     }
 }

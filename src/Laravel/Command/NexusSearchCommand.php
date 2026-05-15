@@ -17,6 +17,7 @@ final class NexusSearchCommand extends Command
                             {query? : Inline search term}
                             {--file= : Path to a queries.yml file — runs all queries sequentially}
                             {--max=50 : Maximum results per provider (overrides YAML value)}
+                            {--providers= : Comma-separated provider aliases to search}
                             {--from-year= : Start year filter (inline mode only)}
                             {--to-year= : End year filter (inline mode only)}
                             {--priority= : Only run queries with this priority (file mode only)}
@@ -44,6 +45,7 @@ final class NexusSearchCommand extends Command
             'year_min'    => $this->option('from-year') ? (int) $this->option('from-year') : null,
             'year_max'    => $this->option('to-year')   ? (int) $this->option('to-year')   : null,
             'max_results' => (int) $this->option('max'),
+            'providers'   => $this->providerAliasesFromOption() ?: [],
             'metadata'    => ['theme' => 'inline', 'priority' => 'high'],
         ]);
     }
@@ -103,9 +105,15 @@ final class NexusSearchCommand extends Command
                 $q['metadata']['theme'] ?? ''
             ));
 
-            // --max overrides YAML per-query value
+            // CLI options override YAML per-query values.
             if ($this->option('max') !== '50') {
                 $q['max_results'] = (int) $this->option('max');
+            }
+
+            if ($this->option('providers') !== null) {
+                $q['providers'] = $this->providerAliasesFromOption();
+            } elseif (! isset($q['providers']) && isset($yaml['providers'])) {
+                $q['providers'] = $yaml['providers'];
             }
 
             $exitCode  = $this->runSingle($handler, $q, $yaml['project'] ?? 'default-project');
@@ -131,13 +139,19 @@ final class NexusSearchCommand extends Command
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function runSingle(\Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler $handler, array $q): int
+    private function runSingle(
+        \Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler $handler,
+        array $q,
+        string $projectId = 'default-project',
+    ): int
     {
         $command = new \Nexus\Search\Application\UseCase\SearchAcrossProviders(
             query:      trim((string) $q['text']),
+            projectId:  $projectId,
             maxResults: $q['max_results'] ?? 50,
             yearFrom:   $q['year_min'] ?? null,
             yearTo:     $q['year_max'] ?? null,
+            providerAliases: $this->providerAliases($q['providers'] ?? []),
         );
 
         $this->output->write('  Querying providers… ');
@@ -199,5 +213,28 @@ final class NexusSearchCommand extends Command
 
         $this->newLine();
         return self::SUCCESS;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function providerAliasesFromOption(): array
+    {
+        $value = $this->option('providers');
+
+        return is_string($value) ? $this->providerAliases($value) : [];
+    }
+
+    /**
+     * @return string[]
+     */
+    private function providerAliases(string|array $value): array
+    {
+        $aliases = is_array($value) ? $value : explode(',', $value);
+
+        return array_values(array_filter(array_map(
+            static fn ($alias) => strtolower(trim((string) $alias)),
+            $aliases,
+        )));
     }
 }

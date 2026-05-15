@@ -20,6 +20,24 @@ final class AdapterCollection
         return $this->adapters;
     }
 
+    /**
+     * @param string[] $aliases Empty means all registered adapters.
+     * @return AcademicProviderPort[]
+     */
+    public function matching(array $aliases): array
+    {
+        if ($aliases === []) {
+            return $this->adapters;
+        }
+
+        $wanted = array_fill_keys($aliases, true);
+
+        return array_values(array_filter(
+            $this->adapters,
+            fn (AcademicProviderPort $adapter) => isset($wanted[$adapter->alias()]),
+        ));
+    }
+
     public function count(): int
     {
         return count($this->adapters);

@@ -31,6 +31,7 @@ final class EloquentSearchQueryRepository implements SearchQueryRepositoryPort
             'max_results' => $query->maxResults,
             'offset'      => $query->offset,
             'include_raw_data' => $query->includeRawData,
+            'provider_aliases' => $query->providerAliases,
             'cache_key'   => $query->cacheKey(),
         ];
 
@@ -97,6 +98,7 @@ final class EloquentSearchQueryRepository implements SearchQueryRepositoryPort
             maxResults: $row->max_results,
             offset: $row->offset ?? 0,
             includeRawData: (bool) ($row->include_raw_data ?? false),
+            providerAliases: $row->provider_aliases ?? [],
             id: $row->id
         );
     }

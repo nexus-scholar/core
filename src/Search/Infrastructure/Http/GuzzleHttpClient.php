@@ -33,9 +33,9 @@ final class GuzzleHttpClient implements HttpClientPort
         return new self($client);
     }
 
-    public function get(string $url, array $query = [], array $headers = []): HttpResponse
+    public function get(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): HttpResponse
     {
-        $options = $this->prepareOptions($query, $headers);
+        $options = $this->prepareOptions($query, $headers, $timeoutSeconds);
 
         try {
             $guzzleResponse = $this->guzzle->get($url, $options);
@@ -50,9 +50,9 @@ final class GuzzleHttpClient implements HttpClientPort
         }
     }
 
-    public function getAsync(string $url, array $query = [], array $headers = []): \GuzzleHttp\Promise\PromiseInterface
+    public function getAsync(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): \GuzzleHttp\Promise\PromiseInterface
     {
-        $options = $this->prepareOptions($query, $headers);
+        $options = $this->prepareOptions($query, $headers, $timeoutSeconds);
 
         return $this->guzzle->getAsync($url, $options)
             ->then(
@@ -67,9 +67,13 @@ final class GuzzleHttpClient implements HttpClientPort
             );
     }
 
-    private function prepareOptions(array $query, array $headers): array
+    private function prepareOptions(array $query, array $headers, ?int $timeoutSeconds): array
     {
         $options = ['http_errors' => false];
+
+        if ($timeoutSeconds !== null) {
+            $options['timeout'] = $timeoutSeconds;
+        }
 
         if ($query !== []) {
             $options['query'] = $query;

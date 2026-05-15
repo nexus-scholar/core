@@ -12,6 +12,7 @@
 - [x] raw data off by default
 - [x] provider adapters return domain objects, not arrays
 - [x] adapter tests use recorded fixtures
+- [x] per-request provider selection is immutable and cache-aware
 
 ## Deduplication Checklist
 - [x] exact ID policies run before fuzzy policies
@@ -36,6 +37,7 @@
 
 ## Laravel Checklist
 - [x] provider registry built once at boot
+- [x] provider config honors enabled/rate/retry/timeout overrides
 - [ ] jobs call application services only
 - [x] Eloquent models stay in infrastructure
 - [x] published config contains no personal email defaults

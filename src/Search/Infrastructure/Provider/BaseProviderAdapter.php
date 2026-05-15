@@ -50,7 +50,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
             $this->rateLimiter->waitForToken();
 
             try {
-                $response = $this->http->get($url, $query, $headers);
+                $response = $this->http->get($url, $query, $headers, $this->config->timeoutSeconds);
             } catch (ProviderUnavailable $e) {
                 $attempt++;
 
@@ -169,7 +169,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
             $this->rateLimiter->waitForToken();
         }
 
-        return $this->http->getAsync($url, $query, $headers)->then(
+        return $this->http->getAsync($url, $query, $headers, $this->config->timeoutSeconds)->then(
             function (HttpResponse $response) use ($url, $query, $headers, $attempt, $backoff) {
                 if ($response->ok() && !$response->rateLimited() && !$response->serverError()) {
                     return $response;

@@ -10,8 +10,8 @@ Last updated: 2026-05-15
 - Preserved source provider provenance through `work_providers` and restored it when loading domain works.
 - Updated persistence repositories that reference works so clusters, citation edges, and query links store internal work IDs.
 - Removed empty PHP placeholder files from source and test directories, then added a regression test to prevent new empty placeholders.
+- Hardened provider configuration so Laravel config controls `enabled`, `rate_limit`, retry count, timeout, API keys, and immutable per-request provider selection.
 
 ## Still P0
-- Finish provider config hardening: `enabled`, `rate_limit`, retry, timeout, and per-request provider selection.
 - Add SQL-level tests for PDF fetch persistence and graph edge export weight preservation.
 - Continue pruning stale docs that describe planned classes as completed behavior.

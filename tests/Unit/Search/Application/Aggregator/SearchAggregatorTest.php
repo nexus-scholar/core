@@ -139,3 +139,69 @@ it('returns empty corpus when all providers fail', function () {
     expect($result->corpus->count())->toBe(0);
     expect($result->providerStats[0]->skipReason)->not->toBeNull();
 });
+
+it('uses only provider aliases selected on the query', function (): void {
+    $calls = (object) ['counts' => []];
+
+    $makeAdapter = static function (string $alias) use ($calls): AcademicProviderPort {
+        return new class($alias, $calls) implements AcademicProviderPort {
+            public function __construct(private readonly string $providerAlias, private readonly object $calls) {}
+
+            public function alias(): string { return $this->providerAlias; }
+            public function supports(WorkIdNamespace $ns): bool { return true; }
+            public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
+
+            public function search(SearchQuery $query): array
+            {
+                $this->calls->counts[$this->providerAlias] = ($this->calls->counts[$this->providerAlias] ?? 0) + 1;
+
+                return [ScholarlyWork::reconstitute(
+                    ids: new WorkIdSet(new WorkId(WorkIdNamespace::DOI, "10.1234/{$this->providerAlias}")),
+                    title: "Paper {$this->providerAlias}",
+                    sourceProvider: $this->providerAlias,
+                )];
+            }
+
+            public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+            {
+                return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+            }
+        };
+    };
+
+    $dedup = new class implements DeduplicationPort {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice { return $corpus; }
+    };
+
+    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
+        public ?string $lastKey = null;
+
+        public function get(string $key): ?array
+        {
+            $this->lastKey = $key;
+
+            return null;
+        }
+
+        public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
+        public function has(string $key): bool { return false; }
+        public function invalidateAll(): void {}
+    };
+
+    $aggregator = new SearchAggregator(
+        new \Nexus\Search\Domain\Port\AdapterCollection(
+            $makeAdapter('provider_1'),
+            $makeAdapter('provider_2'),
+        ),
+        $dedup,
+        $cache,
+    );
+
+    $query = new SearchQuery(new SearchTerm('test'), providerAliases: ['provider_2']);
+    $result = $aggregator->aggregate($query);
+
+    expect($calls->counts)->toBe(['provider_2' => 1])
+        ->and($result->providerStats)->toHaveCount(1)
+        ->and($result->providerStats[0]->alias)->toBe('provider_2')
+        ->and($cache->lastKey)->toBe($query->cacheKey(['provider_2']));
+});

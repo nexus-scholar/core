@@ -22,7 +22,8 @@ it('returns null for unknown search query id', function () {
 });
 
 it('saves a search query and retrieves it with all fields intact', function () {
-    $query = PersistenceFactory::makeSearchQuery($this->project->id, 'quantum computing');
+    $query = PersistenceFactory::makeSearchQuery($this->project->id, 'quantum computing')
+        ->withProviderAliases(['openalex', 'arxiv']);
     
     $this->repo->save($query);
     
@@ -33,7 +34,8 @@ it('saves a search query and retrieves it with all fields intact', function () {
         ->and($loaded->term->value)->toBe('quantum computing')
         ->and($loaded->yearRange->from)->toBe(2020)
         ->and($loaded->yearRange->to)->toBe(2024)
-        ->and($loaded->language->value)->toBe('en');
+        ->and($loaded->language->value)->toBe('en')
+        ->and($loaded->providerAliases)->toBe(['openalex', 'arxiv']);
 });
 
 it('save is idempotent: saving the same query twice does not duplicate rows', function () {

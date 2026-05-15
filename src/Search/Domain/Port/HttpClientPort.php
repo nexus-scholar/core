@@ -60,6 +60,7 @@ interface HttpClientPort
         string $url,
         array  $query   = [],
         array  $headers = [],
+        ?int   $timeoutSeconds = null,
     ): HttpResponse;
 
     /**
@@ -70,5 +71,6 @@ interface HttpClientPort
         string $url,
         array  $query   = [],
         array  $headers = [],
+        ?int   $timeoutSeconds = null,
     ): \GuzzleHttp\Promise\PromiseInterface;
 }
