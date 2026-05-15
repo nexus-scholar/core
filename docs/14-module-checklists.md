@@ -45,4 +45,4 @@
 - [x] Application services use ports for project-lock checks and transactions instead of importing Laravel facades directly.
 - [x] Work persistence uses an internal UUID row ID and external ID rows for provider identifiers.
 - [x] Work provider provenance is persisted and round-tripped through `work_providers`.
-- [ ] Empty placeholder source/test files still need either implementation or removal from the public surface.
+- [x] Empty placeholder source/test files are removed from the public surface.
