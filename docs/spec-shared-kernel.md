@@ -3,6 +3,7 @@
 > **File:** `docs/spec-shared-kernel.md`
 > **Namespace root:** `Nexus\Shared`
 > **Rule:** No `Illuminate\*`. No provider logic. No framework imports.
+> **Status:** Design artifact, not a current implementation inventory. Use `src/Shared` and `tests/Unit/Shared` as the source of truth for shipped value objects.
 
 ---
 

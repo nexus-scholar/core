@@ -49,3 +49,4 @@
 - [x] Work persistence uses an internal UUID row ID and external ID rows for provider identifiers.
 - [x] Work provider provenance is persisted and round-tripped through `work_providers`.
 - [x] Empty placeholder source/test files are removed from the public surface.
+- [x] Planning/spec docs are labeled as design artifacts when they are not current implementation inventories.

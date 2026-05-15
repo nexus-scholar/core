@@ -3,6 +3,7 @@
 > **File:** `docs/spec-search-domain.md`
 > **Namespace:** `Nexus\Search\Domain`
 > **Rule:** Zero framework imports. Zero infrastructure. Only domain concepts.
+> **Status:** Design artifact, not a current implementation inventory. Current search domain behavior is represented by `src/Search/Domain` plus `tests/Unit/Search`.
 
 ---
 

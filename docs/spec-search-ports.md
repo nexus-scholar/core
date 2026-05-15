@@ -2,6 +2,7 @@
 
 > **File:** `docs/spec-search-ports.md`
 > **Namespace:** `Nexus\Search\Domain\Ports`
+> **Status:** Design artifact, not a current implementation inventory. Port signatures may have changed during P0 stabilization; verify against `src/Search/Domain/Port`.
 
 ---
 

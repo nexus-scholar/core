@@ -3,6 +3,7 @@
 > **File:** `docs/spec-deduplication.md`
 > **Namespace:** `Nexus\Deduplication`
 > **Rule:** No framework. No HTTP. Depends on `Nexus\Search\Domain` for `ScholarlyWork`.
+> **Status:** Design artifact, not a current implementation inventory. Use `src/Deduplication`, `tests/Unit/Deduplication`, and `docs/14-module-checklists.md` as the source of truth for shipped class names and behavior.
 
 ---
 

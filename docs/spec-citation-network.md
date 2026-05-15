@@ -3,6 +3,7 @@
 > **File:** `docs/spec-citation-network.md`
 > **Namespace:** `Nexus\CitationNetwork`
 > **Rule:** No framework. No HTTP. Scalable algorithms only — NO O(n²) nested loops.
+> **Status:** Design artifact, not a current implementation inventory. The implemented P0 surface is `CitationGraph`, `CitationLink`, persistence, and SQL round-trip tests; snowballing, metrics, algorithm adapters, and handler classes below remain roadmap until implemented in `src/` and covered by tests.
 
 ---
 

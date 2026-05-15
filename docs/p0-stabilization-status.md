@@ -12,6 +12,7 @@ Last updated: 2026-05-15
 - Removed empty PHP placeholder files from source and test directories, then added a regression test to prevent new empty placeholders.
 - Hardened provider configuration so Laravel config controls `enabled`, `rate_limit`, retry count, timeout, API keys, and immutable per-request provider selection.
 - Added SQL-level persistence regressions for PDF fetch audit rows and citation graph edge weight round-trips.
+- Marked legacy `docs/spec-*` files as design artifacts instead of current implementation inventories, and corrected the stale Citation Network UI status.
 
 ## Still P0
-- Continue pruning stale docs that describe planned classes as completed behavior.
+- No open P0 stabilization items are tracked in this document.

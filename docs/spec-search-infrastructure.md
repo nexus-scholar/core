@@ -4,6 +4,7 @@
 > **Namespace:** `Nexus\Search\Infrastructure`
 > **Rule:** These classes implement ports. They may import Guzzle, PSR interfaces.
 > **Rule:** They must NEVER import domain classes from other contexts directly.
+> **Status:** Design artifact, not a current implementation inventory. Current provider classes live under `src/Search/Infrastructure/Provider` and Laravel cache/storage adapters live under `src/Laravel/Persistence`.
 
 ---
 

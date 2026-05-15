@@ -3,6 +3,7 @@
 > **File:** `docs/spec-search-application.md`
 > **Namespace:** `Nexus\Search\Application`
 > **Rule:** No HTTP. No SQL. No framework. Depends only on domain + ports.
+> **Status:** Design artifact, not a current implementation inventory. Verify public command/query classes against `src/Search/Application` and regression tests before implementing against this document.
 
 ---
 

@@ -32,7 +32,7 @@ NexusScholar is a cloud-based systematic literature review (SLR) platform that o
 | Export history | ✅ Live | Re-download; duplicate settings |
 | PRISMA flowchart (auto-populated) | ⏸ Gated | Requires Dissemination module completion |
 | Annotated bibliography export | ⏸ Gated | Requires Dissemination module completion |
-| Citation Network visualization | ⏸ Gated | CitationGraphRepository deferred to v2 |
+| Citation Network visualization | ⏸ Gated | Graph algorithms, snowballing, and metrics deferred |
 | Collaborative screening (multi-reviewer) | ⏸ Deferred | v2 — after team conflict model is defined |
 | Cross-project corpus search | ⏸ Deferred | Requires data access policy decision |
 | Corpus amendment (locked v2) | ⏸ Deferred | v2 — after amendment workflow is designed |
@@ -40,7 +40,7 @@ NexusScholar is a cloud-based systematic literature review (SLR) platform that o
 ### 1.2 Explicit Deferrals and Rationale
 
 - **PRISMA auto-population**: `src/Dissemination/` is in-progress. The UI format exists (step 3 of Export Builder) but the export action is disabled with an honest gate message. Numbers cannot be auto-computed until `ProviderProgress` and `DedupClusterRepository` pipelines are wired into the Dissemination adapter.
-- **Citation Network**: `src/CitationNetwork/` exists in the package but is untested. The surface is present in the IA as a placeholder with a substantive ghost wireframe — not a bare "Coming Soon" message.
+- **Citation Network**: `src/CitationNetwork/` has tested graph persistence and edge weight round-trips, but snowballing, metrics, and graph algorithms remain roadmap. The UI surface should stay gated until those application services exist.
 - **Collaborative screening**: Multi-reviewer conflict detection logic is structurally supported by the ConflictQueue architecture, but the invite-reviewer, role-assignment, and human-human conflict adjudication UX is not designed for v1.
 - **Corpus amendment**: The lock is architecturally immutable in v1. The amendment workflow (locked v2 with diff view) is a meaningful differentiator and must be scoped separately.
 
