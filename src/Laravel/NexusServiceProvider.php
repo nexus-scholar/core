@@ -107,13 +107,23 @@ final class NexusServiceProvider extends ServiceProvider
                 $http = $app->make(HttpClientPort::class);
                 $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
                 $providers = [];
-                $semanticScholar = $configs['semantic_scholar'] ?? null;
+                $factories = [
+                    'openalex' => \Nexus\Search\Infrastructure\Provider\OpenAlexAdapter::class,
+                    'crossref' => \Nexus\Search\Infrastructure\Provider\CrossrefAdapter::class,
+                    'semantic_scholar' => \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter::class,
+                ];
 
-                if ($semanticScholar instanceof ProviderConfig && $semanticScholar->enabled) {
-                    $providers[] = new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
+                foreach ($factories as $alias => $adapterClass) {
+                    $config = $configs[$alias] ?? null;
+
+                    if (! $config instanceof ProviderConfig || ! $config->enabled) {
+                        continue;
+                    }
+
+                    $providers[] = new $adapterClass(
                         $http,
-                        $this->rateLimiterFor($semanticScholar),
-                        $semanticScholar,
+                        $this->rateLimiterFor($config),
+                        $config,
                         $logger,
                     );
                 }

@@ -55,6 +55,8 @@ it('resolves citation network graph services from the container', function (): v
 it('registers enabled snowballing providers from provider config', function (): void {
     app()->forgetInstance('nexus.provider_configs');
     app()->forgetInstance(SnowballingProviderCollection::class);
+    config()->set('nexus.providers.openalex.enabled', true);
+    config()->set('nexus.providers.crossref.enabled', true);
     config()->set('nexus.providers.semantic_scholar.enabled', true);
 
     $aliases = array_map(
@@ -62,14 +64,18 @@ it('registers enabled snowballing providers from provider config', function (): 
         app(SnowballingProviderCollection::class)->all(),
     );
 
-    expect($aliases)->toBe(['semantic_scholar']);
+    expect($aliases)->toBe(['openalex', 'crossref', 'semantic_scholar']);
 
     app()->forgetInstance('nexus.provider_configs');
     app()->forgetInstance(SnowballingProviderCollection::class);
+    config()->set('nexus.providers.openalex.enabled', false);
+    config()->set('nexus.providers.crossref.enabled', false);
     config()->set('nexus.providers.semantic_scholar.enabled', false);
 
     expect(app(SnowballingProviderCollection::class)->all())->toBe([]);
 
+    config()->set('nexus.providers.openalex.enabled', true);
+    config()->set('nexus.providers.crossref.enabled', true);
     config()->set('nexus.providers.semantic_scholar.enabled', true);
     app()->forgetInstance('nexus.provider_configs');
     app()->forgetInstance(SnowballingProviderCollection::class);

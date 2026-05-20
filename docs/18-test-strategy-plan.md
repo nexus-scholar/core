@@ -10,7 +10,7 @@ Current repository state on 2026-05-20:
 
 - P0 guardrail tests are implemented and should remain permanently green.
 - P1 reusable search tests are implemented in `core`; `nexus-cli` has consumer tests for its app-owned search workflow.
-- P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, weighted persistence, fake-provider snowballing rounds, and Semantic Scholar citation/reference traversal.
+- P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, weighted persistence, fake-provider snowballing rounds, and Semantic Scholar/OpenAlex/Crossref citation or reference traversal.
 - P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented; `SnowballJob` and provider-progress events remain open.
 - P2 full-text retrieval has handler/source/repository coverage for strict PDF validation, retry, cooldown, deterministic paths, legal OA source resolution, XML artifact storage, and XML text sidecars.
 - P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
@@ -221,11 +221,13 @@ Implemented tests:
 - SQL persistence for graph metadata and weighted edges.
 - Snowballing application handler tests for forward rounds, depth progression, already-known vs net-new counts, provider failure isolation, provider alias validation, and Laravel container binding.
 - Semantic Scholar snowballing tests for citation endpoint traversal, reference endpoint traversal, supported identifier detection, provider API-key headers, timeout propagation, and Laravel provider registration.
+- OpenAlex snowballing tests for forward `cites` traversal, backward `referenced_works` traversal, seed resolution by DOI, timeout propagation, polite-pool mailto propagation, and unsupported seed handling.
+- Crossref snowballing tests for backward DOI reference traversal, forward traversal being intentionally unsupported, reference normalization, timeout propagation, polite-pool mailto propagation, and unsupported seed handling.
 
 Tests still to add:
 - `CitationGraph` duplicate edge behavior.
 - Dangling edge policy.
-- Additional real provider citation traversal with fixtures where supported.
+- Additional real provider citation traversal beyond Semantic Scholar, OpenAlex, and Crossref only where supported by reliable public APIs.
 - Rebuild/recompute policy for persisted graph metrics.
 - Performance guard for co-citation and bibliographic coupling builders.
 
