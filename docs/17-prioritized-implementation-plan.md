@@ -43,7 +43,7 @@ P2 full-text retrieval is also implemented beyond the original PDF-only scope:
 - PDF validation remains strict: non-PDF responses, oversized payloads, and mismatched content types are rejected before storage.
 - Full-text source metadata, licenses, OA status, and source evidence are carried into audit metadata when available.
 
-The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: `SnowballJob`, provider-progress events, persisted snowball round progress, corpus lock lifecycle, export history, and release readiness.
+The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: provider-progress events, persisted snowball round progress, corpus lock lifecycle, export history, and release readiness.
 
 ## P0: Stabilization Guardrails
 
@@ -538,6 +538,8 @@ Current state:
 - `DeduplicateCorpusJob` resolves `DeduplicateCorpusHandler` from the Laravel container when handling the queued payload.
 - `RetrieveFullTextJob` exists and carries only `ScholarlyWork` plus destination folder.
 - `RetrieveFullTextJob` resolves `RetrieveFullTextHandler` from the Laravel container when handling the queued payload.
+- `SnowballJob` exists and carries only a `SnowballCorpus` application DTO.
+- `SnowballJob` resolves `SnowballCorpusHandler` from the Laravel container when handling the queued payload.
 - `NexusJobStarted`, `NexusJobCompleted`, and `NexusJobFailed` define serializable lifecycle event payloads.
 - The implemented jobs dispatch started/completed/failed lifecycle events around their application handler calls.
 - `RecordNexusJobLifecycle` records lifecycle events through `JobLifecycleRecorderPort`.
@@ -552,9 +554,9 @@ Sub-slices:
    - `SearchJob` is implemented.
    - `DeduplicateCorpusJob` is implemented.
    - `RetrieveFullTextJob` is implemented.
-   - `SnowballJob` after snowballing exists.
+   - `SnowballJob` is implemented.
 3. Events
-   - started, completed, failed are implemented for current jobs.
+   - started, completed, failed are implemented for package jobs.
    - provider-level progress events.
 4. Listeners
    - lifecycle listener contract is implemented.
@@ -765,18 +767,18 @@ Done criteria:
 Give the new developer a contained P2 slice, not a sweeping feature. P0 and P1 are now closed.
 
 Best first assignment:
-- P2.3 `SnowballJob` and provider-progress events, now that the application handler and multiple real provider adapters exist.
+- P2.3 provider-progress events and persisted snowball round progress, now that the application handler, provider adapters, and queueable job wrapper exist.
 
 Why:
-- The application contract and real provider adapters are now in place.
-- The next risk is long-running queue behavior, status reporting, and retry visibility for host apps.
-- This defines the operational surface before adding more provider adapters.
+- The application contract, real provider adapters, and queueable job wrapper are now in place.
+- The next risk is status reporting, persisted round progress, and retry visibility for host apps.
+- This defines the operational surface before widening host-app UI/API integration.
 
 Second assignment:
-- Persisted snowball round progress and provider-progress read models for host-app status screens.
+- P2.4 corpus lock lifecycle and audit trail.
 
 Third assignment:
-- P2.4 corpus lock lifecycle and audit trail.
+- P2.5 export history and format validation.
 
 ## Cross-Repo Working Rules
 
