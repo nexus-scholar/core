@@ -94,6 +94,10 @@ final class NexusServiceProvider extends ServiceProvider
             \Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort::class,
             \Nexus\Laravel\Persistence\Repository\EloquentCitationGraphRepository::class
         );
+        $this->app->singleton(
+            \Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort::class,
+            \Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator::class
+        );
 
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {

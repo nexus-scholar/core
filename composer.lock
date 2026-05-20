@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5871d3e6a00a575431dbcb82428f6297",
+    "content-hash": "985c7719030b30acbb914712d2eb0ecf",
     "packages": [
         {
             "name": "composer/ca-bundle",
@@ -403,6 +403,125 @@
                 }
             ],
             "time": "2026-03-10T16:41:02+00:00"
+        },
+        {
+            "name": "mbsoft31/graph-algorithms",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "../graph-algorithms",
+                "reference": "b628398d199c4652e1947299a0718e891c119b37"
+            },
+            "require": {
+                "mbsoft31/graph-core": "^1.0",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.29",
+                "pestphp/pest": "*",
+                "phpbench/phpbench": "*",
+                "phpstan/phpstan": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Mbsoft\\Graph\\Algorithms\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Mbsoft\\Graph\\Algorithms\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "bench": [
+                    "phpbench run --report=default"
+                ],
+                "stan": [
+                    "phpstan analyse src --level=5"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A high-performance library of standard graph algorithms for PHP.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "mbsoft31/graph-core",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "../graph-core",
+                "reference": "cea781883eb7fc34448f39f94ff2042e2dfb67cc"
+            },
+            "require": {
+                "ext-dom": "*",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.87",
+                "pestphp/pest": "^4.0",
+                "phpstan/phpstan": "^2.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Mbsoft\\Graph\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/pest"
+                ],
+                "test:coverage": [
+                    "vendor/bin/pest --coverage"
+                ],
+                "analyse": [
+                    "vendor/bin/phpstan analyse --memory-limit=512M"
+                ],
+                "format": [
+                    "vendor/bin/php-cs-fixer fix"
+                ],
+                "format:check": [
+                    "vendor/bin/php-cs-fixer fix --dry-run --diff"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mouadh BEKHOUCHE",
+                    "email": "bekhouche.mouadh@gmail.com"
+                }
+            ],
+            "description": "A lightweight, performant, and dependency-free graph data structure library for PHP.",
+            "homepage": "https://github.com/mbsoft31/graph-core",
+            "keywords": [
+                "algorithm",
+                "cytoscape",
+                "data-structure",
+                "gexf",
+                "graph",
+                "graphml",
+                "network"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "psr/http-client",
