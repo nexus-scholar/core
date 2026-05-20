@@ -29,7 +29,8 @@ final class GuzzlePdfDownloader implements PdfDownloaderPort
 
             return new \Nexus\Dissemination\Domain\Port\DownloadResult(
                 (string) $response->getBody(),
-                $response->getStatusCode()
+                $response->getStatusCode(),
+                $response->getHeaderLine('Content-Type') ?: null,
             );
         } catch (\GuzzleHttp\Exception\BadResponseException $e) {
             throw new RuntimeException(

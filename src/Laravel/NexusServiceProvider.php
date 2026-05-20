@@ -23,6 +23,7 @@ use Nexus\Search\Application\Port\SearchRunRecorderPort;
 use Nexus\Search\Application\UseCase\PersistentSearchRunner;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Infrastructure\Plan\YamlSearchPlanParser;
+use Nexus\Shared\Port\JobLifecycleRecorderPort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\TransactionPort;
 use Psr\Log\LoggerInterface;
@@ -39,6 +40,7 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
         $this->app->singleton(ProjectLockPort::class, \Nexus\Laravel\Persistence\EloquentProjectLock::class);
         $this->app->singleton(TransactionPort::class, \Nexus\Laravel\Persistence\LaravelTransaction::class);
+        $this->app->singleton(JobLifecycleRecorderPort::class, \Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder::class);
 
         $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, function ($app) {
             return new \Nexus\Laravel\Persistence\LaravelSearchCache($app['cache.store']);
@@ -98,10 +100,32 @@ final class NexusServiceProvider extends ServiceProvider
             \Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort::class,
             \Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator::class
         );
+        $this->app->singleton(
+            \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection::class,
+            function ($app) {
+                $configs = $app->make('nexus.provider_configs');
+                $http = $app->make(HttpClientPort::class);
+                $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
+                $providers = [];
+                $semanticScholar = $configs['semantic_scholar'] ?? null;
+
+                if ($semanticScholar instanceof ProviderConfig && $semanticScholar->enabled) {
+                    $providers[] = new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
+                        $http,
+                        $this->rateLimiterFor($semanticScholar),
+                        $semanticScholar,
+                        $logger,
+                    );
+                }
+
+                return new \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection(...$providers);
+            },
+        );
         $this->app->singleton(\Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\AnalyzeNetworkHandler::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler::class);
+        $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\SnowballCorpusHandler::class);
 
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
@@ -160,10 +184,80 @@ final class NexusServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(\Nexus\Dissemination\Domain\Port\FullTextSourceCollection::class, function ($app) {
+            $http = $app->make(HttpClientPort::class);
+            $sourceConfig = $app['config']->get('nexus.full_text.sources', []);
+            $sourceConfig = is_array($sourceConfig) ? $sourceConfig : [];
+            $sources = [];
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'direct')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource();
+            }
+
+            $unpaywall = $this->fullTextSourceConfig(
+                $sourceConfig,
+                'unpaywall',
+                'https://api.unpaywall.org/v2',
+                ['rate_limit' => 1.0, 'timeout' => 10, 'max_retries' => 2],
+            );
+
+            if ($unpaywall->enabled && $unpaywall->email !== null) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource(
+                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                        $http,
+                        $this->fullTextRateLimiterFor($unpaywall),
+                        $unpaywall,
+                    ),
+                );
+            }
+
+            $pmc = $this->fullTextSourceConfig(
+                $sourceConfig,
+                'pmc',
+                'https://pmc.ncbi.nlm.nih.gov/api/oai/v1/mh',
+                ['rate_limit' => 3.0, 'timeout' => 15, 'max_retries' => 2, 'prefer_pdf' => false, 'prefer_xml' => true],
+            );
+
+            if ($pmc->enabled) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource(
+                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                        $http,
+                        $this->fullTextRateLimiterFor($pmc),
+                        $pmc,
+                    ),
+                );
+            }
+
+            $europePmc = $this->fullTextSourceConfig(
+                $sourceConfig,
+                'europe_pmc',
+                'https://www.ebi.ac.uk/europepmc/webservices/rest',
+                ['rate_limit' => 1.0, 'timeout' => 15, 'max_retries' => 2, 'prefer_pdf' => true, 'prefer_xml' => true],
+            );
+
+            if ($europePmc->enabled) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource(
+                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                        $http,
+                        $this->fullTextRateLimiterFor($europePmc),
+                        $europePmc,
+                    ),
+                );
+            }
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'arxiv')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource();
+            }
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'openalex')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource();
+            }
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'semantic_scholar')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource();
+            }
+
             return new \Nexus\Dissemination\Domain\Port\FullTextSourceCollection(
-                new \Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource(),
-                new \Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource(),
-                new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource(),
+                ...$sources,
             );
         });
     }
@@ -243,11 +337,66 @@ final class NexusServiceProvider extends ServiceProvider
     }
 
     /**
+     * @param array<string, array<string, mixed>> $sourceConfig
+     * @param array<string, mixed> $defaults
+     */
+    private function fullTextSourceConfig(
+        array $sourceConfig,
+        string $alias,
+        string $baseUrl,
+        array $defaults,
+    ): \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig {
+        $values = $sourceConfig[$alias] ?? [];
+
+        return \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig::fromArray(
+            $alias,
+            $baseUrl,
+            is_array($values) ? $values : [],
+            $defaults,
+        );
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $sourceConfig
+     */
+    private function fullTextSourceEnabled(array $sourceConfig, string $alias): bool
+    {
+        $values = $sourceConfig[$alias] ?? [];
+        if (! is_array($values) || ! array_key_exists('enabled', $values)) {
+            return true;
+        }
+
+        if (is_bool($values['enabled'])) {
+            return $values['enabled'];
+        }
+
+        return filter_var($values['enabled'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true;
+    }
+
+    private function fullTextRateLimiterFor(
+        \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig $config,
+    ): TokenBucketRateLimiter {
+        return new TokenBucketRateLimiter(
+            ratePerSecond: $config->ratePerSecond,
+            capacity: max(1.0, $config->ratePerSecond),
+        );
+    }
+
+    /**
      * Bootstrap any package services.
      */
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/Migration');
+
+        $this->app['events']->listen(
+            [
+                \Nexus\Laravel\Event\NexusJobStarted::class,
+                \Nexus\Laravel\Event\NexusJobCompleted::class,
+                \Nexus\Laravel\Event\NexusJobFailed::class,
+            ],
+            \Nexus\Laravel\Listener\RecordNexusJobLifecycle::class,
+        );
 
         if ($this->app->runningInConsole()) {
             $this->publishes([

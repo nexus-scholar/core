@@ -29,6 +29,11 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite3, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
           coverage: none
 
+      - name: Checkout graph package path repositories
+        run: |
+          git clone --depth 1 https://github.com/mbsoft31/graph-core.git ../graph-core
+          git clone --depth 1 https://github.com/nexus-scholar/graph-algorithms.git ../graph-algorithms
+
       - name: Require specified Laravel and Testbench versions
         run: |
           if [ "${{ matrix.laravel }}" == "12.*" ]; then

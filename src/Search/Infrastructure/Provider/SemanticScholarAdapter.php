@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
+use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
@@ -23,7 +26,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
  * Learned from old package: S2 bulk endpoint requires translating boolean
  * operators and uses a continuation "token" instead of offset pagination.
  */
-final class SemanticScholarAdapter extends BaseProviderAdapter
+final class SemanticScholarAdapter extends BaseProviderAdapter implements SnowballingProviderPort
 {
     private const FIELDS = 'paperId,externalIds,title,abstract,year,venue,authors,citationCount,isOpenAccess';
 
@@ -211,6 +214,27 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
         ));
     }
 
+    public function supportsSnowballing(ScholarlyWork $seed, SnowballDirection $direction): bool
+    {
+        return $this->identifierForWork($seed) !== null;
+    }
+
+    /**
+     * @return list<ScholarlyWork>
+     */
+    public function fetchCitingWorks(ScholarlyWork $seed, int $limit): array
+    {
+        return $this->fetchSnowballWorks($seed, 'citations', 'citingPaper', $limit);
+    }
+
+    /**
+     * @return list<ScholarlyWork>
+     */
+    public function fetchReferencedWorks(ScholarlyWork $seed, int $limit): array
+    {
+        return $this->fetchSnowballWorks($seed, 'references', 'citedPaper', $limit);
+    }
+
     protected function normalize(array $raw, SearchQuery $query): ScholarlyWork
     {
         $ids = WorkIdSet::empty();
@@ -305,5 +329,125 @@ final class SemanticScholarAdapter extends BaseProviderAdapter
         $q = preg_replace('/\bNOT\b\s+/i', '-', $q);
 
         return trim((string) preg_replace('/\s+/', ' ', $q));
+    }
+
+    /**
+     * @return list<ScholarlyWork>
+     */
+    private function fetchSnowballWorks(
+        ScholarlyWork $seed,
+        string $endpoint,
+        string $paperKey,
+        int $limit,
+    ): array {
+        $identifier = $this->identifierForWork($seed);
+
+        if ($identifier === null || $limit < 1) {
+            return [];
+        }
+
+        $headers = $this->requestHeaders();
+        $url = "{$this->config->baseUrl}/graph/v1/paper/{$identifier}/{$endpoint}";
+        $collected = [];
+        $offset = 0;
+
+        while (count($collected) < $limit) {
+            $remaining = $limit - count($collected);
+            $pageLimit = min(100, $remaining);
+            $params = [
+                'fields' => self::FIELDS,
+                'limit' => $pageLimit,
+            ];
+
+            if ($offset > 0) {
+                $params['offset'] = $offset;
+            }
+
+            $response = $this->request($url, $params, $headers);
+
+            if (! $response->ok()) {
+                break;
+            }
+
+            $items = $this->extractArray($response->body, 'data');
+
+            if ($items === []) {
+                break;
+            }
+
+            foreach ($items as $item) {
+                if (count($collected) >= $limit) {
+                    break 2;
+                }
+
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $paper = $item[$paperKey] ?? null;
+
+                if (! is_array($paper)) {
+                    continue;
+                }
+
+                $collected[] = $this->normalize($paper, $this->snowballQuery());
+            }
+
+            if (count($items) < $pageLimit) {
+                break;
+            }
+
+            $offset += count($items);
+        }
+
+        return $collected;
+    }
+
+    private function identifierForWork(ScholarlyWork $work): ?string
+    {
+        $ids = $work->ids();
+
+        foreach ([
+            WorkIdNamespace::S2,
+            WorkIdNamespace::DOI,
+            WorkIdNamespace::ARXIV,
+            WorkIdNamespace::PUBMED,
+        ] as $namespace) {
+            $id = $ids->findByNamespace($namespace);
+
+            if ($id === null) {
+                continue;
+            }
+
+            return match ($namespace) {
+                WorkIdNamespace::S2 => $id->value,
+                WorkIdNamespace::DOI => "DOI:{$id->value}",
+                WorkIdNamespace::ARXIV => "ARXIV:{$id->value}",
+                WorkIdNamespace::PUBMED => "PMID:{$id->value}",
+                default => null,
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function requestHeaders(): array
+    {
+        if ($this->config->apiKey === null) {
+            return [];
+        }
+
+        return ['x-api-key' => $this->config->apiKey];
+    }
+
+    private function snowballQuery(): SearchQuery
+    {
+        return new SearchQuery(
+            term: new SearchTerm('snowball'),
+            providerAliases: [$this->alias()],
+        );
     }
 }

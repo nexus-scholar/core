@@ -27,7 +27,12 @@ it('stores pdf fetch audit rows against the internal work id', function (): void
     $this->repository->save(
         $work->primaryId(),
         'https://example.org/paper.pdf',
-        FullTextResult::success('pdfs/paper.pdf', 'example', 200),
+        FullTextResult::success(
+            'pdfs/paper.pdf',
+            'example',
+            200,
+            ['license' => 'cc-by', 'source' => 'unpaywall'],
+        ),
         123,
     );
 
@@ -44,10 +49,50 @@ it('stores pdf fetch audit rows against the internal work id', function (): void
     expect($this->repository->findSuccessfulPath($work->primaryId()))->toBe('pdfs/paper.pdf')
         ->and($this->repository->findSuccessfulPath(new WorkId(WorkIdNamespace::INTERNAL, $internalWorkId)))
         ->toBe('pdfs/paper.pdf');
+
+    $metadata = json_decode((string) DB::table('pdf_fetches')->where('work_id', $internalWorkId)->value('metadata'), true);
+
+    expect($metadata)->toMatchArray([
+        'license' => 'cc-by',
+        'source' => 'unpaywall',
+    ]);
 });
 
 it('returns null for successful path lookups when the work is not persisted', function (): void {
     $workId = new WorkId(WorkIdNamespace::DOI, '10.5555/missing');
 
     expect($this->repository->findSuccessfulPath($workId))->toBeNull();
+});
+
+it('detects recent failed fetches by work and source url', function (): void {
+    $work = PersistenceFactory::makeWork(doi: '10.5555/recent-failure');
+    $this->workRepository->save($work);
+
+    $this->repository->save(
+        $work->primaryId(),
+        'https://example.org/failing.pdf',
+        FullTextResult::failure('temporary failure', 'example', 503),
+        456,
+    );
+
+    expect($this->repository->hasRecentFailure(
+        $work->primaryId(),
+        'https://example.org/failing.pdf',
+        new DateTimeImmutable('-5 minutes'),
+    ))->toBeTrue()
+        ->and($this->repository->hasRecentFailure(
+            $work->primaryId(),
+            'https://example.org/other.pdf',
+            new DateTimeImmutable('-5 minutes'),
+        ))->toBeFalse()
+        ->and($this->repository->hasRecentFailure(
+            $work->primaryId(),
+            'https://example.org/failing.pdf',
+            new DateTimeImmutable('+1 minute'),
+        ))->toBeFalse()
+        ->and($this->repository->hasRecentFailure(
+            new WorkId(WorkIdNamespace::DOI, '10.5555/missing'),
+            'https://example.org/failing.pdf',
+            new DateTimeImmutable('-5 minutes'),
+        ))->toBeFalse();
 });

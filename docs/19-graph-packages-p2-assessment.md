@@ -31,6 +31,18 @@ The graph packages should provide reusable infrastructure:
 
 This keeps the Nexus domain independent while avoiding a new hand-rolled graph stack.
 
+## Current Status
+
+Status on 2026-05-20:
+
+- Package readiness work has been completed in the local workspace.
+- `graph-core` was upgraded for the active PHP toolchain.
+- `graph-algorithms` now implements real connected-components behavior.
+- `core` requires both graph packages through local path repositories while developing the multi-repo workspace.
+- `core` now includes the graph adapter, metrics calculator, citation graph builders, application handlers, Laravel bindings, and tests for the first P2 citation-network slice.
+
+The remaining graph-specific P2 work is provider traversal and snowballing, not graph package readiness.
+
 ## Package Findings
 
 ### graph-core
@@ -43,18 +55,21 @@ Useful now:
 - `successors()` and `predecessors()` match citation traversal needs.
 - GraphML, GEXF, and Cytoscape exporters overlap with Nexus dissemination requirements.
 
-Validation:
+Validation to run before release:
 
-- `composer validate --strict` passes.
-- `composer test` passes after installing with `--ignore-platform-req=php` on PHP 8.5.
-- `composer analyse` passes.
-- `composer format:check` is blocked by PHP CS Fixer not yet supporting PHP 8.5 syntax checks.
+- `composer validate --strict`
+- `composer test`
+- `composer analyse`
+- `composer format:check`
 
-Maintenance needed:
+Maintenance completed:
 
-- Refresh dev dependencies or lock constraints so `composer install` works without `--ignore-platform-req=php` on the active PHP version.
-- Update PHPStan config away from deprecated `checkMissingIterableValueType`.
-- Decide whether graph exporters should be consumed directly by `core` or remain a later replacement for existing serializers.
+- Dev tooling was refreshed for current PHP support.
+- Static-analysis configuration was updated as part of package maintenance.
+
+Still to decide:
+
+- Whether graph exporters should be consumed directly by `core` or remain a later replacement for existing serializers.
 
 ### graph-algorithms
 
@@ -66,18 +81,21 @@ Useful now:
 - `StronglyConnected` supports directed component analysis.
 - Centrality, traversal, pathfinding, decomposition, and link-prediction APIs are broadly aligned with P2 needs.
 
-Validation:
+Maintenance completed:
 
-- `composer validate --strict` fails because `composer.lock` is stale and missing dev dependency `laravel/pint`.
-- `composer update --dry-run --ignore-platform-req=php` resolves a valid dependency set, but the lock file needs a real package-maintenance update before normal tests can run.
+- `composer.lock` was refreshed.
+- `Components\Connected` is implemented.
+- Connected-component tests cover undirected graphs and weak components for directed graphs.
 
-Maintenance needed:
+Validation to run before release:
 
-- Refresh `composer.lock` in a dedicated branch.
-- Run the full package suite after the lock refresh.
-- Implement `Components\Connected`; it currently returns an empty array and contains a TODO.
-- Add tests for `Connected` before using it for weak components in Nexus.
-- Decide whether weighted PageRank is required. Existing PageRank is unweighted; this is acceptable for the first P2 slice, but weighted citation graphs may need a later algorithm option.
+- `composer validate --strict`
+- `composer test`
+- `composer stan`
+
+Still to decide:
+
+- Whether weighted PageRank is required. Existing PageRank is unweighted; this is acceptable for the first P2 slice, but weighted citation graphs may need a later algorithm option.
 
 ## Legacy Package Evidence
 
@@ -110,6 +128,8 @@ Do not expose `Mbsoft\Graph\Domain\Graph` from the domain layer. It is an implem
 
 ### P2.1.0 Package Readiness
 
+Status: done
+
 Owner:
 
 - `graph-algorithms`
@@ -126,10 +146,12 @@ Tasks:
 Done criteria:
 
 - Both packages install normally in this workspace.
-- Both packages have green test commands.
+- Both packages have green test commands before release work.
 - Weak connected components are real, tested behavior.
 
 ### P2.1.1 Core Dependency And Adapter
+
+Status: done
 
 Owner:
 
@@ -152,6 +174,8 @@ Done criteria:
 - `core` can call graph algorithms through a port without leaking package types into domain APIs.
 
 ### P2.1.2 Citation Graph Builders
+
+Status: done for in-memory/provider-ID inputs, pending live provider traversal
 
 Owner:
 
@@ -178,6 +202,8 @@ Done criteria:
 
 ### P2.1.3 Metrics And Queries
 
+Status: done for current metrics and shortest-path use cases
+
 Owner:
 
 - `core`
@@ -197,17 +223,20 @@ Done criteria:
 
 ### P2.1.4 Snowballing
 
+Status: partially implemented
+
 Owner:
 
 - `core`
 
 Tasks:
 
-1. Define `SnowballingProviderPort` for references and citations.
-2. Implement provider support only where APIs expose the needed data.
-3. Track round depth, discovered count, already-known count, net-new count, and provider failures.
-4. Deduplicate each round through existing dedup ports.
-5. Persist progress and resulting graph changes.
+1. `SnowballingProviderPort` for references and citations is implemented.
+2. `SnowballCorpusHandler` runs selected providers for forward/backward expansion.
+3. Round depth, discovered count, already-known count, net-new count, and provider failures are tracked in result DTOs.
+4. Discovered works are deduplicated through existing dedup ports.
+5. Semantic Scholar provider support is implemented for citation/reference traversal.
+6. Persisted progress and resulting graph changes are still pending.
 
 Done criteria:
 
@@ -247,13 +276,14 @@ Performance guard:
 
 ## Recommended Next Work
 
-Start with `graph-algorithms` package readiness before implementing P2 in `core`.
+Do not start with graph package readiness anymore; that part is complete for the local workspace.
 
-The first concrete PR should be:
+The next graph-specific PR should be:
 
-1. Refresh `graph-algorithms` lock file.
-2. Implement `Components\Connected`.
-3. Add tests for connected components on undirected graphs and weak components on directed graphs.
-4. Run `composer validate --strict`, `composer test`, and `composer stan`.
+1. Add `SnowballJob` and lifecycle/progress events for snowballing rounds.
+2. Keep job payloads serializable and resolve `SnowballCorpusHandler` from the Laravel container.
+3. Persist or emit provider-level progress without duplicating handler work.
+4. Add more provider adapters only with fixtures and only where APIs expose reliable citation/reference data.
+5. Persist round progress after the job/progress event shape is stable.
 
-After that, implement the `core` adapter and citation graph builder tests. This avoids starting P2 on top of an algorithm package with a known placeholder.
+Run the graph package test suites again before tagging package releases, but the next Nexus feature work can proceed from the `core` citation-network application layer.

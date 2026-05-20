@@ -9,7 +9,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
 // ── WorkIdNamespace ───────────────────────────────────────────────────────────
 
 it('covers_all_supported_namespaces', function (): void {
-    expect(WorkIdNamespace::cases())->toHaveCount(8);
+    expect(WorkIdNamespace::cases())->toHaveCount(9);
 });
 
 it('is_backed_by_lowercase_string_values', function (): void {

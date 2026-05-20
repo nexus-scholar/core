@@ -4,6 +4,17 @@ Last updated: 2026-05-20
 
 This document defines how to test the Nexus Scholar packages as the code moves from stabilization into reusable search orchestration, citation-network work, jobs, PDF retrieval, and release readiness.
 
+## Current Validation Baseline
+
+Current repository state on 2026-05-20:
+
+- P0 guardrail tests are implemented and should remain permanently green.
+- P1 reusable search tests are implemented in `core`; `nexus-cli` has consumer tests for its app-owned search workflow.
+- P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, weighted persistence, fake-provider snowballing rounds, and Semantic Scholar citation/reference traversal.
+- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented; `SnowballJob` and provider-progress events remain open.
+- P2 full-text retrieval has handler/source/repository coverage for strict PDF validation, retry, cooldown, deterministic paths, legal OA source resolution, XML artifact storage, and XML text sidecars.
+- P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
+
 ## Principles
 
 - Write characterization tests before refactors.
@@ -198,15 +209,25 @@ composer test
 
 ### P2 Citation Network
 
-Tests to add:
+Status: partially implemented.
+
+Implemented tests:
+- `CitationGraph` duplicate identity and missing-work invariants.
+- Direct citation graph building from provider reference IDs.
+- Co-citation and bibliographic-coupling graph building with weighted edges.
+- Adapter mapping from Nexus graphs to `Mbsoft\Graph\Domain\Graph`.
+- PageRank, degree metrics, K-core, connected components, and shortest paths through graph packages.
+- Application handlers for build, analyze, and shortest path use cases.
+- SQL persistence for graph metadata and weighted edges.
+- Snowballing application handler tests for forward rounds, depth progression, already-known vs net-new counts, provider failure isolation, provider alias validation, and Laravel container binding.
+- Semantic Scholar snowballing tests for citation endpoint traversal, reference endpoint traversal, supported identifier detection, provider API-key headers, timeout propagation, and Laravel provider registration.
+
+Tests still to add:
 - `CitationGraph` duplicate edge behavior.
 - Dangling edge policy.
-- Weighted edges for co-citation/bibliographic coupling.
-- Snowball depth validation.
-- Snowball round new-vs-known counts.
-- Provider citation traversal with fake providers.
-- Algorithm fixtures for PageRank, k-core, shortest path, co-citation, and bibliographic coupling.
-- Feature tests for graph persistence and retrieval by project.
+- Additional real provider citation traversal with fixtures where supported.
+- Rebuild/recompute policy for persisted graph metrics.
+- Performance guard for co-citation and bibliographic coupling builders.
 
 Key assertions:
 - Graph algorithms do not depend on Laravel.
@@ -215,31 +236,64 @@ Key assertions:
 
 ### P2 PDF And Full Text
 
-Tests to add:
-- Direct URL source resolution.
-- OpenAlex OA URL resolution.
-- Semantic Scholar PDF URL resolution.
-- arXiv PDF URL resolution.
-- MIME and PDF signature validation.
-- Retry behavior.
-- Duplicate successful fetch avoidance.
-- Failed fetch audit rows.
-- Storage path policy.
+Status: partially implemented.
+
+Implemented tests:
+- Handler attempts registered sources and records outcomes.
+- Direct PDF URL source resolves explicit raw metadata fields and ignores generic landing-page URLs.
+- arXiv, OpenAlex, and Semantic Scholar source behavior has package coverage.
+- Unpaywall resolves best and fallback OA PDF URLs, preserves OA metadata, skips non-OA results, and rejects missing email config without HTTP calls.
+- PMC OAI resolves reusable PMCID XML candidates and skips missing/error responses.
+- Europe PMC resolves open PDF links, falls back to full-text XML when available, and skips non-OA responses.
+- PDF fetch persistence writes rows by internal work UUID.
+- Existing successful fetches short-circuit source resolution, downloads, storage, and duplicate audit rows when the file still exists.
+- Non-PDF downloads are audited as failed attempts and do not prevent later sources from succeeding.
+- Download validation checks the `%PDF-` signature and reported content type before storage.
+- XML candidates are validated, stored as `.xml`, and paired with extracted `.txt` sidecars in audit metadata.
+- Invalid XML candidates are audited as failures and do not prevent later PDF sources from succeeding.
+- Download retries are attempted before one source failure is audited.
+- Oversized PDF payloads are rejected before storage.
+- Failed source cooldown skips recently failed source URLs and is backed by SQL audit lookups.
+- Deterministic PDF storage paths sanitize unsafe work IDs, source aliases, and destination folders.
+- Deterministic full-text paths also cover XML artifacts and extracted text sidecars.
+
+Tests still to add:
+- Non-Laravel storage adapter behavior if core needs filesystem use outside Laravel hosts.
+- Re-fetch policy behavior once product rules define when stale successful artifacts should be refreshed.
 
 Key assertions:
 - One row is written per attempted source.
 - Existing successful path is reused when the file exists.
 - Failed first source does not prevent a later successful source.
 - Non-PDF response does not get stored as a successful PDF.
+- XML response is parsed before storage and rejected if malformed or actually HTML.
+- XML text sidecar paths are recorded in metadata.
+- Retry exhaustion does not create duplicate audit rows for the same source attempt.
+- Recent failed source cooldown avoids repeating known-bad source URLs.
+- Generated storage paths are portable and do not leak DOI slashes into nested paths.
 
 ### P2 Jobs And Events
 
+Status: partially implemented.
+
+Implemented tests:
+- `SearchJob` serialization round-trip keeps only the search plan payload.
+- `SearchJob` resolves `SearchPlanRunner` from the Laravel container and executes through `SearchExecutorPort`.
+- `DeduplicateCorpusJob` serialization round-trip keeps only corpus, project, and policy-alias payload.
+- `DeduplicateCorpusJob` resolves `DeduplicateCorpusHandler` from the Laravel container and executes with fake policies.
+- `RetrieveFullTextJob` serialization round-trip keeps only work and destination-folder payload.
+- `RetrieveFullTextJob` resolves `RetrieveFullTextHandler` from the Laravel container and executes with fake source, storage, downloader, and repository ports.
+- `NexusJobStarted`, `NexusJobCompleted`, and `NexusJobFailed` serialize lifecycle payloads.
+- Implemented jobs dispatch started/completed events on success and failed events before rethrowing job failures.
+- `RecordNexusJobLifecycle` maps lifecycle events to `JobLifecycleRecord` values through `JobLifecycleRecorderPort`.
+- `JobLifecycleRecord` idempotency keys are stable for repeated run/status pairs.
+- `EloquentJobLifecycleRecorder` is the default binding and upserts `job_lifecycle_records` rows by lifecycle idempotency key.
+
 Tests to add:
-- Job serialization round-trip.
-- Job resolves handler from Laravel container.
-- Job payload contains IDs/DTOs, not service instances.
-- Events are emitted on start, success, provider failure, and final failure.
-- Listeners are idempotent.
+- `SnowballJob` serialization and handler resolution now that the snowballing application handler exists.
+- Job payloads contain IDs/DTOs, not service instances.
+- Provider-progress events are emitted when a use case exposes meaningful intermediate progress.
+- Lifecycle recorder queries by `project_id`, `work_id`, `job_name`, and `status` remain efficient as host apps build progress screens.
 
 Key assertions:
 - Jobs can be queued safely.
@@ -248,11 +302,16 @@ Key assertions:
 
 ### P3 Release Readiness
 
+Status: mostly pending.
+
+Current checks:
+- GitHub Actions runs Pest across PHP `8.4`/`8.5` and Laravel `12.*`/`13.*`.
+
 Tests/checks to add:
 - Static analysis.
 - Format check.
 - Composer validate.
-- CI matrix.
+- Composer scripts for local parity with CI.
 - Package install smoke test.
 - Optional Laravel app consumer smoke test.
 
@@ -331,8 +390,8 @@ Before merging a change, ask:
 
 ## Recommended First Test Tasks For A New Developer
 
-1. Add command registration feature tests for implemented `core` commands.
-2. Add YAML search plan parser characterization tests using a trimmed `nexus-cli` query fixture.
-3. Add unknown/disabled provider selection tests.
-4. Add application tests for a persistent search recorder using fake repositories.
-5. Add one SQL feature test for a full persisted search trace.
+1. Add MIME/signature validation tests for PDF downloads before changing the downloader.
+2. Add duplicate successful fetch avoidance tests for `RetrieveFullTextHandler`.
+3. Add `SnowballJob` serialization and handler-resolution tests.
+4. Add provider-progress event tests for snowballing rounds and provider failures.
+5. Add lifecycle progress query tests once a read-side API is introduced for host apps.
