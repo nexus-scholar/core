@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
+use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Shared\ValueObject\Author;
@@ -14,7 +16,7 @@ use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 
-final class CrossrefAdapter extends BaseProviderAdapter
+final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingProviderPort
 {
     public function alias(): string
     {
@@ -127,6 +129,71 @@ final class CrossrefAdapter extends BaseProviderAdapter
         ));
     }
 
+    public function supportsSnowballing(ScholarlyWork $seed, SnowballDirection $direction): bool
+    {
+        return $direction === SnowballDirection::BACKWARD
+            && $this->doiForWork($seed) !== null;
+    }
+
+    /**
+     * Crossref's public work metadata exposes deposited references. Citation
+     * lists require Crossref Cited-by participation and are intentionally not
+     * modelled as public forward snowballing here.
+     *
+     * @return list<ScholarlyWork>
+     */
+    public function fetchCitingWorks(ScholarlyWork $seed, int $limit): array
+    {
+        return [];
+    }
+
+    /**
+     * @return list<ScholarlyWork>
+     */
+    public function fetchReferencedWorks(ScholarlyWork $seed, int $limit): array
+    {
+        $doi = $this->doiForWork($seed);
+
+        if ($doi === null || $limit < 1) {
+            return [];
+        }
+
+        $response = $this->request(
+            "{$this->config->baseUrl}/works/{$doi}",
+            ['mailto' => $this->config->mailTo ?? ''],
+        );
+
+        if (! $response->ok()) {
+            return [];
+        }
+
+        $references = $response->body['message']['reference'] ?? [];
+
+        if (! is_array($references)) {
+            return [];
+        }
+
+        $works = [];
+
+        foreach ($references as $reference) {
+            if (count($works) >= $limit) {
+                break;
+            }
+
+            if (! is_array($reference)) {
+                continue;
+            }
+
+            $work = $this->normalizeReference($reference);
+
+            if ($work !== null) {
+                $works[] = $work;
+            }
+        }
+
+        return $works;
+    }
+
     protected function normalize(array $raw, SearchQuery $query): ScholarlyWork
     {
         $ids = WorkIdSet::empty();
@@ -220,5 +287,63 @@ final class CrossrefAdapter extends BaseProviderAdapter
     protected function extractItems(array $body): array
     {
         return $body['message']['items'] ?? [];
+    }
+
+    private function doiForWork(ScholarlyWork $work): ?string
+    {
+        return $work->ids()->findByNamespace(WorkIdNamespace::DOI)?->value;
+    }
+
+    private function normalizeReference(array $raw): ?ScholarlyWork
+    {
+        $doi = $this->extractString($raw, 'DOI', 'doi');
+        $title = $this->extractString($raw, 'article-title', 'series-title', 'volume-title');
+        $unstructured = $this->extractString($raw, 'unstructured');
+
+        if ($title === null) {
+            $title = $unstructured;
+        }
+
+        if ($title === null && $doi !== null) {
+            $title = "Crossref reference {$doi}";
+        }
+
+        if ($title === null) {
+            return null;
+        }
+
+        $ids = WorkIdSet::empty();
+
+        if ($doi !== null) {
+            $ids = $ids->add(new WorkId(WorkIdNamespace::DOI, $doi));
+        }
+
+        $venue = null;
+        $venueName = $this->extractString($raw, 'journal-title');
+
+        if ($venueName !== null) {
+            $venue = new Venue(name: $venueName);
+        }
+
+        $authors = [];
+        $author = $this->extractString($raw, 'author');
+
+        if ($author !== null) {
+            $name = $this->parseAuthorName($author);
+            $authors[] = new Author(
+                familyName: $name['family'],
+                givenName: $name['given'],
+            );
+        }
+
+        return ScholarlyWork::reconstitute(
+            ids: WorkIdSet::fromArray($ids->all()),
+            title: $title,
+            sourceProvider: $this->alias(),
+            year: $this->extractInt($raw, 'year'),
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            rawData: null,
+        );
     }
 }

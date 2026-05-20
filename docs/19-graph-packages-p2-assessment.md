@@ -41,7 +41,7 @@ Status on 2026-05-20:
 - `core` requires both graph packages through local path repositories while developing the multi-repo workspace.
 - `core` now includes the graph adapter, metrics calculator, citation graph builders, application handlers, Laravel bindings, and tests for the first P2 citation-network slice.
 
-The remaining graph-specific P2 work is provider traversal and snowballing, not graph package readiness.
+The remaining graph-specific P2 work is queue-safe snowballing, progress persistence, and graph rebuild policy, not graph package readiness.
 
 ## Package Findings
 
@@ -236,11 +236,14 @@ Tasks:
 3. Round depth, discovered count, already-known count, net-new count, and provider failures are tracked in result DTOs.
 4. Discovered works are deduplicated through existing dedup ports.
 5. Semantic Scholar provider support is implemented for citation/reference traversal.
-6. Persisted progress and resulting graph changes are still pending.
+6. OpenAlex provider support is implemented for forward citation traversal and backward `referenced_works` traversal.
+7. Crossref provider support is implemented for deposited DOI references; forward citation traversal is intentionally unsupported in the public metadata adapter.
+8. Persisted progress and resulting graph changes are still pending.
 
 Done criteria:
 
-- Forward and backward snowballing are available without provider-specific code leaking into the domain.
+- Forward and backward snowballing are available through supported providers without provider-specific code leaking into the domain.
+- Queue-safe snowball jobs and persisted progress are available for host-app status screens.
 
 ## Test Strategy
 

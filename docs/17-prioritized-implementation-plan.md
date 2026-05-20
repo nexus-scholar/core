@@ -34,7 +34,7 @@ P2 citation-network foundation is now partially implemented:
 - `core` has graph-package adapters for PageRank, K-core, degree metrics, and shortest citation paths.
 - Laravel binds the citation graph handlers and graph algorithm port.
 - `core` has the first snowballing application slice: provider port, provider collection, command/result DTOs, handler, round/provider stats, dedup handoff, and fake-provider tests.
-- `SemanticScholarAdapter` implements the snowballing provider port for citation and reference traversal through the Semantic Scholar Graph API.
+- `SemanticScholarAdapter`, `OpenAlexAdapter`, and `CrossrefAdapter` implement the snowballing provider port where their public APIs expose reliable traversal data.
 
 P2 full-text retrieval is also implemented beyond the original PDF-only scope:
 
@@ -43,7 +43,7 @@ P2 full-text retrieval is also implemented beyond the original PDF-only scope:
 - PDF validation remains strict: non-PDF responses, oversized payloads, and mismatched content types are rejected before storage.
 - Full-text source metadata, licenses, OA status, and source evidence are carried into audit metadata when available.
 
-The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: `SnowballJob`, provider-progress events, additional snowballing provider adapters where APIs are reliable, corpus lock lifecycle, export history, and release readiness.
+The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: `SnowballJob`, provider-progress events, persisted snowball round progress, corpus lock lifecycle, export history, and release readiness.
 
 ## P0: Stabilization Guardrails
 
@@ -413,12 +413,14 @@ Implemented:
 - Laravel binds `CitationGraphRepositoryPort`, `GraphAlgorithmPort`, and the citation graph handlers.
 - `SnowballingProviderPort` and `SnowballingProviderCollection` define the provider traversal contract without leaking provider APIs into the domain.
 - `SnowballCorpusHandler` runs forward/backward rounds through selected providers, deduplicates discovered works through `DeduplicationPort`, separates already-known from net-new works, records provider failures, and uses net-new works as the next-depth seeds.
-- `SemanticScholarAdapter` now resolves citing and referenced works for snowballing, reusing provider config, API key headers, timeout, rate limiting, retry behavior, and existing work normalization.
+- `SemanticScholarAdapter` resolves citing and referenced works for snowballing, reusing provider config, API key headers, timeout, rate limiting, retry behavior, and existing work normalization.
+- `OpenAlexAdapter` resolves forward snowballing through OpenAlex `cites` filters and backward snowballing through `referenced_works`, including seed resolution by OpenAlex ID, DOI, PubMed ID, or arXiv ID.
+- `CrossrefAdapter` resolves backward snowballing through deposited DOI reference metadata; forward citation traversal is intentionally not treated as public metadata because Crossref Cited-by is a separate participation flow.
 
 Remaining sub-slices:
 1. Provider citation traversal
    - `SnowballingProviderPort` for references and citations is implemented.
-   - Semantic Scholar provider traversal is implemented.
+   - Semantic Scholar, OpenAlex, and Crossref provider traversal is implemented where their APIs support it.
    - Add more real provider adapters only where APIs expose reliable reference/citation data.
    - Provider failure stats are implemented in the application result; persistence/progress events remain open.
 2. Snowballing
@@ -763,15 +765,15 @@ Done criteria:
 Give the new developer a contained P2 slice, not a sweeping feature. P0 and P1 are now closed.
 
 Best first assignment:
-- P2.3 `SnowballJob` and provider-progress events, now that the application handler and first real provider adapter exist.
+- P2.3 `SnowballJob` and provider-progress events, now that the application handler and multiple real provider adapters exist.
 
 Why:
-- The application contract and first provider adapter are now in place.
+- The application contract and real provider adapters are now in place.
 - The next risk is long-running queue behavior, status reporting, and retry visibility for host apps.
 - This defines the operational surface before adding more provider adapters.
 
 Second assignment:
-- Additional snowballing provider adapters with fixtures, likely OpenAlex next if its citation/reference data shape is sufficient.
+- Persisted snowball round progress and provider-progress read models for host-app status screens.
 
 Third assignment:
 - P2.4 corpus lock lifecycle and audit trail.
