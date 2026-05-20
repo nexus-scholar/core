@@ -629,7 +629,7 @@ Done criteria:
 
 ### P2.5 Export History And Format Validation
 
-Status: partially done
+Status: foundation implemented; rebuild policy remains.
 
 Objective:
 - Make exports auditable, repeatable, and format-safe.
@@ -638,22 +638,27 @@ Current state:
 - Bibliography export use cases and serializers exist for BibTeX, RIS, CSV, JSON, and JSONL.
 - Network serializers exist for GEXF, GraphML, and Cytoscape.
 - Export handlers write files through `FileStoragePort`.
+- `ExportHistoryPort` records successful exports to SQL through `export_histories`.
+- Bibliography and network export handlers validate filename extensions against selected formats before writing.
+- Citation graph exports use `mbsoft31/graph-core` exporters for Cytoscape JSON, GraphML, and GEXF so node attributes, edge weights, and directedness are preserved.
+- Laravel binds bibliography serializers, legacy corpus network serializers, graph-core citation graph serializers, and export handlers.
 
 Remaining risk:
-- Export history persistence and re-download/rebuild policy are not implemented.
-- Laravel binding coverage for network export collections should be tightened before exposing network export as a stable host-app feature.
+- Re-download/rebuild policy is not implemented.
+- Host apps still need user-facing endpoints/commands for listing previous exports and downloading stored paths.
 
 Sub-slices:
 1. Export request validation
-   - supported format.
+   - supported format is enforced through serializer collections.
+   - filename extension is validated.
    - source corpus/query/cluster.
    - empty corpus behavior.
 2. Export history persistence
-   - format.
-   - file path.
-   - requested by.
-   - timestamps.
-   - options.
+   - format is persisted.
+   - file path is persisted.
+   - requested by is persisted.
+   - timestamps are persisted.
+   - options/metadata are persisted.
 3. Serializer coverage
    - BibTeX.
    - RIS.
@@ -672,7 +677,7 @@ Tests:
 - Unit: unsupported format rejected.
 - Feature: export history row written.
 - Feature: generated file exists on configured storage disk.
-- Regression: graph exports preserve node IDs and edge weights when graph serializers support edges.
+- Regression: graph-core-backed citation graph exports preserve node IDs and edge weights.
 
 Done criteria:
 - Host apps can show export history from persisted package data.

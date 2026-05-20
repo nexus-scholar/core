@@ -178,6 +178,11 @@ final class NexusServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(
+            \Nexus\Dissemination\Domain\Port\ExportHistoryPort::class,
+            \Nexus\Laravel\Persistence\EloquentExportHistoryRecorder::class
+        );
+
+        $this->app->singleton(
             \Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort::class,
             \Nexus\Laravel\Persistence\EloquentPdfFetchRepository::class
         );
@@ -190,8 +195,50 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(\Nexus\Dissemination\Domain\Port\SerializerCollection::class, function ($app) {
             return new \Nexus\Dissemination\Domain\Port\SerializerCollection(
                 new \Nexus\Dissemination\Infrastructure\Serializer\BibTexSerializer(),
+                new \Nexus\Dissemination\Infrastructure\Serializer\RisSerializer(),
                 new \Nexus\Dissemination\Infrastructure\Serializer\CsvSerializer(),
                 new \Nexus\Dissemination\Infrastructure\Serializer\JsonSerializer(),
+                new \Nexus\Dissemination\Infrastructure\Serializer\JsonlSerializer(),
+            );
+        });
+
+        $this->app->singleton(\Nexus\Dissemination\Domain\Port\NetworkSerializerCollection::class, function ($app) {
+            return new \Nexus\Dissemination\Domain\Port\NetworkSerializerCollection(
+                new \Nexus\Dissemination\Infrastructure\Serializer\CytoscapeSerializer(),
+                new \Nexus\Dissemination\Infrastructure\Serializer\GraphMlSerializer(),
+                new \Nexus\Dissemination\Infrastructure\Serializer\GexfSerializer(),
+            );
+        });
+
+        $this->app->singleton(\Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection::class, function ($app) {
+            return new \Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection(
+                new \Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer(
+                    $app->make(\Nexus\CitationNetwork\Infrastructure\Graph\MbsoftCitationGraphMapper::class),
+                ),
+            );
+        });
+
+        $this->app->singleton(\Nexus\Dissemination\Application\UseCase\ExportBibliographyHandler::class, function ($app) {
+            return new \Nexus\Dissemination\Application\UseCase\ExportBibliographyHandler(
+                $app->make(\Nexus\Dissemination\Domain\Port\SerializerCollection::class),
+                $app->make(\Nexus\Dissemination\Domain\Port\FileStoragePort::class),
+                $app->make(\Nexus\Dissemination\Domain\Port\ExportHistoryPort::class),
+            );
+        });
+
+        $this->app->singleton(\Nexus\Dissemination\Application\UseCase\ExportNetworkHandler::class, function ($app) {
+            return new \Nexus\Dissemination\Application\UseCase\ExportNetworkHandler(
+                $app->make(\Nexus\Dissemination\Domain\Port\NetworkSerializerCollection::class),
+                $app->make(\Nexus\Dissemination\Domain\Port\FileStoragePort::class),
+                $app->make(\Nexus\Dissemination\Domain\Port\ExportHistoryPort::class),
+            );
+        });
+
+        $this->app->singleton(\Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler::class, function ($app) {
+            return new \Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler(
+                $app->make(\Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection::class),
+                $app->make(\Nexus\Dissemination\Domain\Port\FileStoragePort::class),
+                $app->make(\Nexus\Dissemination\Domain\Port\ExportHistoryPort::class),
             );
         });
 

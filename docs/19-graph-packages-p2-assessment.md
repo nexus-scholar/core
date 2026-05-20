@@ -287,8 +287,9 @@ The next graph-specific PR should be:
 
 1. Define when snowball results should mutate or rebuild persisted citation graphs.
 2. Keep snowball progress state queryable for host-app status screens.
-3. Add more provider adapters only with fixtures and only where APIs expose reliable citation/reference data.
-4. Add graph rebuild tests that cover repeated snowball runs and deduped works.
-5. Apply the existing corpus lock lifecycle before graph mutation paths can change locked projects.
+3. Apply the existing graph-core export path to any host-app network download UI.
+4. Add more provider adapters only with fixtures and only where APIs expose reliable citation/reference data.
+5. Add graph rebuild tests that cover repeated snowball runs and deduped works.
+6. Apply the existing corpus lock lifecycle before graph mutation paths can change locked projects.
 
 Run the graph package test suites again before tagging package releases, but the next Nexus feature work can proceed from the `core` citation-network application layer.

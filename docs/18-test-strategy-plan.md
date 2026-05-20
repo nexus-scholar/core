@@ -14,6 +14,7 @@ Current repository state on 2026-05-20:
 - P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, `RetrieveFullTextJob`, and `SnowballJob` implementations with feature tests. Job lifecycle event shapes, progress events, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented.
 - P2 full-text retrieval has handler/source/repository coverage for strict PDF validation, retry, cooldown, deterministic paths, legal OA source resolution, XML artifact storage, and XML text sidecars.
 - P2 corpus lock lifecycle has unit and feature coverage for project lock/unlock state, dedup cluster lock/unlock state, and persisted lock audit rows.
+- P2 export foundation has unit and feature coverage for filename/format validation, SQL export history rows, and graph-core-backed citation graph exports to Cytoscape JSON, GraphML, and GEXF.
 - P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
 
 ## Principles
@@ -396,7 +397,7 @@ Before merging a change, ask:
 
 ## Recommended First Test Tasks For A New Developer
 
-1. Add export history persistence tests once the export table/API is defined.
+1. Add export listing/download feature tests once a read-side API is introduced for host apps.
 2. Add lifecycle progress query tests once a read-side API is introduced for host apps.
 3. Add screening and graph mutation lock-policy tests before those write paths change locked projects.
 4. Add MIME/signature validation tests for any future downloader behavior changes.
