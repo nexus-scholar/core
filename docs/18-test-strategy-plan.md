@@ -12,7 +12,7 @@ Current repository state on 2026-05-20:
 - P1 reusable search tests are implemented in `core`; `nexus-cli` has consumer tests for its app-owned search workflow.
 - P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, and weighted persistence.
 - P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented; snowballing jobs and provider-progress events remain open.
-- P2 full-text retrieval has handler/source/repository coverage, but still needs download-safety and duplicate-fetch tests.
+- P2 full-text retrieval has handler/source/repository coverage for strict PDF validation, retry, cooldown, deterministic paths, legal OA source resolution, XML artifact storage, and XML text sidecars.
 - P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
 
 ## Principles
@@ -243,23 +243,32 @@ Implemented tests:
 - Handler attempts registered sources and records outcomes.
 - Direct PDF URL source resolves explicit raw metadata fields and ignores generic landing-page URLs.
 - arXiv, OpenAlex, and Semantic Scholar source behavior has package coverage.
+- Unpaywall resolves best and fallback OA PDF URLs, preserves OA metadata, skips non-OA results, and rejects missing email config without HTTP calls.
+- PMC OAI resolves reusable PMCID XML candidates and skips missing/error responses.
+- Europe PMC resolves open PDF links, falls back to full-text XML when available, and skips non-OA responses.
 - PDF fetch persistence writes rows by internal work UUID.
 - Existing successful fetches short-circuit source resolution, downloads, storage, and duplicate audit rows when the file still exists.
 - Non-PDF downloads are audited as failed attempts and do not prevent later sources from succeeding.
 - Download validation checks the `%PDF-` signature and reported content type before storage.
+- XML candidates are validated, stored as `.xml`, and paired with extracted `.txt` sidecars in audit metadata.
+- Invalid XML candidates are audited as failures and do not prevent later PDF sources from succeeding.
 - Download retries are attempted before one source failure is audited.
 - Oversized PDF payloads are rejected before storage.
 - Failed source cooldown skips recently failed source URLs and is backed by SQL audit lookups.
 - Deterministic PDF storage paths sanitize unsafe work IDs, source aliases, and destination folders.
+- Deterministic full-text paths also cover XML artifacts and extracted text sidecars.
 
 Tests still to add:
 - Non-Laravel storage adapter behavior if core needs filesystem use outside Laravel hosts.
+- Re-fetch policy behavior once product rules define when stale successful artifacts should be refreshed.
 
 Key assertions:
 - One row is written per attempted source.
 - Existing successful path is reused when the file exists.
 - Failed first source does not prevent a later successful source.
 - Non-PDF response does not get stored as a successful PDF.
+- XML response is parsed before storage and rejected if malformed or actually HTML.
+- XML text sidecar paths are recorded in metadata.
 - Retry exhaustion does not create duplicate audit rows for the same source attempt.
 - Recent failed source cooldown avoids repeating known-bad source URLs.
 - Generated storage paths are portable and do not leak DOI slashes into nested paths.

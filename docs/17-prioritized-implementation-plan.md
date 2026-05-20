@@ -34,7 +34,14 @@ P2 citation-network foundation is now partially implemented:
 - `core` has graph-package adapters for PageRank, K-core, degree metrics, and shortest citation paths.
 - Laravel binds the citation graph handlers and graph algorithm port.
 
-The next primary focus is no longer "start citation networks". It is to finish the remaining P2 surfaces: persistent job lifecycle listeners, snowballing provider traversal, full-text hardening, corpus lock lifecycle, export history, and release readiness.
+P2 full-text retrieval is also implemented beyond the original PDF-only scope:
+
+- The retrieval pipeline supports direct URLs, Unpaywall, PMC OAI XML, Europe PMC, arXiv, OpenAlex metadata PDF URLs, and Semantic Scholar metadata PDF URLs.
+- XML full-text candidates are stored as deterministic `.xml` artifacts and get extracted `.txt` sidecars recorded in fetch metadata.
+- PDF validation remains strict: non-PDF responses, oversized payloads, and mismatched content types are rejected before storage.
+- Full-text source metadata, licenses, OA status, and source evidence are carried into audit metadata when available.
+
+The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: snowballing provider traversal, `SnowballJob`, provider-progress events, corpus lock lifecycle, export history, and release readiness.
 
 ## P0: Stabilization Guardrails
 
@@ -453,32 +460,37 @@ Objective:
 
 Implemented:
 - `RetrieveFullTextHandler` tries registered sources and records fetch attempts.
-- `DirectPdfSource`, `ArXivPdfSource`, `OpenAlexPdfSource`, and `SemanticScholarPdfSource` resolve common open PDF URLs from work metadata.
+- `DirectPdfSource`, `UnpaywallPdfSource`, `PmcOaiFullTextSource`, `EuropePmcFullTextSource`, `ArXivPdfSource`, `OpenAlexPdfSource`, and `SemanticScholarPdfSource` resolve lawful open full-text artifacts from work metadata and OA APIs.
 - `GuzzlePdfDownloader` applies an HTTP timeout and passes response content type to the application layer.
 - `PdfFetchRepositoryPort` and the Eloquent implementation persist PDF fetch audit rows by internal work UUID.
 - Laravel binds the source collection, downloader, storage, and repository ports.
 - Existing successful fetches are reused when the persisted file path still exists.
 - Downloaded content is rejected before storage when it lacks a `%PDF-` signature or reports a non-PDF content type.
+- XML artifacts are validated, stored with `.xml` paths, and paired with extracted text sidecars recorded in metadata.
 - Downloads retry transient failures before auditing a source failure.
 - Downloaded PDFs are rejected before storage when they exceed the command size limit.
 - Recent failed source URLs are skipped during the command cooldown window.
 - Stored PDF paths are deterministic and sanitize work IDs, source aliases, and destination folders.
+- OpenAlex paid content download is not used by default; only metadata-provided PDF URLs are considered.
 
 Remaining sub-slices:
 1. Source resolution
-   - Direct URL source is implemented for explicit PDF URL metadata.
-   - Optional Unpaywall or PubMed Central source if product scope requires broader open access coverage.
+    - Direct URL source is implemented for explicit PDF URL metadata.
+    - Unpaywall, PMC OAI, and Europe PMC source coverage is implemented for legal OA retrieval.
+    - Additional legal sources can be added only through the same candidate/source port contract.
 2. Download safety
-   - Retry policy is implemented.
-   - MIME validation is implemented for reported content types.
-   - Size limit is implemented.
-   - PDF signature sniffing is implemented before storage.
+    - Retry policy is implemented.
+    - MIME validation is implemented for reported content types.
+    - Size limit is implemented.
+    - PDF signature sniffing is implemented before storage.
+    - XML validation is implemented before storage.
 3. Storage
-   - Local/non-Laravel storage adapter if needed.
-   - Deterministic path policy is implemented for generated PDF filenames.
+    - Local/non-Laravel storage adapter if needed.
+    - Deterministic path policy is implemented for generated PDF filenames.
+    - Deterministic path policy is implemented for XML artifacts and extracted text sidecars.
 4. Duplicate avoidance
-   - Existing successful path lookup is implemented.
-   - Re-fetch policy.
+    - Existing successful path lookup is implemented.
+    - Re-fetch policy.
    - Failed attempt cooldown is implemented.
 5. Audit
    - One row per attempted source.
@@ -489,6 +501,8 @@ Remaining sub-slices:
 Tests:
 - Unit: each source resolves correctly from work metadata.
 - Application: MIME/signature validation rejects non-PDF content.
+- Application: invalid XML is audited and retrieval continues to later sources.
+- Application: XML artifacts are stored with extracted text sidecars.
 - Application: retry exhaustion audits one source failure.
 - Application: oversized PDFs are rejected before storage.
 - Application: recent failed source URLs are skipped during cooldown.
@@ -743,18 +757,18 @@ Done criteria:
 Give the new developer a contained P2 slice, not a sweeping feature. P0 and P1 are now closed.
 
 Best first assignment:
-- P2.2 full-text hardening, starting with MIME/signature validation and duplicate successful fetch avoidance.
+- P2.1 snowballing provider port and one fake-provider application test before any real provider integration.
 
 Why:
-- It protects the highest-risk external IO path before expanding retrieval sources.
-- It is contained in dissemination application/infrastructure code and can be tested without live network.
-- It improves reliability for CLI, jobs, and future HTTP flows at the same time.
+- It is now the highest-value missing product behavior after the full-text pipeline was hardened.
+- It teaches the citation-network, search, deduplication, and persistence boundaries without requiring live provider APIs.
+- It defines the contract that `SnowballJob` and host-app progress screens will consume.
 
 Second assignment:
-- P2.3 snowballing/job expansion after citation traversal behavior is defined.
+- P2.3 `SnowballJob` and provider-progress events after citation traversal behavior is defined.
 
 Third assignment:
-- P2.1 snowballing provider port and one fake-provider application test before any real provider integration.
+- P2.4 corpus lock lifecycle and audit trail.
 
 ## Cross-Repo Working Rules
 
