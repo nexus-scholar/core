@@ -462,6 +462,7 @@ Implemented:
 - Downloads retry transient failures before auditing a source failure.
 - Downloaded PDFs are rejected before storage when they exceed the command size limit.
 - Recent failed source URLs are skipped during the command cooldown window.
+- Stored PDF paths are deterministic and sanitize work IDs, source aliases, and destination folders.
 
 Remaining sub-slices:
 1. Source resolution
@@ -474,7 +475,7 @@ Remaining sub-slices:
    - PDF signature sniffing is implemented before storage.
 3. Storage
    - Local/non-Laravel storage adapter if needed.
-   - Deterministic path policy.
+   - Deterministic path policy is implemented for generated PDF filenames.
 4. Duplicate avoidance
    - Existing successful path lookup is implemented.
    - Re-fetch policy.

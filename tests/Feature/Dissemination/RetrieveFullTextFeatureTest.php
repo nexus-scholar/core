@@ -108,6 +108,95 @@ it('retrieves_full_text_and_persists_audit_entry', function (): void {
     expect($repository->saved)->toHaveCount(1);
 });
 
+it('stores pdfs with deterministic portable paths', function (): void {
+    $work = PersistenceFactory::makeWork(doi: '10.5555/path/test');
+
+    $source = new class implements FullTextSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/test.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'bad/source alias';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public ?string $storedPath = null;
+
+        public function store(string $filename, string $content): string
+        {
+            $this->storedPath = $filename;
+
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return false;
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        public function download(string $url): DownloadResult
+        {
+            return new DownloadResult('%PDF-1.4 test-content', 200);
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void {}
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $handler = new RetrieveFullTextHandler(
+        new FullTextSourceCollection($source),
+        $storage,
+        $downloader,
+        $repository
+    );
+
+    $result = $handler->handle(new RetrieveFullText($work, '../pdf reports'));
+
+    expect($result->status->value)->toBe('success')
+        ->and($storage->storedPath)->toStartWith('pdf_reports/')
+        ->and(substr_count((string) $storage->storedPath, '/'))->toBe(1)
+        ->and((string) $storage->storedPath)->not->toContain(':')
+        ->and((string) $storage->storedPath)->not->toContain('\\')
+        ->and((bool) preg_match(
+            '#^pdf_reports/doi_10\.5555_path_test_bad_source_alias_[a-f0-9]{16}\.pdf$#',
+            (string) $storage->storedPath,
+        ))->toBeTrue();
+});
+
 it('returns an existing successful fetch without downloading again', function (): void {
     $calls = (object) [
         'supports' => 0,

@@ -137,7 +137,8 @@ it('resolves the full text handler from the container when handling the job', fu
         ->and($received->work)->toBeInstanceOf(ScholarlyWork::class)
         ->and($received->work->title())->toBe('Container Resolved Retrieval')
         ->and($received->storedPath)->toContain('queued-pdfs/')
-        ->and($received->storedPath)->toContain('doi:10.5555/container-job_example.pdf')
+        ->and($received->storedPath)->toContain('doi_10.5555_container-job_example_')
+        ->and($received->storedPath)->toEndWith('.pdf')
         ->and($received->saved)->toHaveCount(1)
         ->and($received->saved[0]['sourceUrl'])->toBe('https://example.org/full-text.pdf')
         ->and($received->saved[0]['result'])->toBe($result);

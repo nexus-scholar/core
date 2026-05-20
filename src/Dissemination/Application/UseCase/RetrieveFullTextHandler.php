@@ -61,15 +61,7 @@ final readonly class RetrieveFullTextHandler
                 $this->assertValidPdf($downloadResult, $command->maxBytes);
                 $content = $downloadResult->content;
                 
-                $extension = 'pdf'; // Assume PDF for now
-                $filename = sprintf(
-                    '%s_%s.%s',
-                    $workId->toString(),
-                    $source->alias(),
-                    $extension
-                );
-
-                $fullPath = $command->destinationFolder . '/' . $filename;
+                $fullPath = $this->storagePathFor($command, $workId, $source->alias());
                 $storedPath = $this->storage->store($fullPath, $content);
 
                 $result = FullTextResult::success($storedPath, $source->alias(), $downloadResult->statusCode);
@@ -120,6 +112,46 @@ final readonly class RetrieveFullTextHandler
     private function elapsedMs(float|int $startNs): int
     {
         return (int) round((hrtime(true) - $startNs) / 1_000_000);
+    }
+
+    private function storagePathFor(RetrieveFullText $command, WorkId $workId, string $sourceAlias): string
+    {
+        $folder = $this->safeFolder($command->destinationFolder);
+        $workSegment = $this->safePathSegment($workId->toString(), 80);
+        $sourceSegment = $this->safePathSegment($sourceAlias, 40);
+        $hash = substr(hash('sha256', $workId->toString() . '|' . $sourceAlias), 0, 16);
+        $filename = sprintf('%s_%s_%s.pdf', $workSegment, $sourceSegment, $hash);
+
+        return $folder === '' ? $filename : $folder . '/' . $filename;
+    }
+
+    private function safeFolder(string $folder): string
+    {
+        $segments = preg_split('#[\\\\/]+#', $folder) ?: [];
+        $safe = [];
+
+        foreach ($segments as $segment) {
+            if (in_array(trim($segment), ['', '.', '..'], true)) {
+                continue;
+            }
+
+            $clean = $this->safePathSegment($segment, 80);
+            $safe[] = $clean;
+        }
+
+        return implode('/', $safe);
+    }
+
+    private function safePathSegment(string $value, int $maxLength): string
+    {
+        $safe = preg_replace('/[^A-Za-z0-9._-]+/', '_', trim($value)) ?? '';
+        $safe = trim($safe, '._-');
+
+        if ($safe === '' || $safe === '.' || $safe === '..') {
+            return 'file';
+        }
+
+        return substr($safe, 0, $maxLength);
     }
 
     private function assertValidPdf(DownloadResult $downloadResult, int $maxBytes): void

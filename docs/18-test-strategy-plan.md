@@ -250,9 +250,10 @@ Implemented tests:
 - Download retries are attempted before one source failure is audited.
 - Oversized PDF payloads are rejected before storage.
 - Failed source cooldown skips recently failed source URLs and is backed by SQL audit lookups.
+- Deterministic PDF storage paths sanitize unsafe work IDs, source aliases, and destination folders.
 
 Tests still to add:
-- Storage path policy.
+- Non-Laravel storage adapter behavior if core needs filesystem use outside Laravel hosts.
 
 Key assertions:
 - One row is written per attempted source.
@@ -261,6 +262,7 @@ Key assertions:
 - Non-PDF response does not get stored as a successful PDF.
 - Retry exhaustion does not create duplicate audit rows for the same source attempt.
 - Recent failed source cooldown avoids repeating known-bad source URLs.
+- Generated storage paths are portable and do not leak DOI slashes into nested paths.
 
 ### P2 Jobs And Events
 
