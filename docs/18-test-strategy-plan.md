@@ -15,7 +15,7 @@ Current repository state on 2026-05-20:
 - P2 full-text retrieval has handler/source/repository coverage for strict PDF validation, retry, cooldown, deterministic paths, legal OA source resolution, XML artifact storage, and XML text sidecars.
 - P2 corpus lock lifecycle has unit and feature coverage for project lock/unlock state, dedup cluster lock/unlock state, and persisted lock audit rows.
 - P2 export foundation has unit and feature coverage for filename/format validation, SQL export history rows, and graph-core-backed citation graph exports to Cytoscape JSON, GraphML, and GEXF.
-- P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
+- P3 baseline release validation is implemented: Composer scripts, Composer metadata validation, PHPStan, Pint config, changed-file style checks, and a PHP/Laravel CI matrix are present.
 
 ## Principles
 
@@ -309,33 +309,18 @@ Key assertions:
 
 ### P3 Release Readiness
 
-Status: mostly pending.
+Status: baseline implemented; package-release smoke checks remain.
 
 Current checks:
-- GitHub Actions runs Pest across PHP `8.4`/`8.5` and Laravel `12.*`/`13.*`.
+- GitHub Actions runs tests on PHP `8.3` with Laravel `12.*`, plus PHP `8.4` with Laravel `12.*` and `13.*`.
+- CI runs `composer validate --strict`, `composer test`, `composer analyse`, and a changed-file Pint check.
+- Local scripts exist for `test`, `test:unit`, `test:feature`, `analyse`, `format`, and `format:check`.
 
-Tests/checks to add:
-- Static analysis.
-- Format check.
-- Composer validate.
-- Composer scripts for local parity with CI.
+Tests/checks still to add:
 - Package install smoke test.
+- Composer archive/package smoke test.
+- Advisory review or documented exception policy for current transitive Symfony advisories.
 - Optional Laravel app consumer smoke test.
-
-Suggested composer scripts:
-
-```json
-{
-  "scripts": {
-    "test": "pest",
-    "test:unit": "pest tests/Unit",
-    "test:feature": "pest tests/Feature",
-    "analyse": "phpstan analyse",
-    "format": "pint",
-    "format:check": "pint --test"
-  }
-}
-```
 
 ## CI Plan
 
@@ -343,12 +328,11 @@ Core package workflow:
 
 1. Checkout.
 2. Install Composer dependencies.
-3. `composer validate --strict --no-ansi`.
-4. Run unit tests.
-5. Run feature tests.
-6. Run provider integration tests with VCR replay only.
-7. Run static analysis.
-8. Run format check.
+3. `composer validate --strict`.
+4. Run the Pest suite through `composer test`.
+5. Run static analysis through `composer analyse`.
+6. Run changed-file format checks.
+7. Keep provider integration tests on VCR/fake data only.
 
 Provider integration rule:
 - CI must fail if a provider test attempts live network.
