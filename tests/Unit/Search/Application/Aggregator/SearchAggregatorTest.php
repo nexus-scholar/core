@@ -7,7 +7,9 @@ namespace Tests\Unit\Search\Application\Aggregator;
 use Nexus\Search\Application\Aggregator\SearchAggregator;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
+use Nexus\Search\Domain\Exception\UnknownProviderAlias;
 use Nexus\Search\Domain\Port\AcademicProviderPort;
+use Nexus\Search\Domain\Port\AdapterCollection;
 use Nexus\Search\Domain\Port\DeduplicationPort;
 use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
@@ -83,7 +85,7 @@ it('aggregates results from multiple providers and deduplicates them', function 
         public function invalidateAll(): void {}
     };
 
-    $aggregator = new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($adapter1, $adapter2, $adapter3), $dedup, $cache);
+    $aggregator = new SearchAggregator(new AdapterCollection($adapter1, $adapter2, $adapter3), $dedup, $cache);
 
     $result = $aggregator->aggregate($query);
 
@@ -131,7 +133,7 @@ it('returns empty corpus when all providers fail', function () {
         public function invalidateAll(): void {}
     };
 
-    $result = (new SearchAggregator(new \Nexus\Search\Domain\Port\AdapterCollection($failingAdapter), $dedup, $cache))->aggregate(
+    $result = (new SearchAggregator(new AdapterCollection($failingAdapter), $dedup, $cache))->aggregate(
         new SearchQuery(new SearchTerm('test'))
     );
 
@@ -189,7 +191,7 @@ it('uses only provider aliases selected on the query', function (): void {
     };
 
     $aggregator = new SearchAggregator(
-        new \Nexus\Search\Domain\Port\AdapterCollection(
+        new AdapterCollection(
             $makeAdapter('provider_1'),
             $makeAdapter('provider_2'),
         ),
@@ -204,4 +206,54 @@ it('uses only provider aliases selected on the query', function (): void {
         ->and($result->providerStats)->toHaveCount(1)
         ->and($result->providerStats[0]->alias)->toBe('provider_2')
         ->and($cache->lastKey)->toBe($query->cacheKey(['provider_2']));
+});
+
+it('fails clearly before execution when a selected provider alias is unknown', function (): void {
+    $calls = (object) ['count' => 0];
+
+    $adapter = new class($calls) implements AcademicProviderPort {
+        public function __construct(private readonly object $calls) {}
+        public function alias(): string { return 'provider_1'; }
+        public function supports(WorkIdNamespace $ns): bool { return true; }
+        public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
+        public function search(SearchQuery $query): array
+        {
+            $this->calls->count++;
+
+            return [];
+        }
+        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+        {
+            return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+        }
+    };
+
+    $dedup = new class implements DeduplicationPort {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice { return $corpus; }
+    };
+
+    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
+        public int $gets = 0;
+        public function get(string $key): ?array
+        {
+            $this->gets++;
+
+            return null;
+        }
+        public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
+        public function has(string $key): bool { return false; }
+        public function invalidateAll(): void {}
+    };
+
+    $aggregator = new SearchAggregator(new AdapterCollection($adapter), $dedup, $cache);
+    $query = new SearchQuery(new SearchTerm('test'), providerAliases: ['provider_1', 'missing_provider']);
+
+    expect(fn () => $aggregator->aggregate($query))
+        ->toThrow(
+            UnknownProviderAlias::class,
+            'Unknown selected provider alias: missing_provider. Available provider aliases: provider_1.',
+        );
+
+    expect($calls->count)->toBe(0)
+        ->and($cache->gets)->toBe(0);
 });

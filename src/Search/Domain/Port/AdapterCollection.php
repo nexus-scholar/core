@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Domain\Port;
 
+use Nexus\Search\Domain\Exception\UnknownProviderAlias;
+
 final class AdapterCollection
 {
     /** @var AcademicProviderPort[] */
@@ -30,6 +32,13 @@ final class AdapterCollection
             return $this->adapters;
         }
 
+        $available = $this->availableAliases();
+        $unknown = array_values(array_diff($aliases, $available));
+
+        if ($unknown !== []) {
+            throw new UnknownProviderAlias($unknown, $available);
+        }
+
         $wanted = array_fill_keys($aliases, true);
 
         return array_values(array_filter(
@@ -41,5 +50,14 @@ final class AdapterCollection
     public function count(): int
     {
         return count($this->adapters);
+    }
+
+    /** @return string[] */
+    private function availableAliases(): array
+    {
+        return array_map(
+            fn (AcademicProviderPort $adapter) => $adapter->alias(),
+            $this->adapters,
+        );
     }
 }
