@@ -79,6 +79,33 @@ final readonly class JobLifecycleRecord
 
     /**
      * @param array<string, mixed> $context
+     * @param array<string, mixed> $summary
+     */
+    public static function progressed(
+        string $runId,
+        string $jobName,
+        string $jobClass,
+        string $progressKey,
+        array $context,
+        array $summary,
+        int $durationMs,
+        ?DateTimeImmutable $occurredAt = null,
+    ): self {
+        return new self(
+            idempotencyKey: self::key($runId, JobLifecycleStatus::PROGRESSED, $progressKey),
+            runId: $runId,
+            jobName: $jobName,
+            jobClass: $jobClass,
+            status: JobLifecycleStatus::PROGRESSED,
+            context: [...$context, 'progress_key' => $progressKey],
+            summary: $summary,
+            durationMs: $durationMs,
+            occurredAt: $occurredAt,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $context
      */
     public static function failed(
         string $runId,
@@ -104,8 +131,14 @@ final readonly class JobLifecycleRecord
         );
     }
 
-    private static function key(string $runId, JobLifecycleStatus $status): string
+    private static function key(string $runId, JobLifecycleStatus $status, ?string $suffix = null): string
     {
-        return hash('sha256', $runId . '|' . $status->value);
+        $material = $runId . '|' . $status->value;
+
+        if ($suffix !== null) {
+            $material .= '|' . $suffix;
+        }
+
+        return hash('sha256', $material);
     }
 }

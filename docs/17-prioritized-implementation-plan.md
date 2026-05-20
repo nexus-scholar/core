@@ -43,7 +43,7 @@ P2 full-text retrieval is also implemented beyond the original PDF-only scope:
 - PDF validation remains strict: non-PDF responses, oversized payloads, and mismatched content types are rejected before storage.
 - Full-text source metadata, licenses, OA status, and source evidence are carried into audit metadata when available.
 
-The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: provider-progress events, persisted snowball round progress, corpus lock lifecycle, export history, and release readiness.
+The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: corpus lock lifecycle, export history, and release readiness.
 
 ## P0: Stabilization Guardrails
 
@@ -541,7 +541,9 @@ Current state:
 - `SnowballJob` exists and carries only a `SnowballCorpus` application DTO.
 - `SnowballJob` resolves `SnowballCorpusHandler` from the Laravel container when handling the queued payload.
 - `NexusJobStarted`, `NexusJobCompleted`, and `NexusJobFailed` define serializable lifecycle event payloads.
+- `NexusJobProgressed` defines serializable progress payloads with stable per-run progress keys.
 - The implemented jobs dispatch started/completed/failed lifecycle events around their application handler calls.
+- `SnowballJob` emits progress records for each snowball round and provider stat from the completed handler result.
 - `RecordNexusJobLifecycle` records lifecycle events through `JobLifecycleRecorderPort`.
 - The default `JobLifecycleRecorderPort` binding is `EloquentJobLifecycleRecorder`, which writes `job_lifecycle_records` through package migrations.
 - Search, PDF retrieval, deduplication, and citation graph use cases are container-resolvable enough to be wrapped by jobs.
@@ -557,7 +559,7 @@ Sub-slices:
    - `SnowballJob` is implemented.
 3. Events
    - started, completed, failed are implemented for package jobs.
-   - provider-level progress events.
+   - provider-level progress events are implemented for snowballing through `NexusJobProgressed`.
 4. Listeners
    - lifecycle listener contract is implemented.
    - persistent listener storage upserts by `JobLifecycleRecord::$idempotencyKey`.
@@ -767,18 +769,17 @@ Done criteria:
 Give the new developer a contained P2 slice, not a sweeping feature. P0 and P1 are now closed.
 
 Best first assignment:
-- P2.3 provider-progress events and persisted snowball round progress, now that the application handler, provider adapters, and queueable job wrapper exist.
-
-Why:
-- The application contract, real provider adapters, and queueable job wrapper are now in place.
-- The next risk is status reporting, persisted round progress, and retry visibility for host apps.
-- This defines the operational surface before widening host-app UI/API integration.
-
-Second assignment:
 - P2.4 corpus lock lifecycle and audit trail.
 
-Third assignment:
+Why:
+- The search, deduplication, full-text retrieval, citation graph, snowballing, job lifecycle, and snowball progress foundations are now in place.
+- The next risk is preventing invalid mutation after a corpus is locked and making lock/unlock actions auditable.
+
+Second assignment:
 - P2.5 export history and format validation.
+
+Third assignment:
+- P3 release readiness: composer scripts, static analysis, formatting, and CI matrix cleanup.
 
 ## Cross-Repo Working Rules
 

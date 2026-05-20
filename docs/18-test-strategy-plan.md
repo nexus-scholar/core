@@ -11,7 +11,7 @@ Current repository state on 2026-05-20:
 - P0 guardrail tests are implemented and should remain permanently green.
 - P1 reusable search tests are implemented in `core`; `nexus-cli` has consumer tests for its app-owned search workflow.
 - P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, weighted persistence, fake-provider snowballing rounds, and Semantic Scholar/OpenAlex/Crossref citation or reference traversal.
-- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, `RetrieveFullTextJob`, and `SnowballJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented; provider-progress events remain open.
+- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, `RetrieveFullTextJob`, and `SnowballJob` implementations with feature tests. Job lifecycle event shapes, progress events, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented.
 - P2 full-text retrieval has handler/source/repository coverage for strict PDF validation, retry, cooldown, deterministic paths, legal OA source resolution, XML artifact storage, and XML text sidecars.
 - P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
 
@@ -287,16 +287,17 @@ Implemented tests:
 - `RetrieveFullTextJob` resolves `RetrieveFullTextHandler` from the Laravel container and executes with fake source, storage, downloader, and repository ports.
 - `SnowballJob` serialization round-trip keeps only the `SnowballCorpus` payload.
 - `SnowballJob` resolves `SnowballCorpusHandler` from the Laravel container and executes with fake snowballing providers and deduplication.
-- `NexusJobStarted`, `NexusJobCompleted`, and `NexusJobFailed` serialize lifecycle payloads.
+- `SnowballJob` dispatches `NexusJobProgressed` records for snowball rounds and provider stats after the application handler returns.
+- `NexusJobStarted`, `NexusJobProgressed`, `NexusJobCompleted`, and `NexusJobFailed` serialize lifecycle payloads.
 - Implemented jobs dispatch started/completed events on success and failed events before rethrowing job failures.
 - `RecordNexusJobLifecycle` maps lifecycle events to `JobLifecycleRecord` values through `JobLifecycleRecorderPort`.
-- `JobLifecycleRecord` idempotency keys are stable for repeated run/status pairs.
+- `RecordNexusJobLifecycle` records progress events through the same lifecycle recorder without a separate table.
+- `JobLifecycleRecord` idempotency keys are stable for repeated run/status/progress-key pairs.
 - `EloquentJobLifecycleRecorder` is the default binding and upserts `job_lifecycle_records` rows by lifecycle idempotency key.
 
 Tests to add:
-- Provider-progress events and persisted snowball round progress once the event/read-model shape is defined.
 - Job payloads continue to contain IDs/DTOs, not service instances.
-- Provider-progress events are emitted when a use case exposes meaningful intermediate progress.
+- Additional provider-progress events when other use cases expose meaningful intermediate progress.
 - Lifecycle recorder queries by `project_id`, `work_id`, `job_name`, and `status` remain efficient as host apps build progress screens.
 
 Key assertions:
@@ -394,8 +395,8 @@ Before merging a change, ask:
 
 ## Recommended First Test Tasks For A New Developer
 
-1. Add MIME/signature validation tests for PDF downloads before changing the downloader.
-2. Add duplicate successful fetch avoidance tests for `RetrieveFullTextHandler`.
-3. Add provider-progress event tests for snowballing rounds and provider failures.
-4. Add lifecycle progress query tests once a read-side API is introduced for host apps.
-5. Add export history persistence tests once the export table/API is defined.
+1. Add corpus lock lifecycle tests before enforcing locked-corpus mutation rules.
+2. Add lifecycle progress query tests once a read-side API is introduced for host apps.
+3. Add export history persistence tests once the export table/API is defined.
+4. Add MIME/signature validation tests for any future downloader behavior changes.
+5. Add duplicate successful fetch avoidance tests for `RetrieveFullTextHandler` if the handler grows new source fan-out behavior.

@@ -12,6 +12,7 @@ use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Laravel\Event\NexusJobCompleted;
 use Nexus\Laravel\Event\NexusJobFailed;
+use Nexus\Laravel\Event\NexusJobProgressed;
 use Nexus\Laravel\Event\NexusJobStarted;
 use Nexus\Laravel\Job\SnowballJob;
 use Nexus\Search\Domain\CorpusSlice;
@@ -54,7 +55,7 @@ it('is a queueable job that serializes only the snowballing payload', function (
 });
 
 it('resolves the snowballing handler from the container when handling the job', function (): void {
-    Event::fake([NexusJobStarted::class, NexusJobCompleted::class, NexusJobFailed::class]);
+    Event::fake([NexusJobStarted::class, NexusJobProgressed::class, NexusJobCompleted::class, NexusJobFailed::class]);
 
     $seed = snowballJobTestWork('10.4000/seed', 'Seed');
     $new = snowballJobTestWork('10.4000/new', 'New Work');
@@ -109,11 +110,31 @@ it('resolves the snowballing handler from the container when handling the job', 
             && $event->summary['new_count'] === 1
             && is_int($event->durationMs)
     );
+    Event::assertDispatchedTimes(NexusJobProgressed::class, 2);
+    Event::assertDispatched(
+        NexusJobProgressed::class,
+        fn (NexusJobProgressed $event): bool => $event->jobName === 'snowball_corpus'
+            && $event->progressKey === 'round:1'
+            && $event->context['progress_type'] === 'snowball_round'
+            && $event->context['depth'] === 1
+            && $event->summary['discovered_count'] === 1
+            && $event->summary['net_new_count'] === 1
+    );
+    Event::assertDispatched(
+        NexusJobProgressed::class,
+        fn (NexusJobProgressed $event): bool => str_starts_with($event->progressKey, 'provider:0:openalex:forward:')
+            && $event->context['progress_type'] === 'snowball_provider'
+            && $event->context['provider_alias'] === 'openalex'
+            && $event->context['direction'] === 'forward'
+            && $event->context['seed_work_id'] === 'doi:10.4000/seed'
+            && $event->summary['result_count'] === 1
+            && $event->summary['failed'] === false
+    );
     Event::assertNotDispatched(NexusJobFailed::class);
 });
 
 it('dispatches a failed lifecycle event before rethrowing snowballing failures', function (): void {
-    Event::fake([NexusJobStarted::class, NexusJobCompleted::class, NexusJobFailed::class]);
+    Event::fake([NexusJobStarted::class, NexusJobProgressed::class, NexusJobCompleted::class, NexusJobFailed::class]);
 
     $seed = snowballJobTestWork('10.4000/seed', 'Seed');
 
@@ -132,6 +153,7 @@ it('dispatches a failed lifecycle event before rethrowing snowballing failures',
         ->toThrow(UnknownSnowballingProviderAlias::class, 'Unknown snowballing provider alias: openalex');
 
     Event::assertDispatched(NexusJobStarted::class);
+    Event::assertNotDispatched(NexusJobProgressed::class);
     Event::assertNotDispatched(NexusJobCompleted::class);
     Event::assertDispatched(
         NexusJobFailed::class,

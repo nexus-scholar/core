@@ -7,6 +7,7 @@ namespace Nexus\Shared\ValueObject;
 enum JobLifecycleStatus: string
 {
     case STARTED = 'started';
+    case PROGRESSED = 'progressed';
     case COMPLETED = 'completed';
     case FAILED = 'failed';
 }
