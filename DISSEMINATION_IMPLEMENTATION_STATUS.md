@@ -164,14 +164,14 @@ The Dissemination module has **Phase 1 and Phase 2 substantially complete**, wit
 
 ### Gaps
 1. **Graph edge export**: GEXF/GraphML/Cytoscape need explicit edge and weight preservation coverage.
-2. **Retry and limits**: PDF retrieval still needs retry policy, size limits, and failed-attempt cooldown behavior.
+2. **Storage policy**: PDF retrieval still needs a documented deterministic path policy and optional non-Laravel storage adapter.
 3. **Source coverage**: Optional broader open-access sources are still pending.
 
 ---
 
 ## Recommendations for Next Phase
 
-1. **Finish PDF hardening**: Add retry policy, size limits, and failed-attempt cooldown behavior.
+1. **Finish storage hardening**: Document deterministic path policy and add a non-Laravel storage adapter if core needs to run outside Laravel hosts.
 
 2. **Expand source coverage deliberately**: Only add Unpaywall or PubMed Central if product scope requires broader open-access coverage.
 
@@ -183,8 +183,8 @@ The Dissemination module has **Phase 1 and Phase 2 substantially complete**, wit
 
 **Status: active P2 hardening**
 - Contracts, orchestration, and core adapters are implemented for current workflows.
-- PDF retrieval now reuses existing successful files and rejects non-PDF downloads before storage.
-- Remaining work is retry/limit policy, optional broader source coverage, and release-level export hardening.
+- PDF retrieval now reuses existing successful files, rejects non-PDF or oversized downloads before storage, retries transient download failures, and skips recently failed source URLs during cooldown.
+- Remaining work is deterministic storage policy, optional broader source coverage, and release-level export hardening.
 
 The module is usable for core workflows, but release readiness still depends on finishing the remaining hardening and export coverage.
 

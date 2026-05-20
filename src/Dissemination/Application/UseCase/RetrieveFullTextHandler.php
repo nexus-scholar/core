@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Nexus\Dissemination\Application\UseCase;
 
+use DateTimeImmutable;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
+use Nexus\Shared\ValueObject\WorkId;
 use RuntimeException;
 use Throwable;
 
@@ -35,6 +37,8 @@ final readonly class RetrieveFullTextHandler
             return FullTextResult::success($existingPath, 'cache');
         }
 
+        $lastFailure = null;
+
         foreach ($this->sources->all() as $source) {
             if (! $source->supports($command->work)) {
                 continue;
@@ -49,8 +53,12 @@ final readonly class RetrieveFullTextHandler
                     continue;
                 }
 
-                $downloadResult = $this->downloader->download($url);
-                $this->assertValidPdf($downloadResult);
+                if ($this->isInFailedAttemptCooldown($workId, $url, $command)) {
+                    continue;
+                }
+
+                $downloadResult = $this->downloadWithRetry($url, $command);
+                $this->assertValidPdf($downloadResult, $command->maxBytes);
                 $content = $downloadResult->content;
                 
                 $extension = 'pdf'; // Assume PDF for now
@@ -72,11 +80,41 @@ final readonly class RetrieveFullTextHandler
                 $status = method_exists($e, 'getCode') ? $e->getCode() : null;
                 $result = FullTextResult::failure($e->getMessage(), $source->alias(), (int) $status);
                 $this->repository->save($workId, $url ?? 'unknown', $result, $this->elapsedMs($startTime));
+                $lastFailure = $result;
                 // Continue to next source
             }
         }
 
-        return FullTextResult::failure("No PDF found across all sources");
+        return $lastFailure ?? FullTextResult::failure("No PDF found across all sources");
+    }
+
+    private function isInFailedAttemptCooldown(
+        WorkId $workId,
+        string $url,
+        RetrieveFullText $command,
+    ): bool {
+        if ($command->failedAttemptCooldownSeconds === 0) {
+            return false;
+        }
+
+        $since = new DateTimeImmutable(sprintf('-%d seconds', $command->failedAttemptCooldownSeconds));
+
+        return $this->repository->hasRecentFailure($workId, $url, $since);
+    }
+
+    private function downloadWithRetry(string $url, RetrieveFullText $command): DownloadResult
+    {
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $command->maxDownloadAttempts; $attempt++) {
+            try {
+                return $this->downloader->download($url);
+            } catch (Throwable $error) {
+                $lastError = $error;
+            }
+        }
+
+        throw $lastError ?? new RuntimeException('Failed to download PDF.');
     }
 
     private function elapsedMs(float|int $startNs): int
@@ -84,8 +122,15 @@ final readonly class RetrieveFullTextHandler
         return (int) round((hrtime(true) - $startNs) / 1_000_000);
     }
 
-    private function assertValidPdf(DownloadResult $downloadResult): void
+    private function assertValidPdf(DownloadResult $downloadResult, int $maxBytes): void
     {
+        if (strlen($downloadResult->content) > $maxBytes) {
+            throw new RuntimeException(
+                sprintf('Downloaded PDF exceeds size limit of %d bytes.', $maxBytes),
+                $downloadResult->statusCode,
+            );
+        }
+
         if (! str_starts_with($downloadResult->content, '%PDF-')) {
             throw new RuntimeException('Downloaded content is not a PDF: missing %PDF signature.', $downloadResult->statusCode);
         }

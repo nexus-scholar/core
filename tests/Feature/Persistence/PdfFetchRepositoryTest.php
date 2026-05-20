@@ -51,3 +51,36 @@ it('returns null for successful path lookups when the work is not persisted', fu
 
     expect($this->repository->findSuccessfulPath($workId))->toBeNull();
 });
+
+it('detects recent failed fetches by work and source url', function (): void {
+    $work = PersistenceFactory::makeWork(doi: '10.5555/recent-failure');
+    $this->workRepository->save($work);
+
+    $this->repository->save(
+        $work->primaryId(),
+        'https://example.org/failing.pdf',
+        FullTextResult::failure('temporary failure', 'example', 503),
+        456,
+    );
+
+    expect($this->repository->hasRecentFailure(
+        $work->primaryId(),
+        'https://example.org/failing.pdf',
+        new DateTimeImmutable('-5 minutes'),
+    ))->toBeTrue()
+        ->and($this->repository->hasRecentFailure(
+            $work->primaryId(),
+            'https://example.org/other.pdf',
+            new DateTimeImmutable('-5 minutes'),
+        ))->toBeFalse()
+        ->and($this->repository->hasRecentFailure(
+            $work->primaryId(),
+            'https://example.org/failing.pdf',
+            new DateTimeImmutable('+1 minute'),
+        ))->toBeFalse()
+        ->and($this->repository->hasRecentFailure(
+            new WorkId(WorkIdNamespace::DOI, '10.5555/missing'),
+            'https://example.org/failing.pdf',
+            new DateTimeImmutable('-5 minutes'),
+        ))->toBeFalse();
+});

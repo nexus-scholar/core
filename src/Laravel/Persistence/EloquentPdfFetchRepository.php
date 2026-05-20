@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nexus\Laravel\Persistence;
 
+use DateTimeImmutable;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
 use Nexus\Dissemination\Domain\FullTextStatus;
@@ -46,6 +47,22 @@ final class EloquentPdfFetchRepository implements PdfFetchRepositoryPort
             ->whereNotNull('file_path')
             ->orderByDesc('attempted_at')
             ->value('file_path');
+    }
+
+    public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+    {
+        $internalWorkId = $this->internalWorkIdFor($workId);
+
+        if ($internalWorkId === null) {
+            return false;
+        }
+
+        return PdfFetchModel::query()
+            ->where('work_id', $internalWorkId)
+            ->where('source_url', $sourceUrl)
+            ->where('status', FullTextStatus::FAILURE->value)
+            ->where('attempted_at', '>=', $since->format('Y-m-d H:i:s'))
+            ->exists();
     }
 
     private function resolveInternalWorkId(WorkId $workId): string

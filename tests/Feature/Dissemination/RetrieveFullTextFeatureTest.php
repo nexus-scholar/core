@@ -85,6 +85,11 @@ it('retrieves_full_text_and_persists_audit_entry', function (): void {
         {
             return null;
         }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
     };
 
     $handler = new RetrieveFullTextHandler(
@@ -185,6 +190,11 @@ it('returns an existing successful fetch without downloading again', function ()
         public function findSuccessfulPath(WorkId $workId): ?string
         {
             return 'pdfs/cached.pdf';
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
         }
     };
 
@@ -296,6 +306,11 @@ it('rejects non-pdf downloads and continues to the next source', function (): vo
         {
             return null;
         }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
     };
 
     $handler = new RetrieveFullTextHandler(
@@ -316,4 +331,403 @@ it('rejects non-pdf downloads and continues to the next source', function (): vo
         ->and($repository->saved[0]['result']->errorMessage)->toContain('missing %PDF signature')
         ->and($repository->saved[1]['sourceUrl'])->toBe('https://example.org/good.pdf')
         ->and($repository->saved[1]['result'])->toBe($result);
+});
+
+it('retries transient download failures before auditing success', function (): void {
+    $source = new class implements FullTextSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/retry.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'retry';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public array $stored = [];
+
+        public function store(string $filename, string $content): string
+        {
+            $this->stored[$filename] = $content;
+
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return $this->stored[$path] ?? '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return array_key_exists($path, $this->stored);
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        public int $attempts = 0;
+
+        public function download(string $url): DownloadResult
+        {
+            $this->attempts++;
+
+            if ($this->attempts === 1) {
+                throw new RuntimeException('temporary network failure', 503);
+            }
+
+            return new DownloadResult('%PDF-1.7 retry-content', 200, 'application/pdf');
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $handler = new RetrieveFullTextHandler(
+        new FullTextSourceCollection($source),
+        $storage,
+        $downloader,
+        $repository
+    );
+
+    $result = $handler->handle(new RetrieveFullText(
+        work: PersistenceFactory::makeWork(),
+        destinationFolder: 'pdfs',
+        maxDownloadAttempts: 2,
+    ));
+
+    expect($result->status->value)->toBe('success')
+        ->and($downloader->attempts)->toBe(2)
+        ->and($repository->saved)->toHaveCount(1)
+        ->and($repository->saved[0]['result']->status->value)->toBe('success')
+        ->and($storage->stored)->toHaveCount(1);
+});
+
+it('audits failure after exhausting download retries', function (): void {
+    $source = new class implements FullTextSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/failing.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'failing';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public function store(string $filename, string $content): string
+        {
+            throw new RuntimeException('storage should not be called');
+        }
+
+        public function get(string $path): string
+        {
+            return '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return false;
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        public int $attempts = 0;
+
+        public function download(string $url): DownloadResult
+        {
+            $this->attempts++;
+
+            throw new RuntimeException('download still failing', 503);
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $handler = new RetrieveFullTextHandler(
+        new FullTextSourceCollection($source),
+        $storage,
+        $downloader,
+        $repository
+    );
+
+    $result = $handler->handle(new RetrieveFullText(
+        work: PersistenceFactory::makeWork(),
+        destinationFolder: 'pdfs',
+        maxDownloadAttempts: 3,
+    ));
+
+    expect($result->status->value)->toBe('failure')
+        ->and($result->errorMessage)->toBe('download still failing')
+        ->and($downloader->attempts)->toBe(3)
+        ->and($repository->saved)->toHaveCount(1)
+        ->and($repository->saved[0]['sourceUrl'])->toBe('https://example.org/failing.pdf')
+        ->and($repository->saved[0]['result'])->toBe($result);
+});
+
+it('rejects oversized pdf downloads before storage', function (): void {
+    $source = new class implements FullTextSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/oversized.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'oversized';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public int $stores = 0;
+
+        public function store(string $filename, string $content): string
+        {
+            $this->stores++;
+
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return false;
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        public function download(string $url): DownloadResult
+        {
+            return new DownloadResult('%PDF-1.7 oversized-content', 200, 'application/pdf');
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $handler = new RetrieveFullTextHandler(
+        new FullTextSourceCollection($source),
+        $storage,
+        $downloader,
+        $repository
+    );
+
+    $result = $handler->handle(new RetrieveFullText(
+        work: PersistenceFactory::makeWork(),
+        destinationFolder: 'pdfs',
+        maxBytes: 10,
+    ));
+
+    expect($result->status->value)->toBe('failure')
+        ->and($result->errorMessage)->toContain('exceeds size limit')
+        ->and($storage->stores)->toBe(0)
+        ->and($repository->saved)->toHaveCount(1)
+        ->and($repository->saved[0]['result'])->toBe($result);
+});
+
+it('skips sources with recent failed attempts during cooldown', function (): void {
+    $sourceA = new class implements FullTextSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/recent-failure.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'cooldown';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $sourceB = new class implements FullTextSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/available.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'available';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public array $stored = [];
+
+        public function store(string $filename, string $content): string
+        {
+            $this->stored[$filename] = $content;
+
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return $this->stored[$path] ?? '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return array_key_exists($path, $this->stored);
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        /** @var list<string> */
+        public array $urls = [];
+
+        public function download(string $url): DownloadResult
+        {
+            $this->urls[] = $url;
+
+            return new DownloadResult('%PDF-1.7 available-content', 200, 'application/pdf');
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return $sourceUrl === 'https://example.org/recent-failure.pdf';
+        }
+    };
+
+    $handler = new RetrieveFullTextHandler(
+        new FullTextSourceCollection($sourceA, $sourceB),
+        $storage,
+        $downloader,
+        $repository
+    );
+
+    $result = $handler->handle(new RetrieveFullText(
+        work: PersistenceFactory::makeWork(),
+        destinationFolder: 'pdfs',
+        failedAttemptCooldownSeconds: 3600,
+    ));
+
+    expect($result->status->value)->toBe('success')
+        ->and($result->sourceAlias)->toBe('available')
+        ->and($downloader->urls)->toBe(['https://example.org/available.pdf'])
+        ->and($repository->saved)->toHaveCount(1)
+        ->and($repository->saved[0]['sourceUrl'])->toBe('https://example.org/available.pdf');
 });

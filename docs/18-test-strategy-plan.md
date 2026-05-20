@@ -247,10 +247,11 @@ Implemented tests:
 - Existing successful fetches short-circuit source resolution, downloads, storage, and duplicate audit rows when the file still exists.
 - Non-PDF downloads are audited as failed attempts and do not prevent later sources from succeeding.
 - Download validation checks the `%PDF-` signature and reported content type before storage.
+- Download retries are attempted before one source failure is audited.
+- Oversized PDF payloads are rejected before storage.
+- Failed source cooldown skips recently failed source URLs and is backed by SQL audit lookups.
 
 Tests still to add:
-- Retry behavior.
-- Failed fetch audit rows.
 - Storage path policy.
 
 Key assertions:
@@ -258,6 +259,8 @@ Key assertions:
 - Existing successful path is reused when the file exists.
 - Failed first source does not prevent a later successful source.
 - Non-PDF response does not get stored as a successful PDF.
+- Retry exhaustion does not create duplicate audit rows for the same source attempt.
+- Recent failed source cooldown avoids repeating known-bad source URLs.
 
 ### P2 Jobs And Events
 

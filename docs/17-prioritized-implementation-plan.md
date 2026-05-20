@@ -459,15 +459,18 @@ Implemented:
 - Laravel binds the source collection, downloader, storage, and repository ports.
 - Existing successful fetches are reused when the persisted file path still exists.
 - Downloaded content is rejected before storage when it lacks a `%PDF-` signature or reports a non-PDF content type.
+- Downloads retry transient failures before auditing a source failure.
+- Downloaded PDFs are rejected before storage when they exceed the command size limit.
+- Recent failed source URLs are skipped during the command cooldown window.
 
 Remaining sub-slices:
 1. Source resolution
    - Direct URL source is implemented for explicit PDF URL metadata.
    - Optional Unpaywall or PubMed Central source if product scope requires broader open access coverage.
 2. Download safety
-   - Retry policy.
+   - Retry policy is implemented.
    - MIME validation is implemented for reported content types.
-   - Size limit.
+   - Size limit is implemented.
    - PDF signature sniffing is implemented before storage.
 3. Storage
    - Local/non-Laravel storage adapter if needed.
@@ -475,7 +478,7 @@ Remaining sub-slices:
 4. Duplicate avoidance
    - Existing successful path lookup is implemented.
    - Re-fetch policy.
-   - Failed attempt cooldown.
+   - Failed attempt cooldown is implemented.
 5. Audit
    - One row per attempted source.
    - HTTP status.
@@ -485,10 +488,14 @@ Remaining sub-slices:
 Tests:
 - Unit: each source resolves correctly from work metadata.
 - Application: MIME/signature validation rejects non-PDF content.
+- Application: retry exhaustion audits one source failure.
+- Application: oversized PDFs are rejected before storage.
+- Application: recent failed source URLs are skipped during cooldown.
 - Application: successful first source stops later sources.
 - Application: failed first source continues to next source.
 - Feature: SQL audit rows are written for success and failure.
 - Feature: repeated fetch uses cached successful path.
+- Feature: failed source cooldown is backed by persisted PDF fetch audits.
 
 Done criteria:
 - Host apps can call full-text retrieval from CLI, job, or HTTP without duplicating source/download logic.

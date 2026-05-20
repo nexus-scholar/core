@@ -119,6 +119,11 @@ it('resolves the full text handler from the container when handling the job', fu
         {
             return null;
         }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
     });
 
     $job = new RetrieveFullTextJob(
