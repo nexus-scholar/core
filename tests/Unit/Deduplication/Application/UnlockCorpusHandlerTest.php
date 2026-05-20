@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Nexus\Deduplication\Application\LockCorpus;
-use Nexus\Deduplication\Application\LockCorpusHandler;
+use Nexus\Deduplication\Application\UnlockCorpus;
+use Nexus\Deduplication\Application\UnlockCorpusHandler;
 use Nexus\Deduplication\Domain\DedupCluster;
 use Nexus\Deduplication\Domain\DedupClusterId;
 use Nexus\Deduplication\Domain\Port\ClusterRepositoryPort;
@@ -15,11 +15,11 @@ use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 
-it('locks the project and every unlocked cluster inside a transaction', function (): void {
+it('unlocks the project and every locked cluster inside a transaction', function (): void {
     $work = ScholarlyWork::reconstitute(
-        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.1000/lock')]),
-        title: 'Lock Test',
-        sourceProvider: 'test'
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.1000/unlock')]),
+        title: 'Unlock Test',
+        sourceProvider: 'test',
     );
 
     $cluster = DedupCluster::reconstitute(
@@ -27,7 +27,7 @@ it('locks the project and every unlocked cluster inside a transaction', function
         projectId: 'project-1',
         representative: $work,
         members: [$work],
-        isLocked: false,
+        isLocked: true,
     );
 
     $repository = new class($cluster) implements ClusterRepositoryPort {
@@ -52,6 +52,34 @@ it('locks the project and every unlocked cluster inside a transaction', function
         }
     };
 
+    $locks = new class implements ProjectLockLifecyclePort {
+        public ?string $unlockedProjectId = null;
+        public ?string $actorId = null;
+        public ?string $reason = null;
+        /** @var array<string, mixed> */
+        public array $metadata = [];
+
+        public function lock(string $projectId, ?string $actorId = null, ?string $reason = null, array $metadata = []): ProjectLockState
+        {
+            return new ProjectLockState($projectId, true, 'locked');
+        }
+
+        public function unlock(string $projectId, ?string $actorId = null, ?string $reason = null, array $metadata = []): ProjectLockState
+        {
+            $this->unlockedProjectId = $projectId;
+            $this->actorId = $actorId;
+            $this->reason = $reason;
+            $this->metadata = $metadata;
+
+            return new ProjectLockState($projectId, false, 'draft');
+        }
+
+        public function status(string $projectId): ProjectLockState
+        {
+            return new ProjectLockState($projectId, false, 'draft');
+        }
+    };
+
     $transactions = new class implements TransactionPort {
         public bool $ran = false;
 
@@ -63,47 +91,19 @@ it('locks the project and every unlocked cluster inside a transaction', function
         }
     };
 
-    $locks = new class implements ProjectLockLifecyclePort {
-        public ?string $lockedProjectId = null;
-        public ?string $actorId = null;
-        public ?string $reason = null;
-        /** @var array<string, mixed> */
-        public array $metadata = [];
-
-        public function lock(string $projectId, ?string $actorId = null, ?string $reason = null, array $metadata = []): ProjectLockState
-        {
-            $this->lockedProjectId = $projectId;
-            $this->actorId = $actorId;
-            $this->reason = $reason;
-            $this->metadata = $metadata;
-
-            return new ProjectLockState($projectId, true, 'locked');
-        }
-
-        public function unlock(string $projectId, ?string $actorId = null, ?string $reason = null, array $metadata = []): ProjectLockState
-        {
-            return new ProjectLockState($projectId, false, 'draft');
-        }
-
-        public function status(string $projectId): ProjectLockState
-        {
-            return new ProjectLockState($projectId, true, 'locked');
-        }
-    };
-
-    $handler = new LockCorpusHandler($repository, $locks, $transactions);
-    $handler->handle(new LockCorpus(
+    $handler = new UnlockCorpusHandler($repository, $locks, $transactions);
+    $handler->handle(new UnlockCorpus(
         projectId: 'project-1',
         actorId: 'admin-1',
-        reason: 'ready for screening',
+        reason: 'reopen for new search',
         metadata: ['source' => 'test'],
     ));
 
     expect($transactions->ran)->toBeTrue()
-        ->and($locks->lockedProjectId)->toBe('project-1')
+        ->and($locks->unlockedProjectId)->toBe('project-1')
         ->and($locks->actorId)->toBe('admin-1')
-        ->and($locks->reason)->toBe('ready for screening')
+        ->and($locks->reason)->toBe('reopen for new search')
         ->and($locks->metadata)->toBe(['source' => 'test'])
-        ->and($cluster->isLocked)->toBeTrue()
+        ->and($cluster->isLocked)->toBeFalse()
         ->and($repository->saved)->toHaveCount(1);
 });

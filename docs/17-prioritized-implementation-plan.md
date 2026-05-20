@@ -43,7 +43,7 @@ P2 full-text retrieval is also implemented beyond the original PDF-only scope:
 - PDF validation remains strict: non-PDF responses, oversized payloads, and mismatched content types are rejected before storage.
 - Full-text source metadata, licenses, OA status, and source evidence are carried into audit metadata when available.
 
-The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: corpus lock lifecycle, export history, and release readiness.
+The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: export history, release readiness, and lock-policy integration around future mutation paths.
 
 ## P0: Stabilization Guardrails
 
@@ -397,7 +397,7 @@ For citation-network graph package history and the current use of `mbsoft31/grap
 
 ### P2.1 Citation Network Implementation
 
-Status: partially done
+Status: in progress
 
 Objective:
 - Implement graph building, snowballing, metrics, and scalable algorithms for real.
@@ -580,32 +580,37 @@ Done criteria:
 
 ### P2.4 Corpus Lock Lifecycle
 
-Status: partially done
+Status: foundation implemented; policy integration remains.
 
 Objective:
 - Make project/corpus locking a first-class lifecycle, not just a boolean guard.
 
 Current state:
 - `ProjectLockPort` is used by application handlers that mutate project search state.
-- `LockCorpusHandler` exists in deduplication application code.
-- `EloquentProjectLock` provides the Laravel-side lock check.
+- `ProjectLockLifecyclePort` provides lock, unlock, and status operations.
+- `LockCorpusHandler` locks the project and existing dedup clusters in one transaction.
+- `UnlockCorpusHandler` unlocks the project and existing dedup clusters in one transaction.
+- `EloquentProjectLock` provides the Laravel-side lock check, lock/unlock lifecycle writes, and audit rows.
+- Lock metadata includes actor id, reason, timestamps, and JSON metadata.
 
 Remaining risk:
-- The lock lifecycle is still not a complete product surface. Audit trail, explicit unlock/admin flow, lock ownership, and full mutation policy are not finished.
+- Host applications still need an authorization policy for who can unlock.
+- Screening, export, and future graph mutation paths need explicit lock-policy decisions.
+- Lock eligibility warnings should account for recent provider failures before a user freezes a corpus.
 
 Sub-slices:
 1. Lock domain policy
    - Which mutations are blocked.
    - Who can unlock.
-   - Whether unlock creates an audit event.
+   - Whether screening changes are allowed after lock.
 2. Persistence
-   - lock timestamp.
-   - locked by.
-   - unlock reason.
-   - audit trail.
+   - lock timestamp is implemented.
+   - locked by is implemented.
+   - unlock reason is implemented.
+   - audit trail is implemented.
 3. Enforcement
-   - search mutation blocked.
-   - dedup cluster mutation blocked.
+   - search mutation blocked through `ProjectLockPort`.
+   - dedup cluster mutation blocked through locked clusters.
    - screening changes policy.
    - export allowed.
 4. UX/API support
@@ -614,9 +619,10 @@ Sub-slices:
 
 Tests:
 - Unit: lock policy decisions.
-- Application: handlers check `ProjectLockPort`.
-- Feature: locked project blocks search/dedup mutation.
-- Feature: explicit unlock records audit row.
+- Unit: lock/unlock handlers update project lifecycle and cluster lock state.
+- Application: handlers check `ProjectLockPort` or `ProjectLockLifecyclePort`.
+- Feature: explicit lock/unlock writes project state and audit rows.
+- Feature: locked project blocks future mutation paths as they are added.
 
 Done criteria:
 - Locked corpus is safe to use for reproducible export and screening.
@@ -769,14 +775,14 @@ Done criteria:
 Give the new developer a contained P2 slice, not a sweeping feature. P0 and P1 are now closed.
 
 Best first assignment:
-- P2.4 corpus lock lifecycle and audit trail.
+- P2.5 export history and format validation.
 
 Why:
-- The search, deduplication, full-text retrieval, citation graph, snowballing, job lifecycle, and snowball progress foundations are now in place.
-- The next risk is preventing invalid mutation after a corpus is locked and making lock/unlock actions auditable.
+- The search, deduplication, full-text retrieval, citation graph, snowballing, job lifecycle, snowball progress, and corpus lock lifecycle foundations are now in place.
+- The next risk is making exports auditable and repeatable before the package moves toward release readiness.
 
 Second assignment:
-- P2.5 export history and format validation.
+- Add lock-policy checks to future graph mutation and screening write paths.
 
 Third assignment:
 - P3 release readiness: composer scripts, static analysis, formatting, and CI matrix cleanup.
