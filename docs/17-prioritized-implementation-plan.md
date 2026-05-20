@@ -1,0 +1,647 @@
+# Prioritized Implementation Plan
+
+Last updated: 2026-05-15
+
+This document turns the TODO map into execution plans for the next developer. It tracks the work by priority, repo ownership, dependencies, suggested sequence, test expectations, and definition of done.
+
+Status terms:
+
+- `done`: implemented and covered by tests.
+- `ready`: scoped enough to start.
+- `blocked`: needs a product, architecture, credential, or dependency decision.
+- `defer`: intentionally later than the current milestone.
+
+## Current Baseline
+
+The original P0 stabilization slice is complete in `core`:
+
+- Architecture leak guardrails are in place through ports and an architecture test.
+- Empty PHP placeholder files have been removed and are now prevented by a regression test.
+- Work persistence uses an internal UUID primary key with provider IDs stored in external ID rows.
+- Work provider provenance round-trips through `work_providers`.
+- Provider config supports enabled flags, API keys, rate limits, retries, timeouts, and immutable per-request selection.
+- PDF fetch persistence and citation edge weights have SQL regression coverage.
+- Legacy `docs/spec-*` files are marked as design artifacts when they are not current implementation inventories.
+
+Primary next focus: P1 search orchestration and Laravel integration. The key theme is to move behavior out of CLI-only code and into reusable application services shared by CLI, jobs, and HTTP.
+
+## P0: Stabilization Guardrails
+
+Status: done
+
+These items should stay closed. Future work should preserve the guardrails rather than reopen the same risks.
+
+### P0.1 Architecture Leaks
+
+Status: done
+
+Objective:
+- Keep domain and application code independent from Laravel, Eloquent, facades, queues, and storage.
+
+Done criteria:
+- Non-Laravel bounded contexts do not import `Illuminate\*`.
+- Project lock checks go through `ProjectLockPort`.
+- Transactions go through `TransactionPort`.
+- New application handlers accept ports in constructors.
+
+Regression coverage:
+- `tests/Unit/Architecture/FrameworkBoundaryTest.php`
+- Handler tests using fake ports.
+
+Maintenance rule:
+- Any new framework dependency outside `src/Laravel` must fail code review unless it is explicitly part of infrastructure.
+
+### P0.2 Placeholder Surface
+
+Status: done
+
+Objective:
+- Prevent empty class files from implying behavior that does not exist.
+
+Done criteria:
+- Empty strict-types-only PHP files are absent from `src` and `tests`.
+- Planned behavior lives in docs or issues, not empty classes.
+
+Regression coverage:
+- `tests/Unit/Architecture/NoEmptyPhpFilesTest.php`
+
+Maintenance rule:
+- A new class must contain real behavior, a contract, or a failing/pending test that explains why it exists.
+
+### P0.3 Persistence Identity
+
+Status: done
+
+Objective:
+- Separate internal database identity from external scholarly/provider IDs.
+
+Done criteria:
+- `scholarly_works.id` stores an internal UUID.
+- DOI, arXiv, OpenAlex, Semantic Scholar, PubMed, IEEE, and other external IDs live in `work_external_ids`.
+- Foreign keys from query works, clusters, graphs, and PDF fetches point to internal UUIDs.
+
+Regression coverage:
+- `tests/Feature/Persistence/WorkRepositoryTest.php`
+- `tests/Feature/Persistence/SearchQueryRepositoryTest.php`
+- `tests/Feature/Persistence/CitationGraphRepositoryTest.php`
+- `tests/Feature/Persistence/PdfFetchRepositoryTest.php`
+
+Maintenance rule:
+- Repository callers can pass domain `WorkId` values, but Eloquent repositories must resolve them before writing FK columns.
+
+### P0.4 Provider Provenance
+
+Status: done
+
+Objective:
+- Preserve provider context for scoring, deduplication, debugging, and audit output.
+
+Done criteria:
+- `sourceProvider` survives save/load.
+- Provider sightings live in `work_providers`.
+- Query-work links keep provider alias and provider work ID.
+
+Regression coverage:
+- `tests/Feature/Persistence/WorkRepositoryTest.php`
+- `tests/Feature/Persistence/SearchQueryRepositoryTest.php`
+
+Maintenance rule:
+- Avoid synthetic provider names like `persisted` except as a last-resort fallback.
+
+### P0.5 Documentation Truthfulness
+
+Status: done
+
+Objective:
+- Make onboarding docs honest about what is shipped versus planned.
+
+Done criteria:
+- P0 tracker records no open P0 stabilization items.
+- Legacy spec docs are labeled design artifacts when appropriate.
+- UI docs do not claim unimplemented core services are live.
+
+Maintenance rule:
+- Any new roadmap document must say whether it is a current implementation inventory, an implementation plan, or a product proposal.
+
+## P1: High-Value Reusable Search And Laravel Integration
+
+Status: ready
+
+This is the next milestone. It should be split into small PRs, preferably one per behavior slice.
+
+### P1.1 Register Only Real Laravel Commands
+
+Repo ownership:
+- Primary: `core`
+- Consumer validation: `nexus-cli`
+
+Current state:
+- `core` registers `nexus:search`.
+- Empty command placeholders were removed.
+- `nexus-cli` contains richer app-level commands around runs, wiki ingestion, screening, and PDFs.
+
+Objective:
+- Make the command surface explicit and honest.
+- Avoid registering commands that are not implemented.
+- Decide which commands belong in reusable `core` and which belong only in host applications like `nexus-cli`.
+
+Implementation plan:
+1. Inventory current command classes in `core` and `nexus-cli`.
+2. Classify each command as:
+   - reusable package command,
+   - host-app workflow command,
+   - planned command.
+3. Keep `core` service provider registration limited to implemented reusable commands.
+4. Add command discovery tests in `core`.
+5. Add a small compatibility note for `nexus-cli` showing which workflows remain app-owned.
+
+Recommended decisions:
+- Keep `nexus:search` in `core` only if it delegates to reusable application services.
+- Keep wiki, screening, run file layout, and thesis-specific commands in `nexus-cli`.
+- Do not add `nexus:dedup`, `nexus:snowball`, `nexus:fetch-pdf`, or `nexus:export` until their application services and tests exist.
+
+Tests:
+- Feature test: `nexus:search` is registered.
+- Feature test: removed/planned commands are not registered.
+- `nexus-cli` smoke test: app commands still resolve after updating `core`.
+
+Done criteria:
+- Running `php artisan list nexus` in a consuming Laravel app shows only implemented commands.
+- Command registration has feature coverage.
+- Docs state where host-app commands live.
+
+### P1.2 Extract `nexus:search` YAML Parsing Into A Reusable Service
+
+Repo ownership:
+- Primary: `core`
+- Consumer validation: `nexus-cli`
+
+Current state:
+- `core` has a Laravel command that parses inline/file inputs.
+- `nexus-cli` has app-level search command logic for YAML-defined thesis queries and run JSON.
+- Reusable parsing/orchestration should not be trapped in Artisan code.
+
+Objective:
+- Make search input parsing and batch execution reusable by CLI, jobs, and HTTP controllers.
+
+Proposed target design:
+- `SearchPlan`: immutable parsed representation of one or more search requests.
+- `SearchPlanItem`: query text, project ID, year range, max results, provider aliases, metadata, priority, source query ID.
+- `SearchPlanParserPort`: parses structured input into a `SearchPlan`.
+- `YamlSearchPlanParser`: infrastructure parser using Symfony YAML.
+- `SearchPlanRunner`: application service that executes a plan item-by-item through `SearchAcrossProvidersHandler`.
+- `SearchPlanResult`: aggregate result with per-item result, failures, duration, and provider stats.
+
+Implementation plan:
+1. Characterize current YAML shape from `nexus-cli/resources/queries/thesis-queries.yml`.
+2. Define package-neutral DTOs in `core` application layer.
+3. Move only generic parsing rules to `core`.
+4. Keep host-specific run JSON writing in `nexus-cli` until a persistence-backed run recorder exists.
+5. Refactor `core` `NexusSearchCommand` to call the parser and runner.
+6. Refactor `nexus-cli` command to reuse the parser or adapter if dependency boundaries permit.
+
+Boundary rules:
+- YAML parsing may live in infrastructure or Laravel integration, not domain.
+- File paths, wiki output, and thesis-week behavior stay in `nexus-cli`.
+- The application runner should not know about Artisan output.
+
+Tests:
+- Unit: valid YAML produces the expected `SearchPlan`.
+- Unit: invalid YAML fails with useful messages.
+- Unit: provider aliases and priority filters normalize correctly.
+- Application: plan runner continues after one item fails when configured to continue.
+- Feature: Artisan command delegates to parser/runner and renders summary.
+- Regression: current `nexus-cli` thesis query file parses without behavior loss.
+
+Done criteria:
+- CLI, future jobs, and future HTTP can share the same parse/execute path.
+- No YAML parsing remains in the command except file loading and error presentation.
+- Existing command output remains stable enough for users.
+
+### P1.3 Add Provider Selection To Application Flow Everywhere
+
+Status:
+- Partially done in `core`; complete provider selection exists on `SearchQuery` and aggregator.
+
+Objective:
+- Ensure every search entrypoint can select providers without mutating a singleton registry.
+
+Implementation plan:
+1. Audit all constructors and commands that create `SearchAcrossProviders`.
+2. Ensure provider aliases are accepted from:
+   - inline CLI option,
+   - YAML item,
+   - YAML global default,
+   - job payload,
+   - future HTTP request DTO.
+3. Persist selected aliases in `search_queries.provider_aliases`.
+4. Render selected aliases in command summaries and future run summaries.
+5. Add unknown-provider handling policy.
+
+Decision needed:
+- Unknown provider alias should probably fail validation before execution rather than silently skip.
+- Disabled selected provider should report a clear skipped/disabled provider stat.
+
+Tests:
+- Unit: provider aliases normalize and deduplicate.
+- Application: selected providers only execute selected adapters.
+- Feature: persisted query reloads selected aliases.
+- Feature: CLI `--providers=openalex,arxiv` executes only those providers.
+- Regression: cache key changes when provider selection changes.
+
+Done criteria:
+- Provider selection behavior is consistent across CLI, jobs, and HTTP.
+- Unknown/disabled provider handling is explicit and tested.
+
+### P1.4 Wire Persistence Into Search Orchestration
+
+Repo ownership:
+- Primary: `core`
+- Consumer validation: `nexus-cli`
+
+Current state:
+- Repositories exist for search query, provider progress, work, and query-work provenance.
+- Aggregator returns `AggregatedResult`.
+- Search execution does not yet write a complete persistent run through application ports.
+
+Objective:
+- A search run should persist enough data for dashboards, PRISMA counts, dedup traces, resume/retry, and audit.
+
+Proposed target design:
+- `SearchRunRecorderPort`
+  - `recordStarted(SearchQuery $query): void`
+  - `recordProviderStat(string $queryId, ProviderStat $stat): void`
+  - `recordWork(string $queryId, ScholarlyWork $work, string $providerAlias, string $providerWorkId, int $rank): void`
+  - `recordCompleted(string $queryId, AggregatedResult $result): void`
+  - `recordFailed(string $queryId, Throwable $error): void`
+- Eloquent implementation coordinates existing repositories.
+- Application handler writes through recorder, not direct Eloquent.
+
+Implementation plan:
+1. Characterize existing repository methods and schema.
+2. Add a recorder port and in-memory fake for tests.
+3. Update `SearchAcrossProvidersHandler` or introduce `PersistentSearchRunner`.
+4. Persist query before provider execution.
+5. Persist provider stats after aggregation.
+6. Persist works and query-work rows with provider provenance and rank.
+7. Decide whether dedup clusters should be persisted in this path or a separate dedup/lock workflow.
+8. Add transaction boundaries where partial writes would be dangerous.
+
+Important design choice:
+- Keep search aggregation pure and side-effect-light. Prefer a runner/handler wrapper for persistence rather than burying database writes inside `SearchAggregator`.
+
+Tests:
+- Application: fake recorder receives started, provider stats, works, completed.
+- Application: provider partial failure records failed provider stat but still completes if at least one provider succeeds.
+- Feature: SQL rows are written for query, provider progress, works, external IDs, work providers, and query-work links.
+- Feature: repeated run does not duplicate work/external IDs.
+- Regression: provider source metadata survives persistence.
+
+Done criteria:
+- One search command creates a coherent persisted search trace.
+- Run stats can be computed from SQL, not only transient command output.
+- Future HTTP/job entrypoints can use the same runner.
+
+### P1.5 Replace `nexus-cli` Workarounds With Core Services
+
+Repo ownership:
+- Primary: `nexus-cli`
+- Support: `core`
+
+Current state:
+- `nexus-cli` binds a NullSearchCache workaround.
+- Search output and run JSON are app-specific.
+
+Objective:
+- Remove workarounds once `core` offers stable service contracts.
+
+Implementation plan:
+1. Re-run `nexus-cli` tests after each `core` P1 slice.
+2. Remove NullSearchCache workaround if `LaravelSearchCache` is stable in a consuming app.
+3. Update `nexus-cli` command constructors to consume `core` services.
+4. Keep app-only output responsibilities in `nexus-cli`.
+5. Add a small integration smoke test around the installed `core` package.
+
+Tests:
+- `composer test` in `nexus-cli`.
+- Command smoke test for `nexus:search --id=<known query>`.
+- Fixture-based run JSON assertion.
+
+Done criteria:
+- `nexus-cli` search command uses `core` parser/runner where appropriate.
+- App-level code is thinner and easier to reason about.
+
+## P2: Feature Completion
+
+Status: ready after P1 search persistence stabilizes
+
+P2 should not start as one large "finish everything" PR. Each item below deserves its own milestone.
+
+### P2.1 Citation Network Implementation
+
+Objective:
+- Implement graph building, snowballing, metrics, and scalable algorithms for real.
+
+Sub-slices:
+1. Citation graph invariants
+   - Reject or report dangling source/target edges consistently.
+   - Decide whether `recordCitation()` should throw, skip, or return a result object.
+2. Graph building
+   - Provider-backed references/citations.
+   - Batch fetching.
+   - Provider failure stats.
+3. Snowballing
+   - Forward and backward modes.
+   - Depth limits.
+   - New-vs-known work counts.
+   - Dedup integration through ports.
+4. Algorithms
+   - PageRank.
+   - K-core.
+   - Shortest path.
+   - Co-citation.
+   - Bibliographic coupling.
+5. Persistence
+   - Graph metadata.
+   - Edge weights.
+   - Rebuild/recompute policy.
+
+Recommended design:
+- Keep graph algorithm implementations outside domain.
+- Keep provider citation traversal behind a `SnowballingProviderPort`.
+- Add algorithm ports only when the first algorithm is implemented.
+- Prefer scalable index-based algorithms over nested O(n^2) loops for co-citation and bibliographic coupling.
+
+Legacy source to inspect:
+- `repos/nexus-php` snowball and citation graph services.
+
+Tests:
+- Unit: graph invariants and duplicate edges.
+- Unit: weighted edge behavior.
+- Application: snowball round counts.
+- Application: provider failure does not corrupt the graph.
+- Feature: graph save/load with weighted edges.
+- Integration: provider citation fixtures with VCR only.
+- Performance guard: representative graph does not use O(n^2) implementation where avoidable.
+
+Done criteria:
+- Citation network UI can be un-gated for graph data backed by tested services.
+
+### P2.2 PDF And Full-Text Flow
+
+Objective:
+- Turn current PDF retrieval into a production-grade full-text pipeline.
+
+Sub-slices:
+1. Source resolution
+   - arXiv PDF.
+   - OpenAlex OA location.
+   - Semantic Scholar open access PDF.
+   - Direct URL source.
+2. Download safety
+   - Retry policy.
+   - Timeout.
+   - MIME validation.
+   - Size limit.
+   - PDF signature sniffing.
+3. Storage
+   - Laravel disk storage.
+   - Local/non-Laravel storage adapter if needed.
+   - Deterministic path policy.
+4. Duplicate avoidance
+   - Existing successful path lookup.
+   - Re-fetch policy.
+   - Failed attempt cooldown.
+5. Audit
+   - One row per attempted source.
+   - HTTP status.
+   - error message.
+   - duration.
+
+Tests:
+- Unit: each source resolves correctly from work metadata.
+- Unit: MIME/signature validation rejects non-PDF content.
+- Application: successful first source stops later sources.
+- Application: failed first source continues to next source.
+- Feature: SQL audit rows are written for success and failure.
+- Feature: repeated fetch uses cached successful path.
+
+Done criteria:
+- Host apps can call full-text retrieval from CLI, job, or HTTP without duplicating source/download logic.
+
+### P2.3 Laravel Jobs, Events, And Listeners
+
+Objective:
+- Provide background-safe entrypoints for search, deduplication, full-text retrieval, and citation-network work.
+
+Sub-slices:
+1. Job payload design
+   - Serializable IDs and DTOs only.
+   - No closures or non-serializable service instances.
+2. Jobs
+   - `SearchJob`.
+   - `DeduplicateCorpusJob`.
+   - `RetrieveFullTextJob`.
+   - `SnowballJob` after snowballing exists.
+3. Events
+   - started, completed, failed.
+   - provider-level progress events.
+4. Listeners
+   - persistence listeners only if they are idempotent.
+   - avoid hidden side effects that duplicate handler work.
+5. Queue safety tests
+   - serialize and unserialize job payloads.
+   - execute job with fake ports.
+
+Tests:
+- Feature: jobs resolve application services from container.
+- Feature: job serialization round-trip.
+- Application: fake ports prove correct service calls.
+- Feature: failed provider event records error without failing entire run.
+
+Done criteria:
+- Queue workers can process package jobs safely in a Laravel host app.
+
+### P2.4 Corpus Lock Lifecycle
+
+Objective:
+- Make project/corpus locking a first-class lifecycle, not just a boolean guard.
+
+Sub-slices:
+1. Lock domain policy
+   - Which mutations are blocked.
+   - Who can unlock.
+   - Whether unlock creates an audit event.
+2. Persistence
+   - lock timestamp.
+   - locked by.
+   - unlock reason.
+   - audit trail.
+3. Enforcement
+   - search mutation blocked.
+   - dedup cluster mutation blocked.
+   - screening changes policy.
+   - export allowed.
+4. UX/API support
+   - lock eligibility.
+   - warning when latest run had provider failures.
+
+Tests:
+- Unit: lock policy decisions.
+- Application: handlers check `ProjectLockPort`.
+- Feature: locked project blocks search/dedup mutation.
+- Feature: explicit unlock records audit row.
+
+Done criteria:
+- Locked corpus is safe to use for reproducible export and screening.
+
+### P2.5 Export History And Format Validation
+
+Objective:
+- Make exports auditable, repeatable, and format-safe.
+
+Sub-slices:
+1. Export request validation
+   - supported format.
+   - source corpus/query/cluster.
+   - empty corpus behavior.
+2. Export history persistence
+   - format.
+   - file path.
+   - requested by.
+   - timestamps.
+   - options.
+3. Serializer coverage
+   - BibTeX.
+   - RIS.
+   - CSV.
+   - JSON.
+   - JSONL.
+   - GEXF.
+   - GraphML.
+   - Cytoscape.
+4. Re-download/rebuild policy
+   - cached file if present.
+   - regenerate if source changed.
+
+Tests:
+- Unit: serializer snapshots.
+- Unit: unsupported format rejected.
+- Feature: export history row written.
+- Feature: generated file exists on configured storage disk.
+- Regression: graph exports preserve node IDs and edge weights when graph serializers support edges.
+
+Done criteria:
+- Host apps can show export history from persisted package data.
+
+## P3: Release Readiness
+
+Status: ready after P1, can begin in parallel when low risk
+
+### P3.1 Remove Local Artifacts
+
+Objective:
+- Keep the package clean for Packagist and external contributors.
+
+Plan:
+1. Audit tracked files for IDE config, logs, cache files, generated app artifacts, and agent-only drafts.
+2. Move contributor-useful docs into `docs/`.
+3. Remove or ignore local-only files.
+4. Add `.gitattributes` export-ignore rules if needed.
+
+Tests:
+- `git status --ignored` inspection.
+- Composer archive smoke check if release tooling is added.
+
+Done criteria:
+- Source distribution contains package code, tests, docs, and config only.
+
+### P3.2 Static Analysis
+
+Objective:
+- Add PHPStan or Psalm at a practical level and ratchet upward.
+
+Recommendation:
+- Start with PHPStan.
+- Use a low baseline level first.
+- Generate a baseline only if necessary, then reduce it over time.
+
+Plan:
+1. Add dev dependency.
+2. Add `phpstan.neon`.
+3. Analyze `src` first.
+4. Add tests only after source passes or with a separate config.
+5. Add CI job.
+
+Done criteria:
+- `composer analyse` runs locally and in CI.
+- Baseline is documented if present.
+
+### P3.3 Formatting And Lint Scripts
+
+Objective:
+- Make style checks boring and repeatable.
+
+Plan:
+1. Add Laravel Pint or PHP CS Fixer.
+2. Add config matching project style.
+3. Add composer scripts:
+   - `test`
+   - `test:unit`
+   - `test:feature`
+   - `analyse`
+   - `format`
+   - `format:check`
+4. Update README with `uv` and Composer command usage as appropriate.
+
+Done criteria:
+- New dev can run one documented command for tests and one for formatting.
+
+### P3.4 CI Matrix
+
+Objective:
+- Match declared support and catch package integration drift.
+
+Plan:
+1. Test PHP `8.3` and latest stable `8.x` supported by dependencies.
+2. Test Laravel/Testbench compatibility versions declared by composer constraints.
+3. Run:
+   - Composer validate.
+   - Unit tests.
+   - Feature tests.
+   - Integration provider tests with VCR only.
+   - Static analysis.
+   - Format check.
+4. Add a separate `nexus-cli` consumer smoke workflow later if cross-repo automation is available.
+
+Done criteria:
+- CI is green on clean checkout without live provider network.
+
+## Recommended New Developer Onboarding Path
+
+Give the new developer a contained P1 slice, not a sweeping feature.
+
+Best first assignment:
+- P1.1 command registration audit plus command discovery tests.
+
+Why:
+- It teaches Laravel integration without touching domain complexity.
+- It reinforces the no-placeholder rule.
+- It makes the public package surface clearer.
+- It is easy to review and unlikely to conflict with search persistence work.
+
+Second assignment:
+- P1.2 YAML parsing service, starting with characterization tests around the current `nexus-cli` query file.
+
+Third assignment:
+- P1.4 search persistence recorder once they understand the command and query flow.
+
+## Cross-Repo Working Rules
+
+- Use `nexus-php` as behavior evidence, not a structure template.
+- Implement reusable package behavior in `core`.
+- Keep host-specific workflows in `nexus-cli`.
+- Keep one branch and one PR per child repository.
+- Validate from the repo that changed.
+- When a change spans `core` and `nexus-cli`, merge or test `core` first, then update the consuming app.
+
