@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder;
+use Nexus\CitationNetwork\Application\UseCase\AnalyzeNetworkHandler;
+use Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler;
+use Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler;
 use Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
 
@@ -32,5 +35,8 @@ it('builds provider configs from laravel package config', function (): void {
 
 it('resolves citation network graph services from the container', function (): void {
     expect(app(GraphAlgorithmPort::class))->toBeInstanceOf(MbsoftNetworkMetricsCalculator::class)
-        ->and(app(CitationGraphBuilder::class))->toBeInstanceOf(CitationGraphBuilder::class);
+        ->and(app(CitationGraphBuilder::class))->toBeInstanceOf(CitationGraphBuilder::class)
+        ->and(app(BuildCitationGraphHandler::class))->toBeInstanceOf(BuildCitationGraphHandler::class)
+        ->and(app(AnalyzeNetworkHandler::class))->toBeInstanceOf(AnalyzeNetworkHandler::class)
+        ->and(app(FindShortestCitationPathHandler::class))->toBeInstanceOf(FindShortestCitationPathHandler::class);
 });

@@ -11,6 +11,7 @@ use Nexus\Laravel\Model\CitationEdgeModel;
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphId;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
+use Nexus\CitationNetwork\Domain\NetworkMetrics;
 use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Nexus\Shared\ValueObject\WorkId;
@@ -74,6 +75,24 @@ final class EloquentCitationGraphRepository implements CitationGraphRepositoryPo
             ->get()
             ->map(fn ($row) => $this->toDomain($row))
             ->all();
+    }
+
+    public function saveMetrics(CitationGraphId $id, NetworkMetrics $metrics): void
+    {
+        $row = CitationGraphModel::find($id->toString());
+
+        if ($row === null) {
+            return;
+        }
+
+        $metadata = $row->metadata ?? [];
+        $metadata['metrics'] = $metrics->toArray();
+        $metadata['metrics_computed_at'] = now()->toISOString();
+
+        $row->forceFill([
+            'metadata' => $metadata,
+            'built_at' => now(),
+        ])->save();
     }
 
     public function delete(CitationGraphId $id): void

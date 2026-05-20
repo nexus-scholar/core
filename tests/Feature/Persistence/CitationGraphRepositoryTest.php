@@ -6,6 +6,7 @@ use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphId;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
+use Nexus\CitationNetwork\Domain\NetworkMetrics;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Tests\Support\PersistenceFactory;
 use Illuminate\Support\Facades\DB;
@@ -176,6 +177,27 @@ it('graph type is persisted and round-tripped correctly', function () {
 
     $loaded = $this->repo->findById($graph->id);
     expect($loaded->type)->toBe(CitationGraphType::CO_CITATION);
+});
+
+it('stores computed metrics in graph metadata', function () {
+    $graph = PersistenceFactory::makeCitationGraph($this->project->id);
+    $this->repo->save($graph);
+
+    $metrics = new NetworkMetrics(
+        pageRank: ['doi:10.0001/a' => 1.0],
+        nodeCount: 1,
+        edgeCount: 0,
+    );
+
+    $this->repo->saveMetrics($graph->id, $metrics);
+
+    $row = DB::table('citation_graphs')->where('id', $graph->id->toString())->first();
+    $metadata = json_decode($row->metadata, true);
+
+    expect((float) $metadata['metrics']['page_rank']['doi:10.0001/a'])->toBe(1.0)
+        ->and($metadata['metrics']['node_count'])->toBe(1)
+        ->and($metadata['metrics_computed_at'])->toBeString()
+        ->and($row->built_at)->not->toBeNull();
 });
 
 it('delete removes the graph row and all its edges', function () {
