@@ -98,6 +98,7 @@ final class NexusServiceProvider extends ServiceProvider
             \Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort::class,
             \Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator::class
         );
+        $this->app->singleton(\Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder::class);
 
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {

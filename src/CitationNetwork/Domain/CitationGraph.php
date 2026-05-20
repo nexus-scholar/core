@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Nexus\CitationNetwork\Domain;
 
+use Nexus\CitationNetwork\Domain\Exception\WorkNotInGraph;
 use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 
 final class CitationGraph
 {
-    /** @var array<string, ScholarlyWork> key = bare ID value */
+    /** @var array<string, ScholarlyWork> key = WorkId::toString() */
     private array $nodes = [];
     /** @var CitationLink[] */
     private array $edges = [];
@@ -33,7 +34,7 @@ final class CitationGraph
 
     public function addWork(ScholarlyWork $work): void
     {
-        $idStr = $work->primaryId()?->value;
+        $idStr = $work->primaryId()?->toString();
         if ($idStr === null) {
             return;
         }
@@ -46,11 +47,11 @@ final class CitationGraph
     public function recordCitation(WorkId $citing, WorkId $cited, float $weight = 1.0): void
     {
         if (!$this->hasWork($citing)) {
-            return;
+            throw new WorkNotInGraph($citing);
         }
 
         foreach ($this->edges as $edge) {
-            if ($edge->citing->value === $citing->value && $edge->cited->value === $cited->value) {
+            if ($edge->citing->equals($citing) && $edge->cited->equals($cited)) {
                 return;
             }
         }
@@ -60,7 +61,7 @@ final class CitationGraph
 
     public function hasWork(WorkId $id): bool
     {
-        return isset($this->nodes[$id->value]);
+        return isset($this->nodes[$id->toString()]);
     }
 
     public function nodeCount(): int
@@ -87,14 +88,16 @@ final class CitationGraph
 
     public function workByIdString(string $s): ?ScholarlyWork
     {
-        // Check for bare value or prefixed toString()
         if (isset($this->nodes[$s])) {
             return $this->nodes[$s];
         }
-        if (str_contains($s, ':')) {
-            $bare = explode(':', $s, 2)[1];
-            return $this->nodes[$bare] ?? null;
+
+        foreach ($this->nodes as $idString => $work) {
+            if (str_contains($idString, ':') && explode(':', $idString, 2)[1] === $s) {
+                return $work;
+            }
         }
+
         return null;
     }
 }
