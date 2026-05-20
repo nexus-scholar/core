@@ -1,6 +1,6 @@
 # Test Strategy Plan
 
-Last updated: 2026-05-15
+Last updated: 2026-05-20
 
 This document defines how to test the Nexus Scholar packages as the code moves from stabilization into reusable search orchestration, citation-network work, jobs, PDF retrieval, and release readiness.
 
@@ -163,15 +163,17 @@ php -d memory_limit=512M vendor/bin/pest tests/Unit/Architecture tests/Feature/P
 
 ### P1 Search Reuse
 
-Tests to add:
+Status: implemented.
+
+Implemented tests:
 - Command registration feature test.
 - YAML search plan parser unit tests.
 - Search plan runner application tests.
 - Provider alias validation tests.
 - CLI `--providers` feature test.
-- Persistent search recorder application tests.
+- Persistent search recorder application test.
 - SQL feature test for a full persisted search trace.
-- `nexus-cli` consumer smoke tests.
+- `nexus-cli` consumer search command tests.
 
 Key assertions:
 - Disabled providers are not executed.
@@ -184,6 +186,14 @@ Suggested focused command:
 
 ```powershell
 php -d memory_limit=512M vendor/bin/pest tests/Unit/Search tests/Feature/Persistence/SearchQueryRepositoryTest.php
+```
+
+Current focused validation:
+
+```powershell
+php -d memory_limit=512M vendor/bin/pest tests/Unit/Search
+php -d memory_limit=512M vendor/bin/pest tests/Feature
+composer test
 ```
 
 ### P2 Citation Network
@@ -326,4 +336,3 @@ Before merging a change, ask:
 3. Add unknown/disabled provider selection tests.
 4. Add application tests for a persistent search recorder using fake repositories.
 5. Add one SQL feature test for a full persisted search trace.
-

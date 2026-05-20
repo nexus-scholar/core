@@ -1,0 +1,31 @@
+version: 4
+project: image_texture_slr
+providers:
+  - openalex
+  - arxiv
+searches:
+  - id: TX_CORE01
+    label: TX_CORE01
+    query: >
+      (texture OR "texture analysis")
+      AND ("image processing" OR "image analysis")
+    year_from: 2023
+    limit: 100
+    metadata:
+      theme: core_texture_analysis
+      priority: high
+    include_title_abstract: >
+      Include texture-analysis methods in image processing.
+    exclude_title_abstract: >
+      Exclude descriptive-only uses of texture.
+  - id: TX_MULTI01
+    label: TX_MULTI01
+    query: >
+      (texture OR "texture analysis")
+      AND ("multiresolution" OR "multiscale")
+    year_from: 2023
+    limit: 80
+    providers: semantic_scholar,openalex
+    metadata:
+      theme: multiscale_texture
+      priority: medium

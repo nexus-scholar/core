@@ -1,0 +1,9 @@
+project_id: legacy_project
+queries:
+  - id: LEGACY01
+    text: machine learning
+    year_min: 2020
+    year_max: 2024
+    max_results: 25
+    metadata:
+      priority: low

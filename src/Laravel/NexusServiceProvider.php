@@ -16,6 +16,13 @@ use Nexus\Search\Infrastructure\Deduplication\DeduplicationAdapter;
 use Nexus\Deduplication\Application\DeduplicateCorpusHandler;
 use Nexus\Search\Application\Aggregator\SearchAggregator;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
+use Nexus\Search\Application\Plan\SearchPlanParserPort;
+use Nexus\Search\Application\Plan\SearchPlanRunner;
+use Nexus\Search\Application\Port\SearchExecutorPort;
+use Nexus\Search\Application\Port\SearchRunRecorderPort;
+use Nexus\Search\Application\UseCase\PersistentSearchRunner;
+use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
+use Nexus\Search\Infrastructure\Plan\YamlSearchPlanParser;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\TransactionPort;
 use Psr\Log\LoggerInterface;
@@ -76,6 +83,10 @@ final class NexusServiceProvider extends ServiceProvider
             \Nexus\Laravel\Persistence\Repository\EloquentSearchQueryRepository::class
         );
         $this->app->singleton(
+            SearchRunRecorderPort::class,
+            \Nexus\Laravel\Persistence\EloquentSearchRunRecorder::class
+        );
+        $this->app->singleton(
             \Nexus\Deduplication\Domain\Port\ClusterRepositoryPort::class,
             \Nexus\Laravel\Persistence\Repository\EloquentDedupClusterRepository::class
         );
@@ -98,6 +109,23 @@ final class NexusServiceProvider extends ServiceProvider
                 $logger,
             );
         });
+
+        $this->app->singleton(SearchAcrossProvidersHandler::class, function ($app) {
+            return new SearchAcrossProvidersHandler(
+                $app->make(SearchAggregatorPort::class),
+                $app->make(ProjectLockPort::class),
+            );
+        });
+
+        $this->app->singleton(SearchExecutorPort::class, function ($app) {
+            return new PersistentSearchRunner(
+                $app->make(SearchAcrossProvidersHandler::class),
+                $app->make(SearchRunRecorderPort::class),
+            );
+        });
+
+        $this->app->singleton(SearchPlanParserPort::class, YamlSearchPlanParser::class);
+        $this->app->singleton(SearchPlanRunner::class);
 
         // Dissemination Module
         $this->app->singleton(\Nexus\Dissemination\Domain\Port\FileStoragePort::class, function ($app) {

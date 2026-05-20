@@ -1,6 +1,6 @@
 # Prioritized Implementation Plan
 
-Last updated: 2026-05-15
+Last updated: 2026-05-20
 
 This document turns the TODO map into execution plans for the next developer. It tracks the work by priority, repo ownership, dependencies, suggested sequence, test expectations, and definition of done.
 
@@ -23,7 +23,7 @@ The original P0 stabilization slice is complete in `core`:
 - PDF fetch persistence and citation edge weights have SQL regression coverage.
 - Legacy `docs/spec-*` files are marked as design artifacts when they are not current implementation inventories.
 
-Primary next focus: P1 search orchestration and Laravel integration. The key theme is to move behavior out of CLI-only code and into reusable application services shared by CLI, jobs, and HTTP.
+P1 search orchestration and Laravel integration are now implemented in `core`, with a compatibility bridge in `nexus-cli`. The next primary focus is P2 feature completion, starting with citation-network behavior or the PDF/full-text pipeline depending on product urgency.
 
 ## P0: Stabilization Guardrails
 
@@ -125,11 +125,13 @@ Maintenance rule:
 
 ## P1: High-Value Reusable Search And Laravel Integration
 
-Status: ready
+Status: done
 
-This is the next milestone. It should be split into small PRs, preferably one per behavior slice.
+This milestone moved reusable search parsing, execution, provider selection, and persistence into `core`, while keeping app-specific run JSON and wiki/screening behavior in `nexus-cli`.
 
 ### P1.1 Register Only Real Laravel Commands
+
+Status: done
 
 Repo ownership:
 - Primary: `core`
@@ -170,7 +172,14 @@ Done criteria:
 - Command registration has feature coverage.
 - Docs state where host-app commands live.
 
+Completion notes:
+- `core` registers only the implemented reusable `nexus:search` command.
+- Command registration is covered by `tests/Feature/Laravel/CommandRegistrationTest.php`.
+- Planned commands remain documentation/backlog items until their application services exist.
+
 ### P1.2 Extract `nexus:search` YAML Parsing Into A Reusable Service
+
+Status: done
 
 Repo ownership:
 - Primary: `core`
@@ -218,10 +227,16 @@ Done criteria:
 - No YAML parsing remains in the command except file loading and error presentation.
 - Existing command output remains stable enough for users.
 
+Completion notes:
+- `core` now provides `SearchPlan`, `SearchPlanItem`, `SearchPlanRunOptions`, `SearchPlanRunner`, `SearchPlanResult`, and `YamlSearchPlanParser`.
+- The parser supports `searches` and legacy `queries`, `query` and legacy `text`, `limit` and legacy `max_results`, `year_from/year_to`, `year_min/year_max`, global and per-query providers, metadata priority, and screening hints.
+- `NexusSearchCommand` now delegates parsing and batch execution to reusable services.
+- `nexus-cli` keeps run JSON writing app-owned, but can delegate plan parsing to the core parser when the updated core package is installed.
+
 ### P1.3 Add Provider Selection To Application Flow Everywhere
 
 Status:
-- Partially done in `core`; complete provider selection exists on `SearchQuery` and aggregator.
+- done
 
 Objective:
 - Ensure every search entrypoint can select providers without mutating a singleton registry.
@@ -253,7 +268,15 @@ Done criteria:
 - Provider selection behavior is consistent across CLI, jobs, and HTTP.
 - Unknown/disabled provider handling is explicit and tested.
 
+Completion notes:
+- `SearchQuery` carries normalized provider aliases and includes them in cache identity.
+- `AdapterCollection::matching()` validates selected aliases before provider execution.
+- `nexus:search --providers=openalex,arxiv` flows through the same application path and persists selected aliases.
+- Unknown provider aliases fail clearly before cache lookup or provider execution.
+
 ### P1.4 Wire Persistence Into Search Orchestration
+
+Status: done
 
 Repo ownership:
 - Primary: `core`
@@ -302,7 +325,15 @@ Done criteria:
 - Run stats can be computed from SQL, not only transient command output.
 - Future HTTP/job entrypoints can use the same runner.
 
+Completion notes:
+- `SearchExecutorPort` separates pure search handling from persistent execution.
+- `PersistentSearchRunner` wraps `SearchAcrossProvidersHandler` and records started, provider stats, deduped works, query-work provenance, completion, and failure.
+- `EloquentSearchRunRecorder` coordinates existing query and work repositories, persists provider progress, stores query-work links, and updates search query status/totals.
+- Laravel binds `SearchExecutorPort` to the persistent runner, while direct `SearchAcrossProvidersHandler` usage remains available for pure execution.
+
 ### P1.5 Replace `nexus-cli` Workarounds With Core Services
+
+Status: done
 
 Repo ownership:
 - Primary: `nexus-cli`
@@ -330,6 +361,11 @@ Tests:
 Done criteria:
 - `nexus-cli` search command uses `core` parser/runner where appropriate.
 - App-level code is thinner and easier to reason about.
+
+Completion notes:
+- The local `NullSearchCache` workaround was removed from `nexus-cli`.
+- `nexus-cli` keeps app-owned responsibilities: run file layout, latest pointer, global JSON output, wiki/screening/PDF workflows.
+- `nexus-cli` now uses the new core parser and persistent executor automatically when the updated core package is installed; it keeps a compatibility fallback for the currently locked older core package.
 
 ## P2: Feature Completion
 
@@ -644,4 +680,3 @@ Third assignment:
 - Keep one branch and one PR per child repository.
 - Validate from the repo that changed.
 - When a change spans `core` and `nexus-cli`, merge or test `core` first, then update the consuming app.
-
