@@ -235,7 +235,7 @@ Tasks:
 2. `SnowballCorpusHandler` runs selected providers for forward/backward expansion.
 3. Round depth, discovered count, already-known count, net-new count, and provider failures are tracked in result DTOs.
 4. Discovered works are deduplicated through existing dedup ports.
-5. Real provider support is still pending and should be implemented only where APIs expose the needed data.
+5. Semantic Scholar provider support is implemented for citation/reference traversal.
 6. Persisted progress and resulting graph changes are still pending.
 
 Done criteria:
@@ -280,10 +280,10 @@ Do not start with graph package readiness anymore; that part is complete for the
 
 The next graph-specific PR should be:
 
-1. Add the first real snowballing provider adapter behind `SnowballingProviderPort`.
-2. Use fixtures for provider citation/reference responses; avoid live network in CI.
-3. Map provider results into `ScholarlyWork` values with source provenance intact.
-4. Add `SnowballJob` only after the provider adapter contract is proven by fixtures.
-5. Persist round progress only after real provider result shapes confirm the application result model.
+1. Add `SnowballJob` and lifecycle/progress events for snowballing rounds.
+2. Keep job payloads serializable and resolve `SnowballCorpusHandler` from the Laravel container.
+3. Persist or emit provider-level progress without duplicating handler work.
+4. Add more provider adapters only with fixtures and only where APIs expose reliable citation/reference data.
+5. Persist round progress after the job/progress event shape is stable.
 
 Run the graph package test suites again before tagging package releases, but the next Nexus feature work can proceed from the `core` citation-network application layer.
