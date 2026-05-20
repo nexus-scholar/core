@@ -4,22 +4,20 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Domain\Port;
 
-use Nexus\Search\Domain\ScholarlyWork;
-
 interface SearchCachePort
 {
     /**
-     * Retrieve previously cached results for this key.
+     * Retrieve previously cached search payload for this key.
      * Returns null on cache miss.
      *
-     * @return ScholarlyWork[]|null
+     * @return array<string, mixed>|null
      */
     public function get(string $key): ?array;
 
     /**
-     * Store results in the cache.
+     * Store a normalized search payload in the cache.
      *
-     * @param ScholarlyWork[] $results
+     * @param  array<string, mixed>  $results
      */
     public function put(string $key, array $results, int $ttlSeconds): void;
 
