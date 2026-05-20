@@ -100,10 +100,15 @@ final class NexusServiceProvider extends ServiceProvider
             \Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort::class,
             \Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator::class
         );
+        $this->app->singleton(
+            \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection::class,
+            fn () => new \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection(),
+        );
         $this->app->singleton(\Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\AnalyzeNetworkHandler::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler::class);
+        $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\SnowballCorpusHandler::class);
 
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {

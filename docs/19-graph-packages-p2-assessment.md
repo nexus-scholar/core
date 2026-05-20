@@ -223,7 +223,7 @@ Done criteria:
 
 ### P2.1.4 Snowballing
 
-Status: pending
+Status: partially implemented
 
 Owner:
 
@@ -231,11 +231,12 @@ Owner:
 
 Tasks:
 
-1. Define `SnowballingProviderPort` for references and citations.
-2. Implement provider support only where APIs expose the needed data.
-3. Track round depth, discovered count, already-known count, net-new count, and provider failures.
-4. Deduplicate each round through existing dedup ports.
-5. Persist progress and resulting graph changes.
+1. `SnowballingProviderPort` for references and citations is implemented.
+2. `SnowballCorpusHandler` runs selected providers for forward/backward expansion.
+3. Round depth, discovered count, already-known count, net-new count, and provider failures are tracked in result DTOs.
+4. Discovered works are deduplicated through existing dedup ports.
+5. Real provider support is still pending and should be implemented only where APIs expose the needed data.
+6. Persisted progress and resulting graph changes are still pending.
 
 Done criteria:
 
@@ -279,10 +280,10 @@ Do not start with graph package readiness anymore; that part is complete for the
 
 The next graph-specific PR should be:
 
-1. Define `SnowballingProviderPort` in `core`.
-2. Add a fake-provider application test for one forward snowballing round.
-3. Track discovered, already-known, net-new, failed-provider, and depth counts in a result DTO.
-4. Route discovered works through existing deduplication ports.
-5. Persist round progress only after the application result shape is stable.
+1. Add the first real snowballing provider adapter behind `SnowballingProviderPort`.
+2. Use fixtures for provider citation/reference responses; avoid live network in CI.
+3. Map provider results into `ScholarlyWork` values with source provenance intact.
+4. Add `SnowballJob` only after the provider adapter contract is proven by fixtures.
+5. Persist round progress only after real provider result shapes confirm the application result model.
 
 Run the graph package test suites again before tagging package releases, but the next Nexus feature work can proceed from the `core` citation-network application layer.
