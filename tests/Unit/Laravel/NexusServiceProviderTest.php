@@ -6,7 +6,9 @@ use Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder;
 use Nexus\CitationNetwork\Application\UseCase\AnalyzeNetworkHandler;
 use Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler;
 use Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler;
+use Nexus\CitationNetwork\Application\UseCase\SnowballCorpusHandler;
 use Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort;
+use Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource;
@@ -45,7 +47,32 @@ it('resolves citation network graph services from the container', function (): v
         ->and(app(CitationGraphBuilder::class))->toBeInstanceOf(CitationGraphBuilder::class)
         ->and(app(BuildCitationGraphHandler::class))->toBeInstanceOf(BuildCitationGraphHandler::class)
         ->and(app(AnalyzeNetworkHandler::class))->toBeInstanceOf(AnalyzeNetworkHandler::class)
-        ->and(app(FindShortestCitationPathHandler::class))->toBeInstanceOf(FindShortestCitationPathHandler::class);
+        ->and(app(FindShortestCitationPathHandler::class))->toBeInstanceOf(FindShortestCitationPathHandler::class)
+        ->and(app(SnowballingProviderCollection::class))->toBeInstanceOf(SnowballingProviderCollection::class)
+        ->and(app(SnowballCorpusHandler::class))->toBeInstanceOf(SnowballCorpusHandler::class);
+});
+
+it('registers enabled snowballing providers from provider config', function (): void {
+    app()->forgetInstance('nexus.provider_configs');
+    app()->forgetInstance(SnowballingProviderCollection::class);
+    config()->set('nexus.providers.semantic_scholar.enabled', true);
+
+    $aliases = array_map(
+        static fn ($provider): string => $provider->alias(),
+        app(SnowballingProviderCollection::class)->all(),
+    );
+
+    expect($aliases)->toBe(['semantic_scholar']);
+
+    app()->forgetInstance('nexus.provider_configs');
+    app()->forgetInstance(SnowballingProviderCollection::class);
+    config()->set('nexus.providers.semantic_scholar.enabled', false);
+
+    expect(app(SnowballingProviderCollection::class)->all())->toBe([]);
+
+    config()->set('nexus.providers.semantic_scholar.enabled', true);
+    app()->forgetInstance('nexus.provider_configs');
+    app()->forgetInstance(SnowballingProviderCollection::class);
 });
 
 it('binds the default sql-backed job lifecycle recorder', function (): void {

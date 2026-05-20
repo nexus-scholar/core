@@ -10,8 +10,8 @@ Current repository state on 2026-05-20:
 
 - P0 guardrail tests are implemented and should remain permanently green.
 - P1 reusable search tests are implemented in `core`; `nexus-cli` has consumer tests for its app-owned search workflow.
-- P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, and weighted persistence.
-- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented; snowballing jobs and provider-progress events remain open.
+- P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, weighted persistence, fake-provider snowballing rounds, and Semantic Scholar citation/reference traversal.
+- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented; `SnowballJob` and provider-progress events remain open.
 - P2 full-text retrieval has handler/source/repository coverage for strict PDF validation, retry, cooldown, deterministic paths, legal OA source resolution, XML artifact storage, and XML text sidecars.
 - P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
 
@@ -219,14 +219,13 @@ Implemented tests:
 - PageRank, degree metrics, K-core, connected components, and shortest paths through graph packages.
 - Application handlers for build, analyze, and shortest path use cases.
 - SQL persistence for graph metadata and weighted edges.
+- Snowballing application handler tests for forward rounds, depth progression, already-known vs net-new counts, provider failure isolation, provider alias validation, and Laravel container binding.
+- Semantic Scholar snowballing tests for citation endpoint traversal, reference endpoint traversal, supported identifier detection, provider API-key headers, timeout propagation, and Laravel provider registration.
 
 Tests still to add:
 - `CitationGraph` duplicate edge behavior.
 - Dangling edge policy.
-- Snowball depth validation.
-- Snowball round new-vs-known counts.
-- Provider citation traversal with fake providers.
-- Provider failure handling during citation traversal.
+- Additional real provider citation traversal with fixtures where supported.
 - Rebuild/recompute policy for persisted graph metrics.
 - Performance guard for co-citation and bibliographic coupling builders.
 
@@ -291,7 +290,7 @@ Implemented tests:
 - `EloquentJobLifecycleRecorder` is the default binding and upserts `job_lifecycle_records` rows by lifecycle idempotency key.
 
 Tests to add:
-- `SnowballJob` serialization and handler resolution after snowballing exists.
+- `SnowballJob` serialization and handler resolution now that the snowballing application handler exists.
 - Job payloads contain IDs/DTOs, not service instances.
 - Provider-progress events are emitted when a use case exposes meaningful intermediate progress.
 - Lifecycle recorder queries by `project_id`, `work_id`, `job_name`, and `status` remain efficient as host apps build progress screens.
@@ -393,6 +392,6 @@ Before merging a change, ask:
 
 1. Add MIME/signature validation tests for PDF downloads before changing the downloader.
 2. Add duplicate successful fetch avoidance tests for `RetrieveFullTextHandler`.
-3. Add a fake-provider snowballing test before implementing any real citation traversal provider.
-4. Add `SnowballJob` serialization and handler-resolution tests after snowballing exists.
+3. Add `SnowballJob` serialization and handler-resolution tests.
+4. Add provider-progress event tests for snowballing rounds and provider failures.
 5. Add lifecycle progress query tests once a read-side API is introduced for host apps.

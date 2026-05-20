@@ -100,10 +100,32 @@ final class NexusServiceProvider extends ServiceProvider
             \Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort::class,
             \Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator::class
         );
+        $this->app->singleton(
+            \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection::class,
+            function ($app) {
+                $configs = $app->make('nexus.provider_configs');
+                $http = $app->make(HttpClientPort::class);
+                $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
+                $providers = [];
+                $semanticScholar = $configs['semantic_scholar'] ?? null;
+
+                if ($semanticScholar instanceof ProviderConfig && $semanticScholar->enabled) {
+                    $providers[] = new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
+                        $http,
+                        $this->rateLimiterFor($semanticScholar),
+                        $semanticScholar,
+                        $logger,
+                    );
+                }
+
+                return new \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection(...$providers);
+            },
+        );
         $this->app->singleton(\Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\AnalyzeNetworkHandler::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler::class);
+        $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\SnowballCorpusHandler::class);
 
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
