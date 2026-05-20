@@ -8,5 +8,5 @@ enum FullTextArtifactType: string
 {
     case PDF = 'pdf';
     case XML = 'xml';
+    case TEXT = 'text';
 }
-

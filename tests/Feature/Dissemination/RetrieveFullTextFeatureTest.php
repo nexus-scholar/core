@@ -914,7 +914,7 @@ it('carries full text source candidate metadata into audit rows', function (): v
         ]);
 });
 
-it('audits non-pdf full text candidates as skipped without downloading', function (): void {
+it('stores XML full text candidates and extracts a text sidecar', function (): void {
     $source = new class implements FullTextCandidateSourcePort {
         public function resolve(ScholarlyWork $work): ?string
         {
@@ -941,25 +941,25 @@ it('audits non-pdf full text candidates as skipped without downloading', functio
     };
 
     $storage = new class implements FileStoragePort {
-        public int $stores = 0;
+        public array $stored = [];
 
         public function store(string $filename, string $content): string
         {
-            $this->stores++;
+            $this->stored[$filename] = $content;
 
             return $filename;
         }
 
         public function get(string $path): string
         {
-            return '';
+            return $this->stored[$path] ?? '';
         }
 
         public function delete(string $path): void {}
 
         public function exists(string $path): bool
         {
-            return false;
+            return array_key_exists($path, $this->stored);
         }
 
         public function url(string $path): ?string
@@ -975,7 +975,11 @@ it('audits non-pdf full text candidates as skipped without downloading', functio
         {
             $this->downloads++;
 
-            return new DownloadResult('%PDF-1.7 should-not-run', 200, 'application/pdf');
+            return new DownloadResult(
+                '<article><front><article-title>Test XML Paper</article-title></front><body><p>Useful full text.</p></body></article>',
+                200,
+                'application/xml',
+            );
         }
     };
 
@@ -1005,15 +1009,133 @@ it('audits non-pdf full text candidates as skipped without downloading', functio
         $repository,
     ))->handle(new RetrieveFullText(PersistenceFactory::makeWork(), 'pdfs'));
 
-    expect($result->status->value)->toBe('skipped')
+    expect($result->status->value)->toBe('success')
         ->and($result->sourceAlias)->toBe('pmc')
+        ->and($result->filePath)->toEndWith('.xml')
         ->and($result->metadata)->toMatchArray([
             'artifact_type' => 'xml',
             'source' => 'pmc',
             'pmcid' => 'PMC12124693',
+            'text_extraction' => 'xml_text_content',
         ])
-        ->and($downloader->downloads)->toBe(0)
-        ->and($storage->stores)->toBe(0)
+        ->and($result->metadata['text_file_path'])->toEndWith('.txt')
+        ->and($storage->get($result->filePath))->toContain('Useful full text.')
+        ->and($storage->get($result->metadata['text_file_path']))->toContain('Test XML Paper Useful full text.')
+        ->and($downloader->downloads)->toBe(1)
         ->and($repository->saved)->toHaveCount(1)
-        ->and($repository->saved[0]['result']->status->value)->toBe('skipped');
+        ->and($repository->saved[0]['result']->status->value)->toBe('success');
+});
+
+it('rejects invalid XML artifacts and continues to the next source', function (): void {
+    $xmlSource = new class implements FullTextCandidateSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return $this->resolveCandidate($work)?->url;
+        }
+
+        public function resolveCandidate(ScholarlyWork $work): ?FullTextSourceCandidate
+        {
+            return FullTextSourceCandidate::xml('https://pmc.example.invalid/bad.xml', ['source' => 'pmc']);
+        }
+
+        public function alias(): string
+        {
+            return 'pmc';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $pdfSource = new class implements FullTextSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/good.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'direct';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public array $stored = [];
+
+        public function store(string $filename, string $content): string
+        {
+            $this->stored[$filename] = $content;
+
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return $this->stored[$path] ?? '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return array_key_exists($path, $this->stored);
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        public function download(string $url): DownloadResult
+        {
+            if ($url === 'https://pmc.example.invalid/bad.xml') {
+                return new DownloadResult('<article><body>broken', 200, 'application/xml');
+            }
+
+            return new DownloadResult('%PDF-1.7 fallback-content', 200, 'application/pdf');
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $result = (new RetrieveFullTextHandler(
+        new FullTextSourceCollection($xmlSource, $pdfSource),
+        $storage,
+        $downloader,
+        $repository,
+    ))->handle(new RetrieveFullText(PersistenceFactory::makeWork(), 'pdfs'));
+
+    expect($result->status->value)->toBe('success')
+        ->and($result->sourceAlias)->toBe('direct')
+        ->and($result->filePath)->toEndWith('.pdf')
+        ->and($repository->saved)->toHaveCount(2)
+        ->and($repository->saved[0]['result']->status->value)->toBe('failure')
+        ->and($repository->saved[0]['result']->errorMessage)->toContain('not valid XML')
+        ->and($repository->saved[1]['result'])->toBe($result);
 });

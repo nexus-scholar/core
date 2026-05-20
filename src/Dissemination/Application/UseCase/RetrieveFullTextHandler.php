@@ -6,6 +6,7 @@ namespace Nexus\Dissemination\Application\UseCase;
 
 use DateTimeImmutable;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
+use Nexus\Dissemination\Domain\FullTextArtifactType;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
@@ -60,31 +61,24 @@ final readonly class RetrieveFullTextHandler
 
                 $metadata = $this->metadataFor($candidate);
 
-                if (! $candidate->isPdf()) {
-                    $result = FullTextResult::skipped(
-                        sprintf(
-                            'Source resolved a %s full-text artifact; storage for non-PDF artifacts is not implemented yet.',
-                            $candidate->artifactType->value,
-                        ),
-                        $source->alias(),
-                        $metadata,
-                    );
-                    $this->repository->save($workId, $url, $result, $this->elapsedMs($startTime));
-                    $lastResult = $result;
-
-                    continue;
-                }
-
                 if ($this->isInFailedAttemptCooldown($workId, $url, $command)) {
                     continue;
                 }
 
                 $downloadResult = $this->downloadWithRetry($url, $command);
-                $this->assertValidPdf($downloadResult, $command->maxBytes);
+                $this->assertValidArtifact($candidate->artifactType, $downloadResult, $command->maxBytes);
                 $content = $downloadResult->content;
                 
-                $fullPath = $this->storagePathFor($command, $workId, $source->alias());
+                $fullPath = $this->storagePathFor($command, $workId, $source->alias(), $candidate->artifactType);
                 $storedPath = $this->storage->store($fullPath, $content);
+                $metadata = $this->metadataWithStoredArtifacts(
+                    $metadata,
+                    $candidate,
+                    $command,
+                    $workId,
+                    $source->alias(),
+                    $content,
+                );
 
                 $result = FullTextResult::success(
                     $storedPath,
@@ -105,7 +99,7 @@ final readonly class RetrieveFullTextHandler
             }
         }
 
-        return $lastResult ?? FullTextResult::failure("No PDF found across all sources");
+        return $lastResult ?? FullTextResult::failure("No full-text artifact found across all sources");
     }
 
     private function candidateFor(FullTextSourcePort $source, \Nexus\Search\Domain\ScholarlyWork $work): ?FullTextSourceCandidate
@@ -159,7 +153,7 @@ final readonly class RetrieveFullTextHandler
             }
         }
 
-        throw $lastError ?? new RuntimeException('Failed to download PDF.');
+        throw $lastError ?? new RuntimeException('Failed to download full-text artifact.');
     }
 
     private function elapsedMs(float|int $startNs): int
@@ -167,13 +161,18 @@ final readonly class RetrieveFullTextHandler
         return (int) round((hrtime(true) - $startNs) / 1_000_000);
     }
 
-    private function storagePathFor(RetrieveFullText $command, WorkId $workId, string $sourceAlias): string
+    private function storagePathFor(
+        RetrieveFullText $command,
+        WorkId $workId,
+        string $sourceAlias,
+        FullTextArtifactType $artifactType = FullTextArtifactType::PDF,
+    ): string
     {
         $folder = $this->safeFolder($command->destinationFolder);
         $workSegment = $this->safePathSegment($workId->toString(), 80);
         $sourceSegment = $this->safePathSegment($sourceAlias, 40);
         $hash = substr(hash('sha256', $workId->toString() . '|' . $sourceAlias), 0, 16);
-        $filename = sprintf('%s_%s_%s.pdf', $workSegment, $sourceSegment, $hash);
+        $filename = sprintf('%s_%s_%s.%s', $workSegment, $sourceSegment, $hash, $this->extensionFor($artifactType));
 
         return $folder === '' ? $filename : $folder . '/' . $filename;
     }
@@ -207,6 +206,18 @@ final readonly class RetrieveFullTextHandler
         return substr($safe, 0, $maxLength);
     }
 
+    private function assertValidArtifact(
+        FullTextArtifactType $artifactType,
+        DownloadResult $downloadResult,
+        int $maxBytes,
+    ): void {
+        match ($artifactType) {
+            FullTextArtifactType::PDF => $this->assertValidPdf($downloadResult, $maxBytes),
+            FullTextArtifactType::XML => $this->assertValidXml($downloadResult, $maxBytes),
+            FullTextArtifactType::TEXT => $this->assertValidText($downloadResult, $maxBytes),
+        };
+    }
+
     private function assertValidPdf(DownloadResult $downloadResult, int $maxBytes): void
     {
         if (strlen($downloadResult->content) > $maxBytes) {
@@ -232,5 +243,142 @@ final readonly class RetrieveFullTextHandler
                 $downloadResult->statusCode,
             );
         }
+    }
+
+    private function assertValidXml(DownloadResult $downloadResult, int $maxBytes): void
+    {
+        if (strlen($downloadResult->content) > $maxBytes) {
+            throw new RuntimeException(
+                sprintf('Downloaded XML exceeds size limit of %d bytes.', $maxBytes),
+                $downloadResult->statusCode,
+            );
+        }
+
+        $trimmed = ltrim($downloadResult->content);
+
+        if ($trimmed === '' || ! str_starts_with($trimmed, '<')) {
+            throw new RuntimeException('Downloaded content is not XML: missing opening tag.', $downloadResult->statusCode);
+        }
+
+        if (preg_match('/<\s*html[\s>]/i', $trimmed) === 1) {
+            throw new RuntimeException('Downloaded content is not XML full text: received an HTML page.', $downloadResult->statusCode);
+        }
+
+        $this->parseXml($downloadResult->content, $downloadResult->statusCode);
+
+        if ($downloadResult->contentType === null || $downloadResult->contentType === '') {
+            return;
+        }
+
+        $mediaType = strtolower(trim(strtok($downloadResult->contentType, ';') ?: $downloadResult->contentType));
+
+        if (! in_array($mediaType, ['application/xml', 'text/xml', 'application/oai-pmh+xml'], true)
+            && ! str_ends_with($mediaType, '+xml')) {
+            throw new RuntimeException(
+                sprintf('Downloaded content is not XML: unexpected content type "%s".', $downloadResult->contentType),
+                $downloadResult->statusCode,
+            );
+        }
+    }
+
+    private function assertValidText(DownloadResult $downloadResult, int $maxBytes): void
+    {
+        if (strlen($downloadResult->content) > $maxBytes) {
+            throw new RuntimeException(
+                sprintf('Downloaded text exceeds size limit of %d bytes.', $maxBytes),
+                $downloadResult->statusCode,
+            );
+        }
+
+        if (trim($downloadResult->content) === '') {
+            throw new RuntimeException('Downloaded text is empty.', $downloadResult->statusCode);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     * @return array<string, mixed>
+     */
+    private function metadataWithStoredArtifacts(
+        array $metadata,
+        FullTextSourceCandidate $candidate,
+        RetrieveFullText $command,
+        WorkId $workId,
+        string $sourceAlias,
+        string $content,
+    ): array {
+        if ($candidate->artifactType !== FullTextArtifactType::XML) {
+            return $metadata;
+        }
+
+        $text = $this->extractTextFromXml($content);
+        if ($text === null) {
+            return $metadata;
+        }
+
+        $textPath = $this->storagePathFor($command, $workId, $sourceAlias, FullTextArtifactType::TEXT);
+        $metadata['text_file_path'] = $this->storage->store($textPath, $text);
+        $metadata['text_extraction'] = 'xml_text_content';
+
+        return $metadata;
+    }
+
+    private function extensionFor(FullTextArtifactType $artifactType): string
+    {
+        return match ($artifactType) {
+            FullTextArtifactType::PDF => 'pdf',
+            FullTextArtifactType::XML => 'xml',
+            FullTextArtifactType::TEXT => 'txt',
+        };
+    }
+
+    private function extractTextFromXml(string $content): ?string
+    {
+        $xml = $this->parseXml($content);
+        $dom = dom_import_simplexml($xml);
+        $document = $dom?->ownerDocument;
+
+        if ($document === null) {
+            return null;
+        }
+
+        $xpath = new \DOMXPath($document);
+        $nodes = $xpath->query('//text()[normalize-space()]');
+
+        if ($nodes === false) {
+            return null;
+        }
+
+        $parts = [];
+        foreach ($nodes as $node) {
+            $part = preg_replace('/\s+/', ' ', html_entity_decode($node->textContent, ENT_QUOTES | ENT_XML1)) ?? '';
+            $part = trim($part);
+
+            if ($part !== '') {
+                $parts[] = $part;
+            }
+        }
+
+        $text = implode(' ', $parts);
+
+        return $text === '' ? null : $text;
+    }
+
+    private function parseXml(string $content, int $statusCode = 0): \SimpleXMLElement
+    {
+        $previous = libxml_use_internal_errors(true);
+
+        try {
+            $xml = simplexml_load_string($content, \SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA);
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+
+        if (! $xml instanceof \SimpleXMLElement) {
+            throw new RuntimeException('Downloaded content is not valid XML.', $statusCode);
+        }
+
+        return $xml;
     }
 }
