@@ -402,6 +402,7 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app['events']->listen(
             [
                 \Nexus\Laravel\Event\NexusJobStarted::class,
+                \Nexus\Laravel\Event\NexusJobProgressed::class,
                 \Nexus\Laravel\Event\NexusJobCompleted::class,
                 \Nexus\Laravel\Event\NexusJobFailed::class,
             ],

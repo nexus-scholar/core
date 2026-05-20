@@ -41,7 +41,7 @@ Status on 2026-05-20:
 - `core` requires both graph packages through local path repositories while developing the multi-repo workspace.
 - `core` now includes the graph adapter, metrics calculator, citation graph builders, application handlers, Laravel bindings, and tests for the first P2 citation-network slice.
 
-The remaining graph-specific P2 work is progress persistence and graph rebuild policy, not graph package readiness.
+The remaining graph-specific P2 work is graph rebuild policy and host-app read models, not graph package readiness.
 
 ## Package Findings
 
@@ -239,7 +239,8 @@ Tasks:
 6. OpenAlex provider support is implemented for forward citation traversal and backward `referenced_works` traversal.
 7. Crossref provider support is implemented for deposited DOI references; forward citation traversal is intentionally unsupported in the public metadata adapter.
 8. `SnowballJob` wraps `SnowballCorpusHandler` for queue-safe Laravel execution with lifecycle events.
-9. Persisted progress and resulting graph changes are still pending.
+9. `SnowballJob` persists round and provider progress through lifecycle records.
+10. Resulting graph change persistence/rebuild policy is still pending.
 
 Done criteria:
 
@@ -284,10 +285,10 @@ Do not start with graph package readiness anymore; that part is complete for the
 
 The next graph-specific PR should be:
 
-1. Add provider-progress events for snowballing rounds.
-2. Persist or emit provider-level progress without duplicating handler work.
-3. Keep snowball progress state queryable for host-app status screens.
-4. Add more provider adapters only with fixtures and only where APIs expose reliable citation/reference data.
-5. Persist round progress after the job/progress event shape is stable.
+1. Define when snowball results should mutate or rebuild persisted citation graphs.
+2. Keep snowball progress state queryable for host-app status screens.
+3. Add more provider adapters only with fixtures and only where APIs expose reliable citation/reference data.
+4. Add graph rebuild tests that cover repeated snowball runs and deduped works.
+5. Add corpus lock checks before graph mutation paths can change locked projects.
 
 Run the graph package test suites again before tagging package releases, but the next Nexus feature work can proceed from the `core` citation-network application layer.
