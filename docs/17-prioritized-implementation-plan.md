@@ -373,6 +373,8 @@ Status: ready after P1 search persistence stabilizes
 
 P2 should not start as one large "finish everything" PR. Each item below deserves its own milestone.
 
+For citation-network graph package readiness and the recommended use of `mbsoft31/graph-core` and `mbsoft31/graph-algorithms`, see `docs/19-graph-packages-p2-assessment.md`.
+
 ### P2.1 Citation Network Implementation
 
 Objective:
