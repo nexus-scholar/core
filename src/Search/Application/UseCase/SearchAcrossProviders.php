@@ -22,6 +22,7 @@ final class SearchAcrossProviders
         ?int   $yearFrom = null,
         ?int   $yearTo = null,
         array  $providerAliases = [],
+        bool   $includeRawData = false,
     ) {
         $yearRange = ($yearFrom !== null || $yearTo !== null)
             ? new YearRange($yearFrom, $yearTo)
@@ -32,6 +33,7 @@ final class SearchAcrossProviders
             projectId:  $projectId,
             yearRange:  $yearRange,
             maxResults: $maxResults,
+            includeRawData: $includeRawData,
             providerAliases: $providerAliases,
         );
     }

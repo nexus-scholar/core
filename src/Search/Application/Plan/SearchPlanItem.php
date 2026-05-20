@@ -21,6 +21,7 @@ final readonly class SearchPlanItem
         public ?int $yearFrom = null,
         public ?int $yearTo = null,
         public array $providerAliases = [],
+        public bool $includeRawData = false,
         public array $metadata = [],
         public ?string $priority = null,
         public ?string $includeTitleAbstract = null,
@@ -57,6 +58,7 @@ final readonly class SearchPlanItem
             yearFrom: $this->yearFrom,
             yearTo: $this->yearTo,
             providerAliases: $providerAliases === [] ? $this->providerAliases : $providerAliases,
+            includeRawData: $this->includeRawData,
             metadata: $this->metadata,
             priority: $this->priority,
             includeTitleAbstract: $this->includeTitleAbstract,
@@ -74,6 +76,7 @@ final readonly class SearchPlanItem
             yearFrom: $this->yearFrom,
             yearTo: $this->yearTo,
             providerAliases: $this->providerAliases,
+            includeRawData: $this->includeRawData,
         );
     }
 
@@ -98,6 +101,10 @@ final readonly class SearchPlanItem
 
         if ($this->providerAliases !== []) {
             $metadata['providers'] = $this->providerAliases;
+        }
+
+        if ($this->includeRawData) {
+            $metadata['include_raw_data'] = true;
         }
 
         if ($this->includeTitleAbstract !== null) {

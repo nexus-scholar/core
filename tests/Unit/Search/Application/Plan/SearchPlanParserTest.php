@@ -45,6 +45,27 @@ it('parses legacy queries syntax without behavior loss', function (): void {
         ->and($item->priority)->toBe('low');
 });
 
+it('parses include_raw_data at root and item level', function (): void {
+    $parser = new YamlSearchPlanParser();
+    $plan = $parser->parseString(<<<'YAML'
+project: graph-project
+include_raw_data: true
+searches:
+  - id: raw
+    query: texture analysis
+  - id: plain
+    query: segmentation
+    include_raw_data: false
+YAML);
+
+    expect($plan->items[0]->includeRawData)->toBeTrue()
+        ->and($plan->items[0]->toSearchCommand()->query->includeRawData)->toBeTrue()
+        ->and($plan->items[0]->metadataForRun()['include_raw_data'])->toBeTrue()
+        ->and($plan->items[1]->includeRawData)->toBeFalse()
+        ->and($plan->items[1]->toSearchCommand()->query->includeRawData)->toBeFalse()
+        ->and($plan->items[1]->metadataForRun())->not->toHaveKey('include_raw_data');
+});
+
 it('filters selected ids and priority with useful errors', function (): void {
     $parser = new YamlSearchPlanParser();
     $plan = $parser->parseFile(__DIR__ . '/../../../../Fixture/search_plans/nexus_cli_v4_searches.yml');

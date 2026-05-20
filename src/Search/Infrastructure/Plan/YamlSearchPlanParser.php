@@ -50,6 +50,7 @@ final class YamlSearchPlanParser implements SearchPlanParserPort
         }
 
         $rootProviders = $this->providerAliases($data['providers'] ?? []);
+        $rootIncludeRawData = $this->boolValue($data['include_raw_data'] ?? false);
         $items = [];
 
         foreach (array_values($rawItems) as $index => $rawItem) {
@@ -57,7 +58,7 @@ final class YamlSearchPlanParser implements SearchPlanParserPort
                 throw SearchPlanException::invalid("Search plan {$sourceName} entry {$index} must be a mapping.");
             }
 
-            $items[] = $this->parseItem($rawItem, $index, $projectId, $rootProviders, $sourceName);
+            $items[] = $this->parseItem($rawItem, $index, $projectId, $rootProviders, $rootIncludeRawData, $sourceName);
         }
 
         return new SearchPlan(
@@ -76,6 +77,7 @@ final class YamlSearchPlanParser implements SearchPlanParserPort
         int $index,
         string $rootProjectId,
         array $rootProviders,
+        bool $rootIncludeRawData,
         string $sourceName,
     ): SearchPlanItem {
         $id = $this->requiredString($rawItem['id'] ?? null, "Search plan {$sourceName} entry {$index} is missing an id.");
@@ -104,6 +106,7 @@ final class YamlSearchPlanParser implements SearchPlanParserPort
             yearFrom: $this->nullableInt($rawItem['year_from'] ?? $rawItem['year_min'] ?? null),
             yearTo: $this->nullableInt($rawItem['year_to'] ?? $rawItem['year_max'] ?? null),
             providerAliases: $providers,
+            includeRawData: $this->boolValue($rawItem['include_raw_data'] ?? $rootIncludeRawData),
             metadata: $metadata,
             priority: $priority,
             includeTitleAbstract: $this->nullableString($rawItem['include_title_abstract'] ?? null),
@@ -146,6 +149,23 @@ final class YamlSearchPlanParser implements SearchPlanParserPort
         }
 
         return (int) $value;
+    }
+
+    private function boolValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
     }
 
     private function positiveInt(mixed $value, string $id, string $sourceName): int

@@ -39,11 +39,13 @@ it('delegates to the aggregator when the project is not locked', function (): vo
         query: 'machine learning',
         projectId: 'project-1',
         providerAliases: ['OpenAlex', 'arxiv', 'openalex'],
+        includeRawData: true,
     ));
 
     expect($result->corpus->isEmpty())->toBeTrue()
         ->and($aggregator->received?->projectId)->toBe('project-1')
         ->and($aggregator->received?->providerAliases)->toBe(['openalex', 'arxiv'])
+        ->and($aggregator->received?->includeRawData)->toBeTrue()
         ->and($locks->checked)->toBe(['project-1']);
 });
 
