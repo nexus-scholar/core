@@ -4,6 +4,17 @@ Last updated: 2026-05-20
 
 This document defines how to test the Nexus Scholar packages as the code moves from stabilization into reusable search orchestration, citation-network work, jobs, PDF retrieval, and release readiness.
 
+## Current Validation Baseline
+
+Current repository state on 2026-05-20:
+
+- P0 guardrail tests are implemented and should remain permanently green.
+- P1 reusable search tests are implemented in `core`; `nexus-cli` has consumer tests for its app-owned search workflow.
+- P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, and weighted persistence.
+- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, and no-op default listener are implemented; snowballing jobs, provider-progress events, and persistent listeners remain open.
+- P2 full-text retrieval has handler/source/repository coverage, but still needs download-safety and duplicate-fetch tests.
+- P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
+
 ## Principles
 
 - Write characterization tests before refactors.
@@ -198,15 +209,26 @@ composer test
 
 ### P2 Citation Network
 
-Tests to add:
+Status: partially implemented.
+
+Implemented tests:
+- `CitationGraph` duplicate identity and missing-work invariants.
+- Direct citation graph building from provider reference IDs.
+- Co-citation and bibliographic-coupling graph building with weighted edges.
+- Adapter mapping from Nexus graphs to `Mbsoft\Graph\Domain\Graph`.
+- PageRank, degree metrics, K-core, connected components, and shortest paths through graph packages.
+- Application handlers for build, analyze, and shortest path use cases.
+- SQL persistence for graph metadata and weighted edges.
+
+Tests still to add:
 - `CitationGraph` duplicate edge behavior.
 - Dangling edge policy.
-- Weighted edges for co-citation/bibliographic coupling.
 - Snowball depth validation.
 - Snowball round new-vs-known counts.
 - Provider citation traversal with fake providers.
-- Algorithm fixtures for PageRank, k-core, shortest path, co-citation, and bibliographic coupling.
-- Feature tests for graph persistence and retrieval by project.
+- Provider failure handling during citation traversal.
+- Rebuild/recompute policy for persisted graph metrics.
+- Performance guard for co-citation and bibliographic coupling builders.
 
 Key assertions:
 - Graph algorithms do not depend on Laravel.
@@ -215,11 +237,15 @@ Key assertions:
 
 ### P2 PDF And Full Text
 
-Tests to add:
+Status: partially implemented.
+
+Implemented tests:
+- Handler attempts registered sources and records outcomes.
+- arXiv, OpenAlex, and Semantic Scholar source behavior has package coverage.
+- PDF fetch persistence writes rows by internal work UUID.
+
+Tests still to add:
 - Direct URL source resolution.
-- OpenAlex OA URL resolution.
-- Semantic Scholar PDF URL resolution.
-- arXiv PDF URL resolution.
 - MIME and PDF signature validation.
 - Retry behavior.
 - Duplicate successful fetch avoidance.
@@ -234,12 +260,26 @@ Key assertions:
 
 ### P2 Jobs And Events
 
+Status: partially implemented.
+
+Implemented tests:
+- `SearchJob` serialization round-trip keeps only the search plan payload.
+- `SearchJob` resolves `SearchPlanRunner` from the Laravel container and executes through `SearchExecutorPort`.
+- `DeduplicateCorpusJob` serialization round-trip keeps only corpus, project, and policy-alias payload.
+- `DeduplicateCorpusJob` resolves `DeduplicateCorpusHandler` from the Laravel container and executes with fake policies.
+- `RetrieveFullTextJob` serialization round-trip keeps only work and destination-folder payload.
+- `RetrieveFullTextJob` resolves `RetrieveFullTextHandler` from the Laravel container and executes with fake source, storage, downloader, and repository ports.
+- `NexusJobStarted`, `NexusJobCompleted`, and `NexusJobFailed` serialize lifecycle payloads.
+- Implemented jobs dispatch started/completed events on success and failed events before rethrowing job failures.
+- `RecordNexusJobLifecycle` maps lifecycle events to `JobLifecycleRecord` values through `JobLifecycleRecorderPort`.
+- `JobLifecycleRecord` idempotency keys are stable for repeated run/status pairs.
+- `NullJobLifecycleRecorder` is the default binding, so package listeners do not persist progress unless a host app binds a real recorder.
+
 Tests to add:
-- Job serialization round-trip.
-- Job resolves handler from Laravel container.
-- Job payload contains IDs/DTOs, not service instances.
-- Events are emitted on start, success, provider failure, and final failure.
-- Listeners are idempotent.
+- `SnowballJob` serialization and handler resolution after snowballing exists.
+- Job payloads contain IDs/DTOs, not service instances.
+- Provider-progress events are emitted when a use case exposes meaningful intermediate progress.
+- Persistent listeners upsert by lifecycle idempotency key.
 
 Key assertions:
 - Jobs can be queued safely.
@@ -248,11 +288,16 @@ Key assertions:
 
 ### P3 Release Readiness
 
+Status: mostly pending.
+
+Current checks:
+- GitHub Actions runs Pest across PHP `8.4`/`8.5` and Laravel `12.*`/`13.*`.
+
 Tests/checks to add:
 - Static analysis.
 - Format check.
 - Composer validate.
-- CI matrix.
+- Composer scripts for local parity with CI.
 - Package install smoke test.
 - Optional Laravel app consumer smoke test.
 
@@ -331,8 +376,8 @@ Before merging a change, ask:
 
 ## Recommended First Test Tasks For A New Developer
 
-1. Add command registration feature tests for implemented `core` commands.
-2. Add YAML search plan parser characterization tests using a trimmed `nexus-cli` query fixture.
-3. Add unknown/disabled provider selection tests.
-4. Add application tests for a persistent search recorder using fake repositories.
-5. Add one SQL feature test for a full persisted search trace.
+1. Add a host-app lifecycle recorder adapter if queued job progress should be persisted in SQL.
+2. Add MIME/signature validation tests for PDF downloads before changing the downloader.
+3. Add duplicate successful fetch avoidance tests for `RetrieveFullTextHandler`.
+4. Add a fake-provider snowballing test before implementing any real citation traversal provider.
+5. Add `SnowballJob` serialization and handler-resolution tests after snowballing exists.

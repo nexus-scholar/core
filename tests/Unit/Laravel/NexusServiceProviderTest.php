@@ -8,6 +8,8 @@ use Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler;
 use Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler;
 use Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
+use Nexus\Laravel\Persistence\NullJobLifecycleRecorder;
+use Nexus\Shared\Port\JobLifecycleRecorderPort;
 
 it('builds provider configs from laravel package config', function (): void {
     app()->forgetInstance('nexus.provider_configs');
@@ -39,4 +41,8 @@ it('resolves citation network graph services from the container', function (): v
         ->and(app(BuildCitationGraphHandler::class))->toBeInstanceOf(BuildCitationGraphHandler::class)
         ->and(app(AnalyzeNetworkHandler::class))->toBeInstanceOf(AnalyzeNetworkHandler::class)
         ->and(app(FindShortestCitationPathHandler::class))->toBeInstanceOf(FindShortestCitationPathHandler::class);
+});
+
+it('binds the default no-op job lifecycle recorder', function (): void {
+    expect(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(NullJobLifecycleRecorder::class);
 });

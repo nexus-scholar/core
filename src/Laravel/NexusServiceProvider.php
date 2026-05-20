@@ -23,6 +23,7 @@ use Nexus\Search\Application\Port\SearchRunRecorderPort;
 use Nexus\Search\Application\UseCase\PersistentSearchRunner;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Infrastructure\Plan\YamlSearchPlanParser;
+use Nexus\Shared\Port\JobLifecycleRecorderPort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\TransactionPort;
 use Psr\Log\LoggerInterface;
@@ -39,6 +40,7 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
         $this->app->singleton(ProjectLockPort::class, \Nexus\Laravel\Persistence\EloquentProjectLock::class);
         $this->app->singleton(TransactionPort::class, \Nexus\Laravel\Persistence\LaravelTransaction::class);
+        $this->app->singleton(JobLifecycleRecorderPort::class, \Nexus\Laravel\Persistence\NullJobLifecycleRecorder::class);
 
         $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, function ($app) {
             return new \Nexus\Laravel\Persistence\LaravelSearchCache($app['cache.store']);
@@ -248,6 +250,15 @@ final class NexusServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/Migration');
+
+        $this->app['events']->listen(
+            [
+                \Nexus\Laravel\Event\NexusJobStarted::class,
+                \Nexus\Laravel\Event\NexusJobCompleted::class,
+                \Nexus\Laravel\Event\NexusJobFailed::class,
+            ],
+            \Nexus\Laravel\Listener\RecordNexusJobLifecycle::class,
+        );
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
