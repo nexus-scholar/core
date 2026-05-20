@@ -9,9 +9,15 @@ use Nexus\Search\Domain\CorpusSlice;
 
 final readonly class ExportBibliography
 {
+    /**
+     * @param array<string, mixed> $metadata
+     */
     public function __construct(
         public CorpusSlice        $corpus,
         public BibliographyFormat $format,
         public string             $filename,
+        public ?string            $projectId = null,
+        public ?string            $requestedBy = null,
+        public array              $metadata = [],
     ) {}
 }

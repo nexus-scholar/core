@@ -10,11 +10,20 @@ use Nexus\CitationNetwork\Application\UseCase\SnowballCorpusHandler;
 use Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
+use Nexus\Dissemination\Application\UseCase\ExportBibliographyHandler;
+use Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler;
+use Nexus\Dissemination\Application\UseCase\ExportNetworkHandler;
+use Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection;
+use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
+use Nexus\Dissemination\Domain\Port\NetworkSerializerCollection;
+use Nexus\Dissemination\Domain\Port\SerializerCollection;
+use Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer;
 use Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource;
+use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
 
@@ -83,6 +92,17 @@ it('registers enabled snowballing providers from provider config', function (): 
 
 it('binds the default sql-backed job lifecycle recorder', function (): void {
     expect(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(EloquentJobLifecycleRecorder::class);
+});
+
+it('binds export history and export handlers', function (): void {
+    expect(app(ExportHistoryPort::class))->toBeInstanceOf(EloquentExportHistoryRecorder::class)
+        ->and(app(SerializerCollection::class)->all())->toHaveCount(5)
+        ->and(app(NetworkSerializerCollection::class)->all())->toHaveCount(3)
+        ->and(app(CitationGraphSerializerCollection::class)->all())->toHaveCount(1)
+        ->and(app(CitationGraphSerializerCollection::class)->all()[0])->toBeInstanceOf(MbsoftCitationGraphSerializer::class)
+        ->and(app(ExportBibliographyHandler::class))->toBeInstanceOf(ExportBibliographyHandler::class)
+        ->and(app(ExportNetworkHandler::class))->toBeInstanceOf(ExportNetworkHandler::class)
+        ->and(app(ExportCitationGraphHandler::class))->toBeInstanceOf(ExportCitationGraphHandler::class);
 });
 
 it('registers enabled full text sources in retrieval order', function (): void {
