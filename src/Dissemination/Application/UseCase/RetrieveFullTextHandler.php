@@ -7,8 +7,10 @@ namespace Nexus\Dissemination\Application\UseCase;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
+use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
+use RuntimeException;
 use Throwable;
 
 final readonly class RetrieveFullTextHandler
@@ -48,6 +50,7 @@ final readonly class RetrieveFullTextHandler
                 }
 
                 $downloadResult = $this->downloader->download($url);
+                $this->assertValidPdf($downloadResult);
                 $content = $downloadResult->content;
                 
                 $extension = 'pdf'; // Assume PDF for now
@@ -79,5 +82,25 @@ final readonly class RetrieveFullTextHandler
     private function elapsedMs(float|int $startNs): int
     {
         return (int) round((hrtime(true) - $startNs) / 1_000_000);
+    }
+
+    private function assertValidPdf(DownloadResult $downloadResult): void
+    {
+        if (! str_starts_with($downloadResult->content, '%PDF-')) {
+            throw new RuntimeException('Downloaded content is not a PDF: missing %PDF signature.', $downloadResult->statusCode);
+        }
+
+        if ($downloadResult->contentType === null || $downloadResult->contentType === '') {
+            return;
+        }
+
+        $mediaType = strtolower(trim(strtok($downloadResult->contentType, ';') ?: $downloadResult->contentType));
+
+        if (! in_array($mediaType, ['application/pdf', 'application/x-pdf', 'application/octet-stream'], true)) {
+            throw new RuntimeException(
+                sprintf('Downloaded content is not a PDF: unexpected content type "%s".', $downloadResult->contentType),
+                $downloadResult->statusCode,
+            );
+        }
     }
 }

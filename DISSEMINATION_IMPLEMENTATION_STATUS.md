@@ -164,33 +164,27 @@ The Dissemination module has **Phase 1 and Phase 2 substantially complete**, wit
 
 ### Gaps
 1. **Graph edge export**: GEXF/GraphML/Cytoscape need explicit edge and weight preservation coverage.
-2. **Placeholder cleanup**: Remaining empty dissemination source files should be implemented or removed.
-3. **Repository depth**: PdfFetchRepositoryPort has feature coverage through a fake; add SQL mapping tests for the Eloquent adapter.
+2. **Retry and limits**: PDF retrieval still needs retry policy, size limits, and failed-attempt cooldown behavior.
+3. **Source coverage**: Direct URL and optional broader open-access sources are still pending.
 
 ---
 
 ## Recommendations for Next Phase
 
-1. **Write tests first**: Fill in the empty test scaffolds
-   - ExportBibliographyHandlerTest
-   - BibTexSerializerTest
-   - Other serializer tests
+1. **Finish PDF hardening**: Add retry policy, size limits, and failed-attempt cooldown behavior.
 
-2. **Verify database schema**: Ensure pdf_fetches table supports the audit trail that RetrieveFullTextHandler requires
+2. **Expand source coverage deliberately**: Add a direct URL source first; only add Unpaywall or PubMed Central if product scope requires broader open-access coverage.
 
-3. **Implement FullText and Bibliography DTOs** if they're needed (currently scaffolded)
-
-4. **Integration testing**: Create Feature-level tests that tie the full export/retrieve paths end-to-end
+3. **Tighten export release tests**: Keep serializer and graph export coverage green as network export becomes public API.
 
 ---
 
 ## Conclusion
 
-**Status: ~80% Complete**
-- Phase 1 (Contracts): 100% complete
-- Phase 2 (Orchestration): 100% complete  
-- Phase 3 (Adapters): ~90% complete (all infrastructure exists, subset tested)
-- Testing: Minimal (scaffolds only)
+**Status: active P2 hardening**
+- Contracts, orchestration, and core adapters are implemented for current workflows.
+- PDF retrieval now reuses existing successful files and rejects non-PDF downloads before storage.
+- Remaining work is retry/limit policy, direct URL source support, and release-level export hardening.
 
-The module is **production-ready for core workflows** (search export, PDF retrieval) but **test coverage is needed** before release.
+The module is usable for core workflows, but release readiness still depends on finishing the remaining hardening and export coverage.
 

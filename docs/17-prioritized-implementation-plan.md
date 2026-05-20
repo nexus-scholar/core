@@ -454,9 +454,11 @@ Objective:
 Implemented:
 - `RetrieveFullTextHandler` tries registered sources and records fetch attempts.
 - `ArXivPdfSource`, `OpenAlexPdfSource`, and `SemanticScholarPdfSource` resolve common open PDF URLs from work metadata.
-- `GuzzlePdfDownloader` applies an HTTP timeout.
+- `GuzzlePdfDownloader` applies an HTTP timeout and passes response content type to the application layer.
 - `PdfFetchRepositoryPort` and the Eloquent implementation persist PDF fetch audit rows by internal work UUID.
 - Laravel binds the source collection, downloader, storage, and repository ports.
+- Existing successful fetches are reused when the persisted file path still exists.
+- Downloaded content is rejected before storage when it lacks a `%PDF-` signature or reports a non-PDF content type.
 
 Remaining sub-slices:
 1. Source resolution
@@ -464,14 +466,14 @@ Remaining sub-slices:
    - Optional Unpaywall or PubMed Central source if product scope requires broader open access coverage.
 2. Download safety
    - Retry policy.
-   - MIME validation.
+   - MIME validation is implemented for reported content types.
    - Size limit.
-   - PDF signature sniffing.
+   - PDF signature sniffing is implemented before storage.
 3. Storage
    - Local/non-Laravel storage adapter if needed.
    - Deterministic path policy.
 4. Duplicate avoidance
-   - Existing successful path lookup.
+   - Existing successful path lookup is implemented.
    - Re-fetch policy.
    - Failed attempt cooldown.
 5. Audit
@@ -482,7 +484,7 @@ Remaining sub-slices:
 
 Tests:
 - Unit: each source resolves correctly from work metadata.
-- Unit: MIME/signature validation rejects non-PDF content.
+- Application: MIME/signature validation rejects non-PDF content.
 - Application: successful first source stops later sources.
 - Application: failed first source continues to next source.
 - Feature: SQL audit rows are written for success and failure.

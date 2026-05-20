@@ -243,12 +243,13 @@ Implemented tests:
 - Handler attempts registered sources and records outcomes.
 - arXiv, OpenAlex, and Semantic Scholar source behavior has package coverage.
 - PDF fetch persistence writes rows by internal work UUID.
+- Existing successful fetches short-circuit source resolution, downloads, storage, and duplicate audit rows when the file still exists.
+- Non-PDF downloads are audited as failed attempts and do not prevent later sources from succeeding.
+- Download validation checks the `%PDF-` signature and reported content type before storage.
 
 Tests still to add:
 - Direct URL source resolution.
-- MIME and PDF signature validation.
 - Retry behavior.
-- Duplicate successful fetch avoidance.
 - Failed fetch audit rows.
 - Storage path policy.
 
