@@ -41,7 +41,7 @@ Status on 2026-05-20:
 - `core` requires both graph packages through local path repositories while developing the multi-repo workspace.
 - `core` now includes the graph adapter, metrics calculator, citation graph builders, application handlers, Laravel bindings, and tests for the first P2 citation-network slice.
 
-The remaining graph-specific P2 work is queue-safe snowballing, progress persistence, and graph rebuild policy, not graph package readiness.
+The remaining graph-specific P2 work is progress persistence and graph rebuild policy, not graph package readiness.
 
 ## Package Findings
 
@@ -238,12 +238,13 @@ Tasks:
 5. Semantic Scholar provider support is implemented for citation/reference traversal.
 6. OpenAlex provider support is implemented for forward citation traversal and backward `referenced_works` traversal.
 7. Crossref provider support is implemented for deposited DOI references; forward citation traversal is intentionally unsupported in the public metadata adapter.
-8. Persisted progress and resulting graph changes are still pending.
+8. `SnowballJob` wraps `SnowballCorpusHandler` for queue-safe Laravel execution with lifecycle events.
+9. Persisted progress and resulting graph changes are still pending.
 
 Done criteria:
 
 - Forward and backward snowballing are available through supported providers without provider-specific code leaking into the domain.
-- Queue-safe snowball jobs and persisted progress are available for host-app status screens.
+- Persisted progress is available for host-app status screens.
 
 ## Test Strategy
 
@@ -283,9 +284,9 @@ Do not start with graph package readiness anymore; that part is complete for the
 
 The next graph-specific PR should be:
 
-1. Add `SnowballJob` and lifecycle/progress events for snowballing rounds.
-2. Keep job payloads serializable and resolve `SnowballCorpusHandler` from the Laravel container.
-3. Persist or emit provider-level progress without duplicating handler work.
+1. Add provider-progress events for snowballing rounds.
+2. Persist or emit provider-level progress without duplicating handler work.
+3. Keep snowball progress state queryable for host-app status screens.
 4. Add more provider adapters only with fixtures and only where APIs expose reliable citation/reference data.
 5. Persist round progress after the job/progress event shape is stable.
 
