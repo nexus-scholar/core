@@ -11,7 +11,7 @@ Current repository state on 2026-05-20:
 - P0 guardrail tests are implemented and should remain permanently green.
 - P1 reusable search tests are implemented in `core`; `nexus-cli` has consumer tests for its app-owned search workflow.
 - P2 citation graph foundation now has unit, application, and feature coverage for graph construction, graph-package adapters, metrics, shortest paths, and weighted persistence.
-- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, and no-op default listener are implemented; snowballing jobs, provider-progress events, and persistent listeners remain open.
+- P2 jobs/events now have `SearchJob`, `DeduplicateCorpusJob`, and `RetrieveFullTextJob` implementations with feature tests. Job lifecycle event shapes, dispatch tests, recorder contract, SQL-backed default recorder, and lifecycle listener are implemented; snowballing jobs and provider-progress events remain open.
 - P2 full-text retrieval has handler/source/repository coverage, but still needs download-safety and duplicate-fetch tests.
 - P3 has a GitHub Actions Pest matrix, but static analysis, formatter checks, and Composer script coverage are still missing.
 
@@ -273,13 +273,13 @@ Implemented tests:
 - Implemented jobs dispatch started/completed events on success and failed events before rethrowing job failures.
 - `RecordNexusJobLifecycle` maps lifecycle events to `JobLifecycleRecord` values through `JobLifecycleRecorderPort`.
 - `JobLifecycleRecord` idempotency keys are stable for repeated run/status pairs.
-- `NullJobLifecycleRecorder` is the default binding, so package listeners do not persist progress unless a host app binds a real recorder.
+- `EloquentJobLifecycleRecorder` is the default binding and upserts `job_lifecycle_records` rows by lifecycle idempotency key.
 
 Tests to add:
 - `SnowballJob` serialization and handler resolution after snowballing exists.
 - Job payloads contain IDs/DTOs, not service instances.
 - Provider-progress events are emitted when a use case exposes meaningful intermediate progress.
-- Persistent listeners upsert by lifecycle idempotency key.
+- Lifecycle recorder queries by `project_id`, `work_id`, `job_name`, and `status` remain efficient as host apps build progress screens.
 
 Key assertions:
 - Jobs can be queued safely.
@@ -376,8 +376,8 @@ Before merging a change, ask:
 
 ## Recommended First Test Tasks For A New Developer
 
-1. Add a host-app lifecycle recorder adapter if queued job progress should be persisted in SQL.
-2. Add MIME/signature validation tests for PDF downloads before changing the downloader.
-3. Add duplicate successful fetch avoidance tests for `RetrieveFullTextHandler`.
-4. Add a fake-provider snowballing test before implementing any real citation traversal provider.
-5. Add `SnowballJob` serialization and handler-resolution tests after snowballing exists.
+1. Add MIME/signature validation tests for PDF downloads before changing the downloader.
+2. Add duplicate successful fetch avoidance tests for `RetrieveFullTextHandler`.
+3. Add a fake-provider snowballing test before implementing any real citation traversal provider.
+4. Add `SnowballJob` serialization and handler-resolution tests after snowballing exists.
+5. Add lifecycle progress query tests once a read-side API is introduced for host apps.

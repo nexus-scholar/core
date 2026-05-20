@@ -509,7 +509,7 @@ Current state:
 - `NexusJobStarted`, `NexusJobCompleted`, and `NexusJobFailed` define serializable lifecycle event payloads.
 - The implemented jobs dispatch started/completed/failed lifecycle events around their application handler calls.
 - `RecordNexusJobLifecycle` records lifecycle events through `JobLifecycleRecorderPort`.
-- The default `JobLifecycleRecorderPort` binding is `NullJobLifecycleRecorder`, so host apps opt into persistence explicitly.
+- The default `JobLifecycleRecorderPort` binding is `EloquentJobLifecycleRecorder`, which writes `job_lifecycle_records` through package migrations.
 - Search, PDF retrieval, deduplication, and citation graph use cases are container-resolvable enough to be wrapped by jobs.
 
 Sub-slices:
@@ -526,7 +526,8 @@ Sub-slices:
    - provider-level progress events.
 4. Listeners
    - lifecycle listener contract is implemented.
-   - persistent listeners must upsert by `JobLifecycleRecord::$idempotencyKey`.
+   - persistent listener storage upserts by `JobLifecycleRecord::$idempotencyKey`.
+   - progress rows denormalize `project_id` and `work_id` from context for host-app status screens.
    - avoid hidden side effects that duplicate handler work.
 5. Queue safety tests
    - serialize and unserialize job payloads.
@@ -732,16 +733,15 @@ Done criteria:
 Give the new developer a contained P2 slice, not a sweeping feature. P0 and P1 are now closed.
 
 Best first assignment:
-- P2.3 persistent lifecycle recorder for host apps, starting with a small SQL table or host-owned adapter.
+- P2.2 full-text hardening, starting with MIME/signature validation and duplicate successful fetch avoidance.
 
 Why:
-- It builds on the implemented queue jobs, lifecycle events, and recorder contract without reopening their payload design.
-- It forces a clear decision about where job progress persistence belongs.
-- It gives host apps a stable progress/status surface for queued work.
-- It is easy to review and unlikely to conflict with snowballing or full-text hardening work.
+- It protects the highest-risk external IO path before expanding retrieval sources.
+- It is contained in dissemination application/infrastructure code and can be tested without live network.
+- It improves reliability for CLI, jobs, and future HTTP flows at the same time.
 
 Second assignment:
-- P2.2 full-text hardening, starting with MIME/signature validation and duplicate successful fetch avoidance.
+- P2.3 snowballing/job expansion after citation traversal behavior is defined.
 
 Third assignment:
 - P2.1 snowballing provider port and one fake-provider application test before any real provider integration.

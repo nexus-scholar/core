@@ -40,7 +40,7 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
         $this->app->singleton(ProjectLockPort::class, \Nexus\Laravel\Persistence\EloquentProjectLock::class);
         $this->app->singleton(TransactionPort::class, \Nexus\Laravel\Persistence\LaravelTransaction::class);
-        $this->app->singleton(JobLifecycleRecorderPort::class, \Nexus\Laravel\Persistence\NullJobLifecycleRecorder::class);
+        $this->app->singleton(JobLifecycleRecorderPort::class, \Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder::class);
 
         $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, function ($app) {
             return new \Nexus\Laravel\Persistence\LaravelSearchCache($app['cache.store']);
