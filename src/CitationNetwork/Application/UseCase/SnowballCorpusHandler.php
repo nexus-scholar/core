@@ -111,7 +111,7 @@ final readonly class SnowballCorpusHandler
         $seedId = $seed->primaryId()?->toString() ?? spl_object_hash($seed);
         $startNs = hrtime(true);
 
-        if (! $provider->supports($seed, $direction)) {
+        if (! $provider->supportsSnowballing($seed, $direction)) {
             return [
                 'works' => [],
                 'stat' => new SnowballProviderStat(

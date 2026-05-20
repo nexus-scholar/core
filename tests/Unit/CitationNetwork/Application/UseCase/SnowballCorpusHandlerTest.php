@@ -159,7 +159,7 @@ final class SnowballHandlerTestProvider implements SnowballingProviderPort
         return $this->alias;
     }
 
-    public function supports(ScholarlyWork $seed, SnowballDirection $direction): bool
+    public function supportsSnowballing(ScholarlyWork $seed, SnowballDirection $direction): bool
     {
         return $seed->primaryId() !== null;
     }

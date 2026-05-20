@@ -102,7 +102,24 @@ final class NexusServiceProvider extends ServiceProvider
         );
         $this->app->singleton(
             \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection::class,
-            fn () => new \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection(),
+            function ($app) {
+                $configs = $app->make('nexus.provider_configs');
+                $http = $app->make(HttpClientPort::class);
+                $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
+                $providers = [];
+                $semanticScholar = $configs['semantic_scholar'] ?? null;
+
+                if ($semanticScholar instanceof ProviderConfig && $semanticScholar->enabled) {
+                    $providers[] = new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
+                        $http,
+                        $this->rateLimiterFor($semanticScholar),
+                        $semanticScholar,
+                        $logger,
+                    );
+                }
+
+                return new \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection(...$providers);
+            },
         );
         $this->app->singleton(\Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder::class);
         $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler::class);

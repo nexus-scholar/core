@@ -52,6 +52,29 @@ it('resolves citation network graph services from the container', function (): v
         ->and(app(SnowballCorpusHandler::class))->toBeInstanceOf(SnowballCorpusHandler::class);
 });
 
+it('registers enabled snowballing providers from provider config', function (): void {
+    app()->forgetInstance('nexus.provider_configs');
+    app()->forgetInstance(SnowballingProviderCollection::class);
+    config()->set('nexus.providers.semantic_scholar.enabled', true);
+
+    $aliases = array_map(
+        static fn ($provider): string => $provider->alias(),
+        app(SnowballingProviderCollection::class)->all(),
+    );
+
+    expect($aliases)->toBe(['semantic_scholar']);
+
+    app()->forgetInstance('nexus.provider_configs');
+    app()->forgetInstance(SnowballingProviderCollection::class);
+    config()->set('nexus.providers.semantic_scholar.enabled', false);
+
+    expect(app(SnowballingProviderCollection::class)->all())->toBe([]);
+
+    config()->set('nexus.providers.semantic_scholar.enabled', true);
+    app()->forgetInstance('nexus.provider_configs');
+    app()->forgetInstance(SnowballingProviderCollection::class);
+});
+
 it('binds the default sql-backed job lifecycle recorder', function (): void {
     expect(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(EloquentJobLifecycleRecorder::class);
 });

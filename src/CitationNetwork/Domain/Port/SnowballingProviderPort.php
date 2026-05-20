@@ -11,7 +11,7 @@ interface SnowballingProviderPort
 {
     public function alias(): string;
 
-    public function supports(ScholarlyWork $seed, SnowballDirection $direction): bool;
+    public function supportsSnowballing(ScholarlyWork $seed, SnowballDirection $direction): bool;
 
     /**
      * @return list<ScholarlyWork>
