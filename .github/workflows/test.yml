@@ -13,14 +13,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.4', '8.5']
+        php: ['8.3', '8.4']
         laravel: ['12.*', '13.*']
+        exclude:
+          - php: '8.3'
+            laravel: '13.*'
 
     name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -34,6 +39,9 @@ jobs:
           git clone --depth 1 https://github.com/mbsoft31/graph-core.git ../graph-core
           git clone --depth 1 https://github.com/nexus-scholar/graph-algorithms.git ../graph-algorithms
 
+      - name: Validate composer metadata
+        run: composer validate --strict
+
       - name: Require specified Laravel and Testbench versions
         run: |
           if [ "${{ matrix.laravel }}" == "12.*" ]; then
@@ -46,4 +54,22 @@ jobs:
         run: composer update --prefer-dist --no-interaction --no-progress
 
       - name: Execute tests
-        run: php -d memory_limit=-1 vendor/bin/pest
+        run: composer test
+
+      - name: Execute static analysis
+        run: composer analyse
+
+      - name: Check code style
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            files=$(git diff --name-only --diff-filter=ACMRT "origin/${{ github.base_ref }}"...HEAD -- '*.php')
+          else
+            files=$(git diff-tree --no-commit-id --name-only -r HEAD -- '*.php')
+          fi
+
+          if [ -n "$files" ]; then
+            vendor/bin/pint --test $files
+          else
+            echo "No changed PHP files to format-check."
+          fi

@@ -50,10 +50,20 @@ For full architecture notes and domain rules, please refer to the `docs/` direct
 
 ## Testing
 
-To run the robust Pest test suite included with the core, make sure you bump the memory limit since the integration test's VCR YAML recordings can exceed defaults.
+To run the Pest suite included with the core, use the Composer scripts. The scripts set a higher memory limit because the integration test VCR YAML recordings can exceed PHP defaults.
 
 ```bash
-php -d memory_limit=512M vendor/bin/pest
+composer test
+composer test:unit
+composer test:feature
+```
+
+Release checks:
+
+```bash
+composer validate --strict
+composer analyse
+composer format:check
 ```
 
 ## License

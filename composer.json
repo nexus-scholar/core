@@ -34,7 +34,9 @@
         "symfony/yaml": "^7.0 || ^8.0"
     },
     "require-dev": {
+        "laravel/pint": "^1.29",
         "pestphp/pest": "^3.0",
+        "phpstan/phpstan": "^2.1",
         "mockery/mockery": "^1.6",
         "php-vcr/php-vcr": "^1.7",
         "orchestra/testbench": "^11.1"
@@ -55,6 +57,14 @@
                 "Nexus\\Laravel\\NexusServiceProvider"
             ]
         }
+    },
+    "scripts": {
+        "test": "php -d memory_limit=512M vendor/bin/pest",
+        "test:unit": "php -d memory_limit=512M vendor/bin/pest tests/Unit",
+        "test:feature": "php -d memory_limit=512M vendor/bin/pest tests/Feature",
+        "analyse": "php -d memory_limit=512M vendor/bin/phpstan analyse",
+        "format": "vendor/bin/pint --dirty",
+        "format:check": "vendor/bin/pint --test --dirty"
     },
     "config": {
         "allow-plugins": {

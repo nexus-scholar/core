@@ -1,0 +1,15 @@
+/.agent-skill.md export-ignore
+/.cursor export-ignore
+/.github export-ignore
+/.idea export-ignore
+/AGENTS.md export-ignore
+/DISSEMINATION_IMPLEMENTATION_STATUS.md export-ignore
+/bootstrap/cache export-ignore
+/composer.lock export-ignore
+/phpstan.neon.dist export-ignore
+/phpunit.xml export-ignore
+/pint.json export-ignore
+/queries.yml export-ignore
+/storage export-ignore
+/tests export-ignore
+/tmp export-ignore
