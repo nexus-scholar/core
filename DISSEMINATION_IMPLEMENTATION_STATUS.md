@@ -165,7 +165,7 @@ The Dissemination module has **Phase 1 and Phase 2 substantially complete**, wit
 ### Gaps
 1. **Graph edge export**: GEXF/GraphML/Cytoscape need explicit edge and weight preservation coverage.
 2. **Retry and limits**: PDF retrieval still needs retry policy, size limits, and failed-attempt cooldown behavior.
-3. **Source coverage**: Direct URL and optional broader open-access sources are still pending.
+3. **Source coverage**: Optional broader open-access sources are still pending.
 
 ---
 
@@ -173,7 +173,7 @@ The Dissemination module has **Phase 1 and Phase 2 substantially complete**, wit
 
 1. **Finish PDF hardening**: Add retry policy, size limits, and failed-attempt cooldown behavior.
 
-2. **Expand source coverage deliberately**: Add a direct URL source first; only add Unpaywall or PubMed Central if product scope requires broader open-access coverage.
+2. **Expand source coverage deliberately**: Only add Unpaywall or PubMed Central if product scope requires broader open-access coverage.
 
 3. **Tighten export release tests**: Keep serializer and graph export coverage green as network export becomes public API.
 
@@ -184,7 +184,7 @@ The Dissemination module has **Phase 1 and Phase 2 substantially complete**, wit
 **Status: active P2 hardening**
 - Contracts, orchestration, and core adapters are implemented for current workflows.
 - PDF retrieval now reuses existing successful files and rejects non-PDF downloads before storage.
-- Remaining work is retry/limit policy, direct URL source support, and release-level export hardening.
+- Remaining work is retry/limit policy, optional broader source coverage, and release-level export hardening.
 
 The module is usable for core workflows, but release readiness still depends on finishing the remaining hardening and export coverage.
 

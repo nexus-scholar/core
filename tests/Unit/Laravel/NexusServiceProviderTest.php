@@ -8,6 +8,8 @@ use Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler;
 use Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler;
 use Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
+use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
+use Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
 
@@ -45,4 +47,10 @@ it('resolves citation network graph services from the container', function (): v
 
 it('binds the default sql-backed job lifecycle recorder', function (): void {
     expect(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(EloquentJobLifecycleRecorder::class);
+});
+
+it('registers the direct pdf source in the default full text source collection', function (): void {
+    $sources = app(FullTextSourceCollection::class)->all();
+
+    expect($sources[0])->toBeInstanceOf(DirectPdfSource::class);
 });

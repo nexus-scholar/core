@@ -241,6 +241,7 @@ Status: partially implemented.
 
 Implemented tests:
 - Handler attempts registered sources and records outcomes.
+- Direct PDF URL source resolves explicit raw metadata fields and ignores generic landing-page URLs.
 - arXiv, OpenAlex, and Semantic Scholar source behavior has package coverage.
 - PDF fetch persistence writes rows by internal work UUID.
 - Existing successful fetches short-circuit source resolution, downloads, storage, and duplicate audit rows when the file still exists.
@@ -248,7 +249,6 @@ Implemented tests:
 - Download validation checks the `%PDF-` signature and reported content type before storage.
 
 Tests still to add:
-- Direct URL source resolution.
 - Retry behavior.
 - Failed fetch audit rows.
 - Storage path policy.

@@ -163,6 +163,7 @@ final class NexusServiceProvider extends ServiceProvider
 
         $this->app->singleton(\Nexus\Dissemination\Domain\Port\FullTextSourceCollection::class, function ($app) {
             return new \Nexus\Dissemination\Domain\Port\FullTextSourceCollection(
+                new \Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource(),
                 new \Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource(),
                 new \Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource(),
                 new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource(),

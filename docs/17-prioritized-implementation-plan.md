@@ -453,7 +453,7 @@ Objective:
 
 Implemented:
 - `RetrieveFullTextHandler` tries registered sources and records fetch attempts.
-- `ArXivPdfSource`, `OpenAlexPdfSource`, and `SemanticScholarPdfSource` resolve common open PDF URLs from work metadata.
+- `DirectPdfSource`, `ArXivPdfSource`, `OpenAlexPdfSource`, and `SemanticScholarPdfSource` resolve common open PDF URLs from work metadata.
 - `GuzzlePdfDownloader` applies an HTTP timeout and passes response content type to the application layer.
 - `PdfFetchRepositoryPort` and the Eloquent implementation persist PDF fetch audit rows by internal work UUID.
 - Laravel binds the source collection, downloader, storage, and repository ports.
@@ -462,7 +462,7 @@ Implemented:
 
 Remaining sub-slices:
 1. Source resolution
-   - Direct URL source.
+   - Direct URL source is implemented for explicit PDF URL metadata.
    - Optional Unpaywall or PubMed Central source if product scope requires broader open access coverage.
 2. Download safety
    - Retry policy.
