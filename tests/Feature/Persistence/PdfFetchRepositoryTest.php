@@ -27,7 +27,12 @@ it('stores pdf fetch audit rows against the internal work id', function (): void
     $this->repository->save(
         $work->primaryId(),
         'https://example.org/paper.pdf',
-        FullTextResult::success('pdfs/paper.pdf', 'example', 200),
+        FullTextResult::success(
+            'pdfs/paper.pdf',
+            'example',
+            200,
+            ['license' => 'cc-by', 'source' => 'unpaywall'],
+        ),
         123,
     );
 
@@ -44,6 +49,13 @@ it('stores pdf fetch audit rows against the internal work id', function (): void
     expect($this->repository->findSuccessfulPath($work->primaryId()))->toBe('pdfs/paper.pdf')
         ->and($this->repository->findSuccessfulPath(new WorkId(WorkIdNamespace::INTERNAL, $internalWorkId)))
         ->toBe('pdfs/paper.pdf');
+
+    $metadata = json_decode((string) DB::table('pdf_fetches')->where('work_id', $internalWorkId)->value('metadata'), true);
+
+    expect($metadata)->toMatchArray([
+        'license' => 'cc-by',
+        'source' => 'unpaywall',
+    ]);
 });
 
 it('returns null for successful path lookups when the work is not persisted', function (): void {

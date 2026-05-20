@@ -4,34 +4,41 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Provider;
 
+use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
-use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
 use Nexus\Search\Infrastructure\Provider\IeeeAdapter;
 use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
 use Nexus\Search\Infrastructure\RateLimit\NullRateLimiter;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
-use VCR\VCR;
+use Tests\Support\FakeHttpClient;
 
-beforeEach(function () {
-    VCR::configure()
-        ->setCassettePath(__DIR__ . '/../../Fixture/vcr_cassettes')
-        ->enableLibraryHooks(['curl', 'stream_wrapper']);
-    VCR::turnOn();
-});
-
-afterEach(function () {
-    VCR::eject();
-    VCR::turnOff();
-});
+function ieeeArticleFixture(): array
+{
+    return [
+        'doi' => '10.1109/Deep-ML.2019.00010',
+        'title' => 'An Application of a Deep Learning Algorithm for Automatic Detection of Unexpected Accidents',
+        'article_number' => '8876906',
+        'publication_year' => 2019,
+        'publication_title' => '2019 International Conference on Deep Learning and Machine Learning in Emerging Applications',
+        'abstract' => 'This paper introduces an object detection and tracking system.',
+        'citing_paper_count' => 70,
+        'authors' => [
+            'authors' => [
+                ['full_name' => 'Kyu Beom Lee'],
+                ['full_name' => 'Hyu Soung Shin'],
+            ],
+        ],
+    ];
+}
 
 it('throws when no api key is provided', function () {
     $config = ProviderConfigRegistry::defaults(ieeeApiKey: null)['ieee'];
     $adapter = new IeeeAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new FakeHttpClient(),
         rateLimiter: new NullRateLimiter(),
     );
 
@@ -48,16 +55,10 @@ it('throws when no api key is provided', function () {
 });
 
 it('searches and fetches when api key is present', function () {
-    // Note: To successfully record this cassette, a real IEEE API key must
-    // be temporarily provided during the first run.
-    // If not, IEEE will return 401 or 403, and the adapter will return [] / null.
-    // We will test that it correctly returns empty if unauthorized.
-    VCR::insertCassette('ieee_with_key.yml');
-
     $config = ProviderConfigRegistry::defaults(ieeeApiKey: 'dummy_key')['ieee'];
     $adapter = new IeeeAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new FakeHttpClient(new HttpResponse(200, ['articles' => [ieeeArticleFixture()]])),
         rateLimiter: new NullRateLimiter(),
     );
 
@@ -75,12 +76,10 @@ it('searches and fetches when api key is present', function () {
 });
 
 it('fetches a paper from ieee by article number', function () {
-    VCR::insertCassette('ieee_fetch_by_id.yml');
-
     $config = ProviderConfigRegistry::defaults(ieeeApiKey: 'dummy_key')['ieee'];
     $adapter = new IeeeAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new FakeHttpClient(new HttpResponse(200, ['articles' => [ieeeArticleFixture()]])),
         rateLimiter: new NullRateLimiter(),
     );
 

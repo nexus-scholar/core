@@ -20,6 +20,7 @@ final class WorkIdSet
         WorkIdNamespace::OPENALEX,
         WorkIdNamespace::S2,
         WorkIdNamespace::ARXIV,
+        WorkIdNamespace::PMCID,
         WorkIdNamespace::PUBMED,
         WorkIdNamespace::IEEE,
         WorkIdNamespace::DOAJ,

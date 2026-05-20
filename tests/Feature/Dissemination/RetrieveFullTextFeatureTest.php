@@ -7,7 +7,9 @@ use Nexus\Dissemination\Application\UseCase\RetrieveFullText;
 use Nexus\Dissemination\Application\UseCase\RetrieveFullTextHandler;
 use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
+use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
+use Nexus\Dissemination\Domain\Port\FullTextSourceCandidate;
 use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
@@ -819,4 +821,199 @@ it('skips sources with recent failed attempts during cooldown', function (): voi
         ->and($downloader->urls)->toBe(['https://example.org/available.pdf'])
         ->and($repository->saved)->toHaveCount(1)
         ->and($repository->saved[0]['sourceUrl'])->toBe('https://example.org/available.pdf');
+});
+
+it('carries full text source candidate metadata into audit rows', function (): void {
+    $source = new class implements FullTextCandidateSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return $this->resolveCandidate($work)?->url;
+        }
+
+        public function resolveCandidate(ScholarlyWork $work): ?FullTextSourceCandidate
+        {
+            return FullTextSourceCandidate::pdf('https://example.org/open.pdf', [
+                'source' => 'unpaywall',
+                'license' => 'cc-by',
+            ]);
+        }
+
+        public function alias(): string
+        {
+            return 'unpaywall';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public function store(string $filename, string $content): string
+        {
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return false;
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        public function download(string $url): DownloadResult
+        {
+            return new DownloadResult('%PDF-1.7 metadata-content', 200, 'application/pdf');
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $result = (new RetrieveFullTextHandler(
+        new FullTextSourceCollection($source),
+        $storage,
+        $downloader,
+        $repository,
+    ))->handle(new RetrieveFullText(PersistenceFactory::makeWork(), 'pdfs'));
+
+    expect($result->status->value)->toBe('success')
+        ->and($repository->saved[0]['result']->metadata)->toMatchArray([
+            'artifact_type' => 'pdf',
+            'source' => 'unpaywall',
+            'license' => 'cc-by',
+        ]);
+});
+
+it('audits non-pdf full text candidates as skipped without downloading', function (): void {
+    $source = new class implements FullTextCandidateSourcePort {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return $this->resolveCandidate($work)?->url;
+        }
+
+        public function resolveCandidate(ScholarlyWork $work): ?FullTextSourceCandidate
+        {
+            return FullTextSourceCandidate::xml('https://pmc.ncbi.nlm.nih.gov/api/oai/v1/mh/?verb=GetRecord', [
+                'source' => 'pmc',
+                'pmcid' => 'PMC12124693',
+            ]);
+        }
+
+        public function alias(): string
+        {
+            return 'pmc';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort {
+        public int $stores = 0;
+
+        public function store(string $filename, string $content): string
+        {
+            $this->stores++;
+
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return false;
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort {
+        public int $downloads = 0;
+
+        public function download(string $url): DownloadResult
+        {
+            $this->downloads++;
+
+            return new DownloadResult('%PDF-1.7 should-not-run', 200, 'application/pdf');
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $result = (new RetrieveFullTextHandler(
+        new FullTextSourceCollection($source),
+        $storage,
+        $downloader,
+        $repository,
+    ))->handle(new RetrieveFullText(PersistenceFactory::makeWork(), 'pdfs'));
+
+    expect($result->status->value)->toBe('skipped')
+        ->and($result->sourceAlias)->toBe('pmc')
+        ->and($result->metadata)->toMatchArray([
+            'artifact_type' => 'xml',
+            'source' => 'pmc',
+            'pmcid' => 'PMC12124693',
+        ])
+        ->and($downloader->downloads)->toBe(0)
+        ->and($storage->stores)->toBe(0)
+        ->and($repository->saved)->toHaveCount(1)
+        ->and($repository->saved[0]['result']->status->value)->toBe('skipped');
 });

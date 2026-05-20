@@ -162,11 +162,80 @@ final class NexusServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(\Nexus\Dissemination\Domain\Port\FullTextSourceCollection::class, function ($app) {
+            $http = $app->make(HttpClientPort::class);
+            $sourceConfig = $app['config']->get('nexus.full_text.sources', []);
+            $sourceConfig = is_array($sourceConfig) ? $sourceConfig : [];
+            $sources = [];
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'direct')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource();
+            }
+
+            $unpaywall = $this->fullTextSourceConfig(
+                $sourceConfig,
+                'unpaywall',
+                'https://api.unpaywall.org/v2',
+                ['rate_limit' => 1.0, 'timeout' => 10, 'max_retries' => 2],
+            );
+
+            if ($unpaywall->enabled && $unpaywall->email !== null) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource(
+                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                        $http,
+                        $this->fullTextRateLimiterFor($unpaywall),
+                        $unpaywall,
+                    ),
+                );
+            }
+
+            $pmc = $this->fullTextSourceConfig(
+                $sourceConfig,
+                'pmc',
+                'https://pmc.ncbi.nlm.nih.gov/api/oai/v1/mh',
+                ['rate_limit' => 3.0, 'timeout' => 15, 'max_retries' => 2, 'prefer_pdf' => false, 'prefer_xml' => true],
+            );
+
+            if ($pmc->enabled) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource(
+                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                        $http,
+                        $this->fullTextRateLimiterFor($pmc),
+                        $pmc,
+                    ),
+                );
+            }
+
+            $europePmc = $this->fullTextSourceConfig(
+                $sourceConfig,
+                'europe_pmc',
+                'https://www.ebi.ac.uk/europepmc/webservices/rest',
+                ['rate_limit' => 1.0, 'timeout' => 15, 'max_retries' => 2, 'prefer_pdf' => true, 'prefer_xml' => true],
+            );
+
+            if ($europePmc->enabled) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource(
+                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                        $http,
+                        $this->fullTextRateLimiterFor($europePmc),
+                        $europePmc,
+                    ),
+                );
+            }
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'arxiv')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource();
+            }
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'openalex')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource();
+            }
+
+            if ($this->fullTextSourceEnabled($sourceConfig, 'semantic_scholar')) {
+                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource();
+            }
+
             return new \Nexus\Dissemination\Domain\Port\FullTextSourceCollection(
-                new \Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource(),
-                new \Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource(),
-                new \Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource(),
-                new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource(),
+                ...$sources,
             );
         });
     }
@@ -239,6 +308,52 @@ final class NexusServiceProvider extends ServiceProvider
 
     private function rateLimiterFor(ProviderConfig $config): TokenBucketRateLimiter
     {
+        return new TokenBucketRateLimiter(
+            ratePerSecond: $config->ratePerSecond,
+            capacity: max(1.0, $config->ratePerSecond),
+        );
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $sourceConfig
+     * @param array<string, mixed> $defaults
+     */
+    private function fullTextSourceConfig(
+        array $sourceConfig,
+        string $alias,
+        string $baseUrl,
+        array $defaults,
+    ): \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig {
+        $values = $sourceConfig[$alias] ?? [];
+
+        return \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig::fromArray(
+            $alias,
+            $baseUrl,
+            is_array($values) ? $values : [],
+            $defaults,
+        );
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $sourceConfig
+     */
+    private function fullTextSourceEnabled(array $sourceConfig, string $alias): bool
+    {
+        $values = $sourceConfig[$alias] ?? [];
+        if (! is_array($values) || ! array_key_exists('enabled', $values)) {
+            return true;
+        }
+
+        if (is_bool($values['enabled'])) {
+            return $values['enabled'];
+        }
+
+        return filter_var($values['enabled'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true;
+    }
+
+    private function fullTextRateLimiterFor(
+        \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig $config,
+    ): TokenBucketRateLimiter {
         return new TokenBucketRateLimiter(
             ratePerSecond: $config->ratePerSecond,
             capacity: max(1.0, $config->ratePerSecond),

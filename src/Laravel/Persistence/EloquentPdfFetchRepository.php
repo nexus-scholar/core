@@ -30,6 +30,7 @@ final class EloquentPdfFetchRepository implements PdfFetchRepositoryPort
             'file_path'     => $result->filePath,
             'duration_ms'   => $durationMs,
             'error_message' => $result->errorMessage,
+            'metadata'      => $result->metadata === [] ? null : $result->metadata,
             'attempted_at'  => now(),
         ]);
     }

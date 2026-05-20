@@ -11,6 +11,7 @@ enum WorkIdNamespace: string
     case OPENALEX = 'openalex';
     case S2       = 's2';
     case PUBMED   = 'pubmed';
+    case PMCID    = 'pmcid';
     case IEEE     = 'ieee';
     case DOAJ     = 'doaj';
     case INTERNAL = 'internal';

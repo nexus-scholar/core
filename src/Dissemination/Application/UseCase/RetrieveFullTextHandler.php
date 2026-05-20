@@ -7,7 +7,10 @@ namespace Nexus\Dissemination\Application\UseCase;
 use DateTimeImmutable;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
+use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
+use Nexus\Dissemination\Domain\Port\FullTextSourceCandidate;
+use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
 use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
@@ -37,7 +40,7 @@ final readonly class RetrieveFullTextHandler
             return FullTextResult::success($existingPath, 'cache');
         }
 
-        $lastFailure = null;
+        $lastResult = null;
 
         foreach ($this->sources->all() as $source) {
             if (! $source->supports($command->work)) {
@@ -45,11 +48,30 @@ final readonly class RetrieveFullTextHandler
             }
 
             $startTime = hrtime(true);
-            $url = null;
+            $candidate = null;
 
             try {
-                $url = $source->resolve($command->work);
+                $candidate = $this->candidateFor($source, $command->work);
+                $url = $candidate?->url;
+
                 if ($url === null) {
+                    continue;
+                }
+
+                $metadata = $this->metadataFor($candidate);
+
+                if (! $candidate->isPdf()) {
+                    $result = FullTextResult::skipped(
+                        sprintf(
+                            'Source resolved a %s full-text artifact; storage for non-PDF artifacts is not implemented yet.',
+                            $candidate->artifactType->value,
+                        ),
+                        $source->alias(),
+                        $metadata,
+                    );
+                    $this->repository->save($workId, $url, $result, $this->elapsedMs($startTime));
+                    $lastResult = $result;
+
                     continue;
                 }
 
@@ -64,20 +86,51 @@ final readonly class RetrieveFullTextHandler
                 $fullPath = $this->storagePathFor($command, $workId, $source->alias());
                 $storedPath = $this->storage->store($fullPath, $content);
 
-                $result = FullTextResult::success($storedPath, $source->alias(), $downloadResult->statusCode);
+                $result = FullTextResult::success(
+                    $storedPath,
+                    $source->alias(),
+                    $downloadResult->statusCode,
+                    $metadata,
+                );
                 $this->repository->save($workId, $url, $result, $this->elapsedMs($startTime));
 
                 return $result;
             } catch (Throwable $e) {
                 $status = method_exists($e, 'getCode') ? $e->getCode() : null;
-                $result = FullTextResult::failure($e->getMessage(), $source->alias(), (int) $status);
-                $this->repository->save($workId, $url ?? 'unknown', $result, $this->elapsedMs($startTime));
-                $lastFailure = $result;
+                $metadata = $candidate instanceof FullTextSourceCandidate ? $this->metadataFor($candidate) : [];
+                $result = FullTextResult::failure($e->getMessage(), $source->alias(), (int) $status, $metadata);
+                $this->repository->save($workId, $candidate?->url ?? 'unknown', $result, $this->elapsedMs($startTime));
+                $lastResult = $result;
                 // Continue to next source
             }
         }
 
-        return $lastFailure ?? FullTextResult::failure("No PDF found across all sources");
+        return $lastResult ?? FullTextResult::failure("No PDF found across all sources");
+    }
+
+    private function candidateFor(FullTextSourcePort $source, \Nexus\Search\Domain\ScholarlyWork $work): ?FullTextSourceCandidate
+    {
+        if ($source instanceof FullTextCandidateSourcePort) {
+            return $source->resolveCandidate($work);
+        }
+
+        $url = $source->resolve($work);
+
+        return $url === null ? null : FullTextSourceCandidate::pdf($url);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function metadataFor(FullTextSourceCandidate $candidate): array
+    {
+        return array_filter(
+            [
+                'artifact_type' => $candidate->artifactType->value,
+                ...$candidate->metadata,
+            ],
+            static fn (mixed $value): bool => $value !== null && $value !== '',
+        );
     }
 
     private function isInFailedAttemptCooldown(
