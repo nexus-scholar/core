@@ -43,7 +43,15 @@ P2 full-text retrieval is also implemented beyond the original PDF-only scope:
 - PDF validation remains strict: non-PDF responses, oversized payloads, and mismatched content types are rejected before storage.
 - Full-text source metadata, licenses, OA status, and source evidence are carried into audit metadata when available.
 
-The next primary focus is no longer "start citation networks" or "harden full-text retrieval". It is to finish the remaining P2 surfaces: export history, release readiness, and lock-policy integration around future mutation paths.
+P3 release validation is implemented:
+
+- Composer scripts exist for `test`, `test:unit`, `test:feature`, `analyse`, `format`, and `format:check`.
+- PHPStan runs at an intentionally low starter level over `src`.
+- Laravel Pint configuration exists, with changed-file checks in CI to avoid a noisy full-tree formatting rewrite.
+- GitHub Actions validates Composer metadata, tests supported PHP/Laravel combinations, runs static analysis, and checks formatting.
+- `.gitattributes` keeps local/dev artifacts out of package archives.
+
+The next primary focus is no longer "start citation networks", "harden full-text retrieval", or "add release tooling". It is host-app integration and handoff readiness: CLI/HTTP surfaces for package use cases, lock-policy decisions, job progress read models, export list/download flows, and release packaging checks.
 
 ## P0: Stabilization Guardrails
 
@@ -684,13 +692,15 @@ Done criteria:
 
 ## P3: Release Readiness
 
-Status: partially ready, mostly pending
+Status: baseline release validation done; release packaging checks remain.
 
 Current state:
-- GitHub Actions runs Pest across PHP `8.4`/`8.5` and Laravel `12.*`/`13.*`.
-- Composer scripts for `test`, `test:unit`, `test:feature`, `analyse`, `format`, and `format:check` are not present.
-- Static analysis and formatter configuration are not present in `core`.
-- `.gitattributes` is not present.
+- GitHub Actions runs on PHP `8.3` with Laravel `12.*`, plus PHP `8.4` with Laravel `12.*` and `13.*`.
+- Composer scripts are present for `test`, `test:unit`, `test:feature`, `analyse`, `format`, and `format:check`.
+- PHPStan configuration is present at level 1 over `src`.
+- Laravel Pint configuration is present.
+- `.gitattributes` is present with export-ignore rules for local/dev artifacts.
+- `composer audit --format=plain` still reports existing Symfony advisories in transitive dependencies; audit enforcement should wait until those are upgraded or explicitly accepted.
 
 ### P3.1 Remove Local Artifacts
 
@@ -701,11 +711,11 @@ Plan:
 1. Audit tracked files for IDE config, logs, cache files, generated app artifacts, and agent-only drafts.
 2. Move contributor-useful docs into `docs/`.
 3. Remove or ignore local-only files.
-4. Add `.gitattributes` export-ignore rules if needed.
+4. Keep `.gitattributes` export-ignore rules current as release assets change.
 
 Tests:
 - `git status --ignored` inspection.
-- Composer archive smoke check if release tooling is added.
+- Composer archive smoke check before tagging.
 
 Done criteria:
 - Source distribution contains package code, tests, docs, and config only.
@@ -721,11 +731,11 @@ Recommendation:
 - Generate a baseline only if necessary, then reduce it over time.
 
 Plan:
-1. Add dev dependency.
-2. Add `phpstan.neon`.
+1. Keep `phpstan/phpstan` as a dev dependency.
+2. Maintain `phpstan.neon.dist`.
 3. Analyze `src` first.
 4. Add tests only after source passes or with a separate config.
-5. Add CI job.
+5. Ratchet the level upward as dynamic Laravel repository noise is reduced.
 
 Done criteria:
 - `composer analyse` runs locally and in CI.
@@ -737,16 +747,16 @@ Objective:
 - Make style checks boring and repeatable.
 
 Plan:
-1. Add Laravel Pint or PHP CS Fixer.
-2. Add config matching project style.
-3. Add composer scripts:
+1. Keep Laravel Pint as the formatter.
+2. Keep config matching project style.
+3. Keep composer scripts:
    - `test`
    - `test:unit`
    - `test:feature`
    - `analyse`
    - `format`
    - `format:check`
-4. Update README with `uv` and Composer command usage as appropriate.
+4. Move from changed-file formatting checks to full-tree checks only after a deliberate formatting PR.
 
 Done criteria:
 - New dev can run one documented command for tests and one for formatting.
@@ -757,11 +767,11 @@ Objective:
 - Match declared support and catch package integration drift.
 
 Current state:
-- GitHub Actions runs Pest on PHP `8.4` and `8.5` with Laravel `12.*` and `13.*`.
-- The declared package support is PHP `^8.3`, so PHP `8.3` still needs explicit CI coverage unless the declared support changes.
+- GitHub Actions runs on PHP `8.3` with Laravel `12.*`, plus PHP `8.4` with Laravel `12.*` and `13.*`.
+- The matrix matches current declared PHP support while avoiding unsupported Laravel 13 on PHP 8.3.
 
 Plan:
-1. Add PHP `8.3` coverage or update the declared PHP support if `8.3` is no longer intended.
+1. Keep PHP `8.3` coverage while package support remains `^8.3`.
 2. Test Laravel/Testbench compatibility versions declared by composer constraints.
 3. Run:
    - Composer validate.
@@ -777,20 +787,20 @@ Done criteria:
 
 ## Recommended New Developer Onboarding Path
 
-Give the new developer a contained P2 slice, not a sweeping feature. P0 and P1 are now closed.
+Give the new developer a contained integration slice, not a sweeping feature. P0, P1, and baseline P3 validation are now closed.
 
 Best first assignment:
-- P2.5 export history and format validation.
+- Lock-policy integration for screening, graph mutation, and export workflows.
 
 Why:
-- The search, deduplication, full-text retrieval, citation graph, snowballing, job lifecycle, snowball progress, and corpus lock lifecycle foundations are now in place.
-- The next risk is making exports auditable and repeatable before the package moves toward release readiness.
+- The search, deduplication, full-text retrieval, citation graph, snowballing, job lifecycle, snowball progress, export history, and corpus lock lifecycle foundations are now in place.
+- The next risk is inconsistent host-app behavior when users mutate, screen, export, or rebuild after locking a corpus.
 
 Second assignment:
-- Add lock-policy checks to future graph mutation and screening write paths.
+- Build package read models and CLI/HTTP surfaces for job progress, export history, and stored full-text artifacts.
 
 Third assignment:
-- P3 release readiness: composer scripts, static analysis, formatting, and CI matrix cleanup.
+- Release packaging: archive smoke test, advisory review, versioning/tagging policy, and Packagist readiness.
 
 ## Cross-Repo Working Rules
 
