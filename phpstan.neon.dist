@@ -1,0 +1,15 @@
+parameters:
+    level: 1
+    paths:
+        - src
+    tmpDir: tmp/phpstan
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        -
+            identifier: staticMethod.notFound
+            paths:
+                - src/Laravel/Persistence/*
+                - src/Laravel/Persistence/Repository/*
+        -
+            identifier: nullCoalesce.variable
+            path: src/Shared/ValueObject/Author.php
