@@ -8,7 +8,7 @@ use Nexus\Deduplication\Domain\Port\ClusterRepositoryPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\TransactionPort;
 
-final class LockCorpusHandler
+final class UnlockCorpusHandler
 {
     public function __construct(
         private readonly ClusterRepositoryPort $clusterRepository,
@@ -16,10 +16,10 @@ final class LockCorpusHandler
         private readonly TransactionPort $transactions,
     ) {}
 
-    public function handle(LockCorpus $command): void
+    public function handle(UnlockCorpus $command): void
     {
         $this->transactions->run(function () use ($command): void {
-            $this->projectLocks->lock(
+            $this->projectLocks->unlock(
                 projectId: $command->projectId,
                 actorId: $command->actorId,
                 reason: $command->reason,
@@ -29,8 +29,8 @@ final class LockCorpusHandler
             $clusters = $this->clusterRepository->findByProject($command->projectId);
 
             foreach ($clusters as $cluster) {
-                if (!$cluster->isLocked) {
-                    $cluster->isLocked = true;
+                if ($cluster->isLocked) {
+                    $cluster->isLocked = false;
                     $this->clusterRepository->save($cluster);
                 }
             }

@@ -24,6 +24,7 @@ use Nexus\Search\Application\UseCase\PersistentSearchRunner;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Infrastructure\Plan\YamlSearchPlanParser;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
+use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\TransactionPort;
 use Psr\Log\LoggerInterface;
@@ -39,6 +40,7 @@ final class NexusServiceProvider extends ServiceProvider
 
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
         $this->app->singleton(ProjectLockPort::class, \Nexus\Laravel\Persistence\EloquentProjectLock::class);
+        $this->app->singleton(ProjectLockLifecyclePort::class, fn ($app) => $app->make(ProjectLockPort::class));
         $this->app->singleton(TransactionPort::class, \Nexus\Laravel\Persistence\LaravelTransaction::class);
         $this->app->singleton(JobLifecycleRecorderPort::class, \Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder::class);
 

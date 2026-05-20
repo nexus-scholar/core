@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nexus\Deduplication\Application;
 
-final class LockCorpus
+final class UnlockCorpus
 {
     /**
      * @param array<string, mixed> $metadata

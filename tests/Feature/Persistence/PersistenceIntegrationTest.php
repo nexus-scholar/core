@@ -11,6 +11,7 @@ use Nexus\Search\Domain\Port\SearchQueryRepositoryPort;
 use Nexus\Deduplication\Domain\Port\ClusterRepositoryPort;
 use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
+use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\TransactionPort;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
@@ -62,6 +63,7 @@ it('all repository port bindings resolve from the container', function () {
         ->and(app(CitationGraphRepositoryPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\Repository\EloquentCitationGraphRepository::class)
         ->and(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder::class)
         ->and(app(ProjectLockPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\EloquentProjectLock::class)
+        ->and(app(ProjectLockLifecyclePort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\EloquentProjectLock::class)
         ->and(app(TransactionPort::class))->toBeInstanceOf(\Nexus\Laravel\Persistence\LaravelTransaction::class);
 });
 
