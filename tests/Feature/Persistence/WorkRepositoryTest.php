@@ -9,6 +9,7 @@ use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Author;
+use Nexus\Shared\ValueObject\OrcidId;
 use Nexus\Shared\ValueObject\Venue;
 use Tests\Support\PersistenceFactory;
 use Illuminate\Support\Facades\DB;
@@ -149,6 +150,36 @@ it('saves a work with a full author list and reconstructs author order', functio
         ->and($loaded->authors()->get(0)->familyName)->toBe('Alpha')
         ->and($loaded->authors()->get(1)->familyName)->toBe('Beta')
         ->and($loaded->authors()->get(2)->familyName)->toBe('Gamma');
+});
+
+it('deduplicates repeated authors when syncing a work', function () {
+    $authors = AuthorList::fromArray([
+        new Author(familyName: 'Alpha', givenName: 'A', orcid: new OrcidId('0000-0001-6191-9238')),
+        new Author(familyName: 'Beta', givenName: 'B'),
+        new Author(familyName: 'Alpha', givenName: 'A'),
+    ]);
+
+    $work = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.4444/duplicate-authors')]),
+        title: 'Duplicate Author Test',
+        sourceProvider: 'test',
+        authors: $authors
+    );
+
+    $this->repo->save($work);
+
+    $loaded = $this->repo->findById($work->primaryId());
+    $internalId = $loaded->ids()->findByNamespace(WorkIdNamespace::INTERNAL)->value;
+    $positions = DB::table('work_authors')
+        ->where('work_id', $internalId)
+        ->orderBy('position')
+        ->pluck('position')
+        ->all();
+
+    expect($loaded->authors()->all())->toHaveCount(2)
+        ->and($loaded->authors()->get(0)->familyName)->toBe('Alpha')
+        ->and($loaded->authors()->get(1)->familyName)->toBe('Beta')
+        ->and($positions)->toBe([0, 1]);
 });
 
 it('saves a work with venue data and reconstructs venue', function () {

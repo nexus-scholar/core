@@ -134,19 +134,80 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
 
         // Re-sync authors (delete old, insert new with position)
         $row->authors()->delete();
-        foreach ($work->authors()->all() as $i => $author) {
-            $authorRow = EloquentAuthor::firstOrCreate(
-                ['full_name' => $author->familyName . ($author->givenName ? ', ' . $author->givenName : '')],
-                ['id' => (string) Str::uuid(), 'normalized_name' => mb_strtolower($author->familyName)]
-            );
+        $position = 0;
+        $seenAuthorIds = [];
 
+        foreach ($this->uniqueAuthors($work->authors()) as $author) {
+            $authorRow = $this->findOrCreateAuthor($author);
+
+            if (isset($seenAuthorIds[$authorRow->id])) {
+                continue;
+            }
+
+            $seenAuthorIds[$authorRow->id] = true;
             $row->authors()->create([
                 'id'        => (string) Str::uuid(),
                 'author_id' => $authorRow->id,
-                'position'  => $i,
+                'position'  => $position++,
                 'is_corresponding' => false,
             ]);
         }
+    }
+
+    /**
+     * @return Author[]
+     */
+    private function uniqueAuthors(AuthorList $authors): array
+    {
+        $unique = [];
+        $seen = [];
+
+        foreach ($authors->all() as $author) {
+            $key = $this->authorIdentityKey($author);
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $unique[] = $author;
+        }
+
+        return $unique;
+    }
+
+    private function authorIdentityKey(Author $author): string
+    {
+        if ($author->orcid !== null) {
+            return 'orcid:' . $author->orcid->toString();
+        }
+
+        return 'name:' . $author->normalizedFullName;
+    }
+
+    private function findOrCreateAuthor(Author $author): EloquentAuthor
+    {
+        $fullName = $author->familyName . ($author->givenName ? ', ' . $author->givenName : '');
+        $orcid = $author->orcid?->toString();
+
+        if ($orcid !== null) {
+            return EloquentAuthor::firstOrCreate(
+                ['orcid' => $orcid],
+                [
+                    'id' => (string) Str::uuid(),
+                    'full_name' => $fullName,
+                    'normalized_name' => $author->normalizedFullName,
+                ]
+            );
+        }
+
+        return EloquentAuthor::firstOrCreate(
+            ['full_name' => $fullName],
+            [
+                'id' => (string) Str::uuid(),
+                'normalized_name' => $author->normalizedFullName,
+            ]
+        );
     }
 
     /**
