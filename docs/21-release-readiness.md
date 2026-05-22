@@ -6,7 +6,7 @@ This document defines the release gate for `nexus-scholar/core`. It is intention
 
 ## Current Status
 
-Ready for pre-release consumers:
+Ready for pre-1.0 Laravel consumers:
 
 - Composer metadata validates strictly.
 - Composer scripts exist for tests, static analysis, and formatting checks.
@@ -16,12 +16,11 @@ Ready for pre-release consumers:
 - Domain and application layers are guarded against framework leakage by architecture tests.
 - Legal OA full-text retrieval avoids shadow-library adapters.
 - Immutable locked corpus snapshots back final/citable corpus membership after lock.
-- A clean Laravel consumer smoke passes when installing `nexus-scholar/core:dev-master`.
+- A clean Laravel consumer smoke passes when installing `nexus-scholar/core:^0.1`.
 - `v0.1.0` release notes and a pre-1.0 versioning policy are documented.
 
 Not ready for a stable `1.0` tag yet:
 
-- `nexus-scholar/core` has no stable Packagist tag yet, so `composer require nexus-scholar/core` fails under default Laravel `minimum-stability=stable`.
 - Host-facing HTTP/API surfaces are not part of this package yet.
 
 ## Release Gate
@@ -46,10 +45,10 @@ The archive smoke check should succeed and produce a package zip that excludes:
 
 ## Consumer Install Check
 
-Before a stable release, test installation from a clean Laravel application:
+Before a release, test installation from a clean Laravel application:
 
 ```powershell
-composer require nexus-scholar/core
+composer require nexus-scholar/core:^0.1
 php artisan vendor:publish --tag=nexus-config
 php artisan vendor:publish --tag=nexus-migrations
 php artisan migrate
@@ -76,15 +75,7 @@ Clean app:
 Stable install status:
 
 ```powershell
-composer require nexus-scholar/core
-```
-
-Result: blocked until a stable core tag exists. Composer reports that no version matches the host app's default `minimum-stability=stable`.
-
-Pre-release install status:
-
-```powershell
-composer require nexus-scholar/core:dev-master -W
+composer require nexus-scholar/core:^0.1
 php artisan vendor:publish --tag=nexus-config --force
 php artisan vendor:publish --tag=nexus-migrations --force
 php artisan migrate
@@ -93,9 +84,21 @@ php artisan list nexus
 
 Result: passed. Composer installed:
 
-- `nexus-scholar/core` at `dev-master` commit `77988a7`
-- `nexus-scholar/graph-core` through the local path repository
-- `mbsoft31/graph-algorithms` at `v1.0.0`
+- `nexus-scholar/core` at `v0.1.0`
+- `nexus-scholar/graph-core` at `v1.2.0`
+- `mbsoft31/graph-algorithms` at `v1.1.0`
+
+Published Laravel resources:
+
+- `nexus-config`
+- `nexus-migrations`
+
+Migration result: passed through `2026_04_28_000010_create_corpus_snapshots_table`.
+
+Package-owned commands discovered:
+
+- `nexus:search`
+- `nexus:screen`
 
 External Composer package smoke after graph package releases:
 
@@ -153,6 +156,6 @@ Never commit real credentials. Provider availability should be controlled throug
 
 Priority order:
 
-1. Tag `v0.1.0`, then rerun `composer require nexus-scholar/core:^0.1` without `dev-master`.
-2. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
-3. Repeat Packagist/package archive review after the core tag is published.
+1. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
+2. Repeat Packagist/package archive review before the next tag.
+3. Decide the `0.2.0` scope and keep breaking API changes explicit until `1.0.0`.
