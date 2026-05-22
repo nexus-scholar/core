@@ -3,13 +3,16 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
+use Nexus\Laravel\Command\NexusScreenCommand;
 use Nexus\Laravel\Command\NexusSearchCommand;
 
-it('registers the reusable nexus search command', function (): void {
+it('registers the reusable nexus console commands', function (): void {
     $commands = app(Kernel::class)->all();
 
     expect($commands)->toHaveKey('nexus:search')
-        ->and($commands['nexus:search'])->toBeInstanceOf(NexusSearchCommand::class);
+        ->and($commands['nexus:search'])->toBeInstanceOf(NexusSearchCommand::class)
+        ->and($commands)->toHaveKey('nexus:screen')
+        ->and($commands['nexus:screen'])->toBeInstanceOf(NexusScreenCommand::class);
 });
 
 it('does not register planned or removed nexus commands', function (): void {

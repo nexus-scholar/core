@@ -120,4 +120,39 @@ return [
             ],
         ],
     ],
+
+    'screening' => [
+        'llm' => [
+            'enabled' => env('NEXUS_LLM_SCREENING_ENABLED', false),
+            'provider' => env('NEXUS_LLM_PROVIDER', 'openrouter'),
+            'model' => env('NEXUS_LLM_SCREENING_MODEL', 'openai/gpt-4.1-mini'),
+            'temperature' => env('NEXUS_LLM_SCREENING_TEMPERATURE', 0),
+            'max_tokens' => env('NEXUS_LLM_SCREENING_MAX_TOKENS', 600),
+            'timeout' => env('NEXUS_LLM_SCREENING_TIMEOUT', 45),
+            'store_prompts' => env('NEXUS_LLM_SCREENING_STORE_PROMPTS', false),
+            'store_raw_responses' => env('NEXUS_LLM_SCREENING_STORE_RAW_RESPONSES', false),
+
+            'openrouter' => [
+                'api_key' => env('NEXUS_LLM_OPENROUTER_API_KEY'),
+                'base_url' => env('NEXUS_LLM_OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
+                'app_name' => env('NEXUS_LLM_OPENROUTER_APP_NAME', 'Nexus Scholar'),
+                'referer' => env('NEXUS_LLM_OPENROUTER_REFERER'),
+            ],
+
+            'council' => [
+                'enabled' => env('NEXUS_LLM_SCREENING_COUNCIL_ENABLED', false),
+                'mode' => env('NEXUS_LLM_SCREENING_COUNCIL_MODE', 'uncertain'),
+                'models' => array_filter(array_map(
+                    'trim',
+                    explode(',', env(
+                        'NEXUS_LLM_SCREENING_COUNCIL_MODELS',
+                        'openai/gpt-4.1-mini,google/gemini-2.5-flash,anthropic/claude-3.5-haiku'
+                    ))
+                )),
+                'strategy' => env('NEXUS_LLM_SCREENING_COUNCIL_STRATEGY', 'conservative_majority'),
+                'confidence_threshold' => env('NEXUS_LLM_SCREENING_COUNCIL_CONFIDENCE_THRESHOLD', 0.75),
+                'disagreement_decision' => env('NEXUS_LLM_SCREENING_COUNCIL_DISAGREEMENT_DECISION', 'needs_review'),
+            ],
+        ],
+    ],
 ];

@@ -18,13 +18,28 @@ use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\NetworkSerializerCollection;
 use Nexus\Dissemination\Domain\Port\SerializerCollection;
-use Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer;
 use Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource;
+use Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer;
 use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
+use Nexus\Laravel\Persistence\EloquentScreeningWorkSource;
+use Nexus\Laravel\Persistence\Repository\EloquentScreeningDecisionRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentScreeningRunRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentScreeningVoteRepository;
+use Nexus\Screening\Application\Port\LlmClientPort;
+use Nexus\Screening\Application\Port\ScreeningDecisionRepositoryPort;
+use Nexus\Screening\Application\Port\ScreeningPromptRendererPort;
+use Nexus\Screening\Application\Port\ScreeningRunRepositoryPort;
+use Nexus\Screening\Application\Port\ScreeningVoteRepositoryPort;
+use Nexus\Screening\Application\Port\ScreeningWorkSourcePort;
+use Nexus\Screening\Application\UseCase\ScreenCorpusHandler;
+use Nexus\Screening\Application\UseCase\ScreenWorkHandler;
+use Nexus\Screening\Domain\CouncilDecisionAggregator;
+use Nexus\Screening\Infrastructure\Llm\DisabledLlmClient;
+use Nexus\Screening\Infrastructure\Prompt\DefaultScreeningPromptRenderer;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
 
 it('builds provider configs from laravel package config', function (): void {
@@ -92,6 +107,18 @@ it('registers enabled snowballing providers from provider config', function (): 
 
 it('binds the default sql-backed job lifecycle recorder', function (): void {
     expect(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(EloquentJobLifecycleRecorder::class);
+});
+
+it('binds screening repositories and council aggregation services', function (): void {
+    expect(app(ScreeningRunRepositoryPort::class))->toBeInstanceOf(EloquentScreeningRunRepository::class)
+        ->and(app(ScreeningDecisionRepositoryPort::class))->toBeInstanceOf(EloquentScreeningDecisionRepository::class)
+        ->and(app(ScreeningVoteRepositoryPort::class))->toBeInstanceOf(EloquentScreeningVoteRepository::class)
+        ->and(app(ScreeningWorkSourcePort::class))->toBeInstanceOf(EloquentScreeningWorkSource::class)
+        ->and(app(CouncilDecisionAggregator::class))->toBeInstanceOf(CouncilDecisionAggregator::class)
+        ->and(app(ScreeningPromptRendererPort::class))->toBeInstanceOf(DefaultScreeningPromptRenderer::class)
+        ->and(app(LlmClientPort::class))->toBeInstanceOf(DisabledLlmClient::class)
+        ->and(app(ScreenCorpusHandler::class))->toBeInstanceOf(ScreenCorpusHandler::class)
+        ->and(app(ScreenWorkHandler::class))->toBeInstanceOf(ScreenWorkHandler::class);
 });
 
 it('binds export history and export handlers', function (): void {
