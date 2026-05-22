@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f1e4380961f5d290e20d6466e843eb6d",
+    "content-hash": "105355667aea613fc248fca02a3c39b8",
     "packages": [
         {
             "name": "composer/ca-bundle",
@@ -406,14 +406,14 @@
         },
         {
             "name": "mbsoft31/graph-algorithms",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "dist": {
                 "type": "path",
                 "url": "../graph-algorithms",
-                "reference": "e1e2b7630c35b60b14adf00cf1bb73485d1204f8"
+                "reference": "faa5161389062783188b1e1f43cc014b8dafe890"
             },
             "require": {
-                "mbsoft31/graph-core": "^1.0",
+                "nexus-scholar/graph-core": "^1.0",
                 "php": "^8.2"
             },
             "require-dev": {
@@ -459,7 +459,7 @@
             "dist": {
                 "type": "path",
                 "url": "../graph-core",
-                "reference": "ea5eae39cf355089ba1ed208480a2bda873a7502"
+                "reference": "f55dd89c8c8faf9fbb554e0b94248c1ede2cb7bd"
             },
             "require": {
                 "ext-dom": "*",
