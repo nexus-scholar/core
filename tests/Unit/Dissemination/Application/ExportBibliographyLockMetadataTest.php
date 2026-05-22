@@ -12,9 +12,11 @@ use Nexus\Dissemination\Domain\Port\SerializerCollection;
 use Nexus\Dissemination\Infrastructure\Serializer\CsvSerializer;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\ProjectWorkMembershipPort;
+use Nexus\Shared\ValueObject\CorpusSnapshot;
 use Nexus\Shared\ValueObject\ProjectLockState;
 use Tests\Support\PersistenceFactory;
 
@@ -34,6 +36,12 @@ it('records project lock state in bibliography export history metadata', functio
                 status: 'locked',
                 lockedAt: new DateTimeImmutable('2026-05-22T12:00:00+00:00'),
             )),
+            new ExportLockMetadataSnapshots(new CorpusSnapshot(
+                id: 'snapshot-export-1',
+                projectId: 'project-1',
+                lockedAt: new DateTimeImmutable('2026-05-22T12:00:00+00:00'),
+                workCount: 1,
+            )),
         ),
     );
 
@@ -50,7 +58,10 @@ it('records project lock state in bibliography export history metadata', functio
         'project_locked' => true,
         'locked_at' => '2026-05-22T12:00:00+00:00',
         'lock_status' => 'locked',
+        'corpus_snapshot_id' => 'snapshot-export-1',
+        'snapshot_work_count' => 1,
         'citable' => true,
+        'final' => true,
     ]);
 });
 
@@ -128,5 +139,25 @@ final class ExportLockMetadataLifecycle implements ProjectLockLifecyclePort
     public function status(string $projectId): ProjectLockState
     {
         return $this->state;
+    }
+}
+
+final class ExportLockMetadataSnapshots implements CorpusSnapshotRepositoryPort
+{
+    public function __construct(private readonly ?CorpusSnapshot $snapshot = null) {}
+
+    public function createForLockedProject(
+        string $projectId,
+        DateTimeImmutable $lockedAt,
+        ?string $actorId = null,
+        ?string $reason = null,
+        array $metadata = [],
+    ): CorpusSnapshot {
+        return $this->snapshot ?? new CorpusSnapshot($projectId.'-snapshot', $projectId, $lockedAt, 0);
+    }
+
+    public function latestForProject(string $projectId): ?CorpusSnapshot
+    {
+        return $this->snapshot?->projectId === $projectId ? $this->snapshot : null;
     }
 }

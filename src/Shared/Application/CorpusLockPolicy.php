@@ -7,6 +7,7 @@ namespace Nexus\Shared\Application;
 use Nexus\Shared\Exception\ProjectLockedException;
 use Nexus\Shared\Exception\ProjectNotFoundException;
 use Nexus\Shared\Exception\ProjectNotLockedException;
+use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\ProjectWorkMembershipPort;
@@ -18,6 +19,7 @@ final readonly class CorpusLockPolicy
         private ProjectLockPort $locks,
         private ProjectWorkMembershipPort $membership,
         private ?ProjectLockLifecyclePort $lifecycle = null,
+        private ?CorpusSnapshotRepositoryPort $snapshots = null,
     ) {}
 
     public function assertCorpusMutable(string $projectId, CorpusOperation $operation): void
@@ -70,37 +72,53 @@ final readonly class CorpusLockPolicy
                 'project_locked' => false,
                 'locked_at' => null,
                 'lock_status' => null,
+                'corpus_snapshot_id' => null,
+                'snapshot_work_count' => null,
                 'citable' => false,
+                'final' => false,
             ];
         }
 
         if ($this->lifecycle !== null) {
             try {
                 $state = $this->lifecycle->status($projectId);
+                $snapshot = $state->isLocked ? $this->snapshots?->latestForProject($projectId) : null;
+                $citable = $state->isLocked && $snapshot !== null;
 
                 return [
                     'project_locked' => $state->isLocked,
                     'locked_at' => $state->lockedAt?->format(DATE_ATOM),
                     'lock_status' => $state->status,
-                    'citable' => $state->isLocked,
+                    'corpus_snapshot_id' => $snapshot?->id,
+                    'snapshot_work_count' => $snapshot?->workCount,
+                    'citable' => $citable,
+                    'final' => $citable,
                 ];
             } catch (ProjectNotFoundException) {
                 return [
                     'project_locked' => false,
                     'locked_at' => null,
                     'lock_status' => 'unknown_project',
+                    'corpus_snapshot_id' => null,
+                    'snapshot_work_count' => null,
                     'citable' => false,
+                    'final' => false,
                 ];
             }
         }
 
         $locked = $this->locks->isLocked($projectId);
+        $snapshot = $locked ? $this->snapshots?->latestForProject($projectId) : null;
+        $citable = $locked && $snapshot !== null;
 
         return [
             'project_locked' => $locked,
             'locked_at' => null,
             'lock_status' => $locked ? 'locked' : 'unknown',
-            'citable' => $locked,
+            'corpus_snapshot_id' => $snapshot?->id,
+            'snapshot_work_count' => $snapshot?->workCount,
+            'citable' => $citable,
+            'final' => $citable,
         ];
     }
 

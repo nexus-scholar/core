@@ -5,10 +5,12 @@ declare(strict_types=1);
 use Nexus\Shared\Application\CorpusLockPolicy;
 use Nexus\Shared\Exception\ProjectLockedException;
 use Nexus\Shared\Exception\ProjectNotLockedException;
+use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\ProjectWorkMembershipPort;
 use Nexus\Shared\ValueObject\CorpusOperation;
+use Nexus\Shared\ValueObject\CorpusSnapshot;
 use Nexus\Shared\ValueObject\ProjectLockState;
 
 it('blocks corpus mutation after a project is locked', function (): void {
@@ -54,13 +56,44 @@ it('adds citable export metadata from lock state without blocking export', funct
             status: 'locked',
             lockedAt: new DateTimeImmutable('2026-05-22T12:00:00+00:00'),
         )),
+        new CorpusPolicyTestSnapshots(new CorpusSnapshot(
+            id: 'snapshot-1',
+            projectId: 'project-1',
+            lockedAt: new DateTimeImmutable('2026-05-22T12:00:00+00:00'),
+            workCount: 2,
+        )),
     );
 
     expect($policy->exportMetadata('project-1'))->toMatchArray([
         'project_locked' => true,
         'locked_at' => '2026-05-22T12:00:00+00:00',
         'lock_status' => 'locked',
+        'corpus_snapshot_id' => 'snapshot-1',
+        'snapshot_work_count' => 2,
         'citable' => true,
+        'final' => true,
+    ]);
+});
+
+it('does not mark locked exports citable without an immutable snapshot', function (): void {
+    $policy = new CorpusLockPolicy(
+        new CorpusPolicyTestLocks(['project-1' => true]),
+        new CorpusPolicyTestMembership,
+        new CorpusPolicyTestLifecycle(new ProjectLockState(
+            projectId: 'project-1',
+            isLocked: true,
+            status: 'locked',
+            lockedAt: new DateTimeImmutable('2026-05-22T12:00:00+00:00'),
+        )),
+        new CorpusPolicyTestSnapshots,
+    );
+
+    expect($policy->exportMetadata('project-1'))->toMatchArray([
+        'project_locked' => true,
+        'locked_at' => '2026-05-22T12:00:00+00:00',
+        'corpus_snapshot_id' => null,
+        'citable' => false,
+        'final' => false,
     ]);
 });
 
@@ -107,5 +140,33 @@ final class CorpusPolicyTestLifecycle implements ProjectLockLifecyclePort
     public function status(string $projectId): ProjectLockState
     {
         return $this->state;
+    }
+}
+
+final class CorpusPolicyTestSnapshots implements CorpusSnapshotRepositoryPort
+{
+    public function __construct(private readonly ?CorpusSnapshot $snapshot = null) {}
+
+    public function createForLockedProject(
+        string $projectId,
+        DateTimeImmutable $lockedAt,
+        ?string $actorId = null,
+        ?string $reason = null,
+        array $metadata = [],
+    ): CorpusSnapshot {
+        return $this->snapshot ?? new CorpusSnapshot(
+            id: 'created-snapshot',
+            projectId: $projectId,
+            lockedAt: $lockedAt,
+            workCount: 0,
+            createdBy: $actorId,
+            lockReason: $reason,
+            metadata: $metadata,
+        );
+    }
+
+    public function latestForProject(string $projectId): ?CorpusSnapshot
+    {
+        return $this->snapshot?->projectId === $projectId ? $this->snapshot : null;
     }
 }

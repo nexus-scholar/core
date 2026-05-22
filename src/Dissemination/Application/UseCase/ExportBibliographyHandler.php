@@ -10,7 +10,10 @@ use Nexus\Dissemination\Domain\ExportType;
 use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\SerializerCollection;
+use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\ValueObject\CorpusOperation;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
 use RuntimeException;
 
 final readonly class ExportBibliographyHandler
@@ -31,6 +34,14 @@ final readonly class ExportBibliographyHandler
             $command->format->extension(),
             $command->format->value,
         );
+
+        if ($command->projectId !== null && $this->lockPolicy?->isLocked($command->projectId)) {
+            $this->lockPolicy->assertWorksBelongToProject(
+                $command->projectId,
+                $this->workIdentifiers($command->corpus),
+                CorpusOperation::EXPORT,
+            );
+        }
 
         foreach ($this->serializers->all() as $serializer) {
             if ($serializer->supports($command->format)) {
@@ -63,5 +74,24 @@ final readonly class ExportBibliographyHandler
         }
 
         throw new RuntimeException("No serializer found for format: {$command->format->value}");
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function workIdentifiers(CorpusSlice $corpus): array
+    {
+        $identifiers = [];
+
+        foreach ($corpus->all() as $work) {
+            $identifier = $work->ids()->findByNamespace(WorkIdNamespace::INTERNAL)
+                ?? $work->primaryId();
+
+            if ($identifier !== null) {
+                $identifiers[] = $identifier->toString();
+            }
+        }
+
+        return $identifiers;
     }
 }

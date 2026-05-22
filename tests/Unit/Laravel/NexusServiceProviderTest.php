@@ -23,6 +23,7 @@ use Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource;
 use Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer;
+use Nexus\Laravel\Persistence\EloquentCorpusSnapshotRepository;
 use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
 use Nexus\Laravel\Persistence\EloquentScreeningWorkSource;
@@ -40,7 +41,10 @@ use Nexus\Screening\Application\UseCase\ScreenWorkHandler;
 use Nexus\Screening\Domain\CouncilDecisionAggregator;
 use Nexus\Screening\Infrastructure\Llm\DisabledLlmClient;
 use Nexus\Screening\Infrastructure\Prompt\DefaultScreeningPromptRenderer;
+use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
+use Nexus\Shared\Port\ProjectCorpusWorksPort;
+use Nexus\Shared\Port\ProjectWorkMembershipPort;
 
 it('builds provider configs from laravel package config', function (): void {
     app()->forgetInstance('nexus.provider_configs');
@@ -119,6 +123,11 @@ it('binds screening repositories and council aggregation services', function ():
         ->and(app(LlmClientPort::class))->toBeInstanceOf(DisabledLlmClient::class)
         ->and(app(ScreenCorpusHandler::class))->toBeInstanceOf(ScreenCorpusHandler::class)
         ->and(app(ScreenWorkHandler::class))->toBeInstanceOf(ScreenWorkHandler::class);
+});
+
+it('binds corpus snapshot and membership authority services', function (): void {
+    expect(app(CorpusSnapshotRepositoryPort::class))->toBeInstanceOf(EloquentCorpusSnapshotRepository::class)
+        ->and(app(ProjectWorkMembershipPort::class))->toBe(app(ProjectCorpusWorksPort::class));
 });
 
 it('uses structured-output-compatible default council screening models', function (): void {

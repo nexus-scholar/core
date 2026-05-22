@@ -8,6 +8,8 @@ use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\Port\SearchRunRecorderPort;
 use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Exception\ProjectLockedException;
+use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Throwable;
 
@@ -16,11 +18,16 @@ final class PersistentSearchRunner implements SearchExecutorPort
     public function __construct(
         private readonly SearchAcrossProvidersHandler $inner,
         private readonly SearchRunRecorderPort $recorder,
+        private readonly ?ProjectLockPort $projectLocks = null,
     ) {}
 
     public function handle(SearchAcrossProviders $command): AggregatedResult
     {
         $query = $command->query;
+        if ($this->projectLocks?->isLocked($query->projectId)) {
+            throw new ProjectLockedException("Cannot perform search on locked project {$query->projectId}");
+        }
+
         $this->recorder->recordStarted($query);
 
         try {
@@ -58,7 +65,7 @@ final class PersistentSearchRunner implements SearchExecutorPort
     }
 
     /**
-     * @param list<string> $selectedAliases
+     * @param  list<string>  $selectedAliases
      */
     private function providerAliasFor(ScholarlyWork $work, array $selectedAliases): string
     {
