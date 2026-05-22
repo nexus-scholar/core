@@ -12,4 +12,9 @@ interface ScreeningDecisionRepositoryPort
     public function record(ScreeningVerdict $verdict): void;
 
     public function latestForWork(string $projectId, string $workId, ScreeningStage $stage): ?ScreeningVerdict;
+
+    /**
+     * @return list<ScreeningVerdict>
+     */
+    public function forRun(string $screeningRunId): array;
 }

@@ -7,15 +7,19 @@ namespace Nexus\Dissemination\Application\UseCase;
 use DateTimeImmutable;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
 use Nexus\Dissemination\Domain\FullTextArtifactType;
+use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
-use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCandidate;
+use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
-use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
+use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\ValueObject\CorpusOperation;
 use Nexus\Shared\ValueObject\WorkId;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
 use RuntimeException;
 use Throwable;
 
@@ -23,16 +27,25 @@ final readonly class RetrieveFullTextHandler
 {
     public function __construct(
         private FullTextSourceCollection $sources,
-        private FileStoragePort          $storage,
-        private PdfDownloaderPort        $downloader,
-        private PdfFetchRepositoryPort   $repository,
+        private FileStoragePort $storage,
+        private PdfDownloaderPort $downloader,
+        private PdfFetchRepositoryPort $repository,
+        private ?CorpusLockPolicy $lockPolicy = null,
     ) {}
 
     public function handle(RetrieveFullText $command): FullTextResult
     {
         $workId = $command->work->primaryId();
         if ($workId === null) {
-            return FullTextResult::skipped("Work has no primary ID");
+            return FullTextResult::skipped('Work has no primary ID');
+        }
+
+        if ($command->projectId !== null && $this->lockPolicy?->isLocked($command->projectId)) {
+            $this->lockPolicy->assertWorksBelongToProject(
+                $command->projectId,
+                [$this->workIdentifier($command->work) ?? $workId->toString()],
+                CorpusOperation::RETRIEVE_FULL_TEXT,
+            );
         }
 
         // 1. Check if already successfully fetched
@@ -68,7 +81,7 @@ final readonly class RetrieveFullTextHandler
                 $downloadResult = $this->downloadWithRetry($url, $command);
                 $this->assertValidArtifact($candidate->artifactType, $downloadResult, $command->maxBytes);
                 $content = $downloadResult->content;
-                
+
                 $fullPath = $this->storagePathFor($command, $workId, $source->alias(), $candidate->artifactType);
                 $storedPath = $this->storage->store($fullPath, $content);
                 $metadata = $this->metadataWithStoredArtifacts(
@@ -99,10 +112,10 @@ final readonly class RetrieveFullTextHandler
             }
         }
 
-        return $lastResult ?? FullTextResult::failure("No full-text artifact found across all sources");
+        return $lastResult ?? FullTextResult::failure('No full-text artifact found across all sources');
     }
 
-    private function candidateFor(FullTextSourcePort $source, \Nexus\Search\Domain\ScholarlyWork $work): ?FullTextSourceCandidate
+    private function candidateFor(FullTextSourcePort $source, ScholarlyWork $work): ?FullTextSourceCandidate
     {
         if ($source instanceof FullTextCandidateSourcePort) {
             return $source->resolveCandidate($work);
@@ -166,15 +179,14 @@ final readonly class RetrieveFullTextHandler
         WorkId $workId,
         string $sourceAlias,
         FullTextArtifactType $artifactType = FullTextArtifactType::PDF,
-    ): string
-    {
+    ): string {
         $folder = $this->safeFolder($command->destinationFolder);
         $workSegment = $this->safePathSegment($workId->toString(), 80);
         $sourceSegment = $this->safePathSegment($sourceAlias, 40);
-        $hash = substr(hash('sha256', $workId->toString() . '|' . $sourceAlias), 0, 16);
+        $hash = substr(hash('sha256', $workId->toString().'|'.$sourceAlias), 0, 16);
         $filename = sprintf('%s_%s_%s.%s', $workSegment, $sourceSegment, $hash, $this->extensionFor($artifactType));
 
-        return $folder === '' ? $filename : $folder . '/' . $filename;
+        return $folder === '' ? $filename : $folder.'/'.$filename;
     }
 
     private function safeFolder(string $folder): string
@@ -296,7 +308,7 @@ final readonly class RetrieveFullTextHandler
     }
 
     /**
-     * @param array<string, mixed> $metadata
+     * @param  array<string, mixed>  $metadata
      * @return array<string, mixed>
      */
     private function metadataWithStoredArtifacts(
@@ -380,5 +392,10 @@ final readonly class RetrieveFullTextHandler
         }
 
         return $xml;
+    }
+
+    private function workIdentifier(ScholarlyWork $work): ?string
+    {
+        return ($work->ids()->findByNamespace(WorkIdNamespace::INTERNAL) ?? $work->primaryId())?->toString();
     }
 }

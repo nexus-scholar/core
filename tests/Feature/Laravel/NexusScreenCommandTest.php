@@ -10,6 +10,7 @@ use Nexus\Laravel\Model\SearchQueryModel;
 use Nexus\Screening\Application\Llm\LlmRequest;
 use Nexus\Screening\Application\Llm\LlmResponse;
 use Nexus\Screening\Application\Port\LlmClientPort;
+use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Tests\Support\PersistenceFactory;
 
 it('screens persisted project works through the reusable corpus handler', function (): void {
@@ -48,6 +49,7 @@ it('screens persisted project works through the reusable corpus handler', functi
         'uncertainty' => [],
         'exclusion_basis' => [],
     ]));
+    app(ProjectLockLifecyclePort::class)->lock($project->id, actorId: 'test-reviewer', reason: 'screening fixture');
 
     $this->artisan('nexus:screen', [
         '--project' => $project->id,

@@ -11,6 +11,8 @@ use Nexus\Screening\Domain\ScreeningRun;
 use Nexus\Screening\Domain\ScreeningRunMode;
 use Nexus\Screening\Domain\ScreeningVerdict;
 use Nexus\Screening\Domain\ScreeningWork;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\ValueObject\CorpusOperation;
 use Throwable;
 
 final readonly class ScreenCorpusHandler
@@ -19,12 +21,20 @@ final readonly class ScreenCorpusHandler
         private ScreeningWorkSourcePort $source,
         private ScreeningRunRepositoryPort $runs,
         private ScreenWorkHandler $screenWork,
+        private ?CorpusLockPolicy $lockPolicy = null,
     ) {}
 
     public function handle(ScreenCorpusCommand $command): ScreenCorpusResult
     {
         $startedAt = hrtime(true);
         $runId = $command->runId();
+
+        $this->lockPolicy?->assertCorpusLocked($command->projectId, CorpusOperation::SCREEN);
+        $this->lockPolicy?->assertWorksBelongToProject(
+            $command->projectId,
+            $command->workIds,
+            CorpusOperation::SCREEN,
+        );
 
         $this->runs->start(ScreeningRun::start(
             id: $runId,

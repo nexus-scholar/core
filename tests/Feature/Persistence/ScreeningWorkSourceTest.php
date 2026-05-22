@@ -9,6 +9,7 @@ use Nexus\Laravel\Model\SearchQueryModel;
 use Nexus\Laravel\Model\WorkExternalIdModel;
 use Nexus\Laravel\Model\WorkProviderModel;
 use Nexus\Screening\Application\Port\ScreeningWorkSourcePort;
+use Nexus\Shared\Port\ProjectWorkMembershipPort;
 use Tests\Support\PersistenceFactory;
 
 it('loads distinct project works as screening work inputs with provenance', function (): void {
@@ -44,6 +45,23 @@ it('loads distinct project works as screening work inputs with provenance', func
             'openalex' => 'w123',
         ])
         ->and($works[0]->metadata['provider_aliases'])->toContain('openalex', 'semantic_scholar');
+});
+
+it('resolves project work membership by internal and external work ids', function (): void {
+    $project = PersistenceFactory::makeProject('Membership Project');
+    $query = makeScreeningSourceQuery($project->id, 'tomato segmentation');
+    $work = makeScreeningSourceWork('work-membership-1', 'Tomato segmentation membership', 'openalex', [
+        'doi' => '10.1000/member',
+    ]);
+    linkSourceWork($query->id, $work->id, 'openalex', 1);
+
+    $missing = app(ProjectWorkMembershipPort::class)->missingWorkIds($project->id, [
+        'work-membership-1',
+        'doi:10.1000/member',
+        'missing-work',
+    ]);
+
+    expect($missing)->toBe(['missing-work']);
 });
 
 function makeScreeningSourceQuery(string $projectId, string $queryText): SearchQueryModel

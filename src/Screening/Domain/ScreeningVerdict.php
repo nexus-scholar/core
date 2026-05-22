@@ -8,6 +8,7 @@ final readonly class ScreeningVerdict
 {
     /**
      * @param  list<ScreeningVote>  $votes
+     * @param  array<string, mixed>  $metadata
      */
     public function __construct(
         public string $id,
@@ -23,6 +24,7 @@ final readonly class ScreeningVerdict
         public ?\DateTimeImmutable $decidedAt = null,
         public ?string $criteriaHash = null,
         public array $votes = [],
+        public array $metadata = [],
     ) {
         if ($confidence !== null && ($confidence < 0.0 || $confidence > 1.0)) {
             throw new \InvalidArgumentException('Screening confidence must be between 0 and 1.');

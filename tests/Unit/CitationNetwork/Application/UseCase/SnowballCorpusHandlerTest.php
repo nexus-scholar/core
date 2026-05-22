@@ -11,6 +11,10 @@ use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Port\DeduplicationPort;
 use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Exception\ProjectLockedException;
+use Nexus\Shared\Port\ProjectLockPort;
+use Nexus\Shared\Port\ProjectWorkMembershipPort;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -30,7 +34,7 @@ it('runs a forward snowballing round and separates already-known from net-new wo
     $new = snowballHandlerTestWork('10.3000/new', 'New');
     $provider = new SnowballHandlerTestProvider('semantic_scholar');
     $provider->forward[$seed->primaryId()->toString()] = [$known, $new];
-    $deduplication = new SnowballHandlerTestDeduplication();
+    $deduplication = new SnowballHandlerTestDeduplication;
 
     $result = (new SnowballCorpusHandler(
         new SnowballingProviderCollection($provider),
@@ -74,7 +78,7 @@ it('uses net-new works as the next depth seeds', function (): void {
 
     $result = (new SnowballCorpusHandler(
         new SnowballingProviderCollection($provider),
-        new SnowballHandlerTestDeduplication(),
+        new SnowballHandlerTestDeduplication,
     ))->handle(new SnowballCorpus(
         projectId: 'project-1',
         seedCorpus: CorpusSlice::fromWorks($seed),
@@ -106,7 +110,7 @@ it('records provider failures without discarding other provider results', functi
 
     $result = (new SnowballCorpusHandler(
         new SnowballingProviderCollection($failingProvider, $workingProvider),
-        new SnowballHandlerTestDeduplication(),
+        new SnowballHandlerTestDeduplication,
     ))->handle(new SnowballCorpus(
         projectId: 'project-1',
         seedCorpus: CorpusSlice::fromWorks($seed),
@@ -127,12 +131,28 @@ it('fails clearly when a selected snowballing provider alias is unknown', functi
 
     expect(fn () => (new SnowballCorpusHandler(
         new SnowballingProviderCollection(new SnowballHandlerTestProvider('semantic_scholar')),
-        new SnowballHandlerTestDeduplication(),
+        new SnowballHandlerTestDeduplication,
     ))->handle(new SnowballCorpus(
         projectId: 'project-1',
         seedCorpus: CorpusSlice::fromWorks($seed),
         providerAliases: ['openalex'],
     )))->toThrow(UnknownSnowballingProviderAlias::class, 'Unknown snowballing provider alias: openalex');
+});
+
+it('blocks snowballing when the project corpus is locked', function (): void {
+    $seed = snowballHandlerTestWork('10.3000/seed', 'Seed');
+
+    expect(fn () => (new SnowballCorpusHandler(
+        new SnowballingProviderCollection(new SnowballHandlerTestProvider('semantic_scholar')),
+        new SnowballHandlerTestDeduplication,
+        new CorpusLockPolicy(
+            new SnowballTestLocks(['project-1' => true]),
+            new SnowballTestMembership,
+        ),
+    ))->handle(new SnowballCorpus(
+        projectId: 'project-1',
+        seedCorpus: CorpusSlice::fromWorks($seed),
+    )))->toThrow(ProjectLockedException::class);
 });
 
 final class SnowballHandlerTestProvider implements SnowballingProviderPort
@@ -150,9 +170,7 @@ final class SnowballHandlerTestProvider implements SnowballingProviderPort
 
     public bool $failBackward = false;
 
-    public function __construct(private readonly string $alias)
-    {
-    }
+    public function __construct(private readonly string $alias) {}
 
     public function alias(): string
     {
@@ -198,5 +216,26 @@ final class SnowballHandlerTestDeduplication implements DeduplicationPort
         $this->inputCounts[] = $corpus->count();
 
         return $corpus;
+    }
+}
+
+final class SnowballTestLocks implements ProjectLockPort
+{
+    /**
+     * @param  array<string, bool>  $locks
+     */
+    public function __construct(private readonly array $locks) {}
+
+    public function isLocked(string $projectId): bool
+    {
+        return $this->locks[$projectId] ?? false;
+    }
+}
+
+final class SnowballTestMembership implements ProjectWorkMembershipPort
+{
+    public function missingWorkIds(string $projectId, array $workIds): array
+    {
+        return [];
     }
 }

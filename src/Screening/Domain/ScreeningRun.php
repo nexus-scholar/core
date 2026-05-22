@@ -24,6 +24,7 @@ final readonly class ScreeningRun
         public array $counts = [],
         public ?\DateTimeImmutable $startedAt = null,
         public ?\DateTimeImmutable $completedAt = null,
+        public ?string $criteriaHash = null,
     ) {}
 
     /**
@@ -39,6 +40,7 @@ final readonly class ScreeningRun
         ?string $name = null,
         array $config = [],
         array $source = [],
+        ?string $criteriaHash = null,
     ): self {
         return new self(
             id: $id,
@@ -51,6 +53,12 @@ final readonly class ScreeningRun
             config: $config,
             source: $source,
             startedAt: new \DateTimeImmutable,
+            criteriaHash: $criteriaHash,
         );
+    }
+
+    public function resolvedCriteriaHash(): string
+    {
+        return $this->criteriaHash ?? $this->criteria->hash();
     }
 }
