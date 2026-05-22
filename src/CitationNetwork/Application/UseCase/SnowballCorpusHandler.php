@@ -10,6 +10,8 @@ use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Port\DeduplicationPort;
 use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\ValueObject\CorpusOperation;
 use Throwable;
 
 final readonly class SnowballCorpusHandler
@@ -17,11 +19,13 @@ final readonly class SnowballCorpusHandler
     public function __construct(
         private SnowballingProviderCollection $providers,
         private DeduplicationPort $deduplication,
-    ) {
-    }
+        private ?CorpusLockPolicy $lockPolicy = null,
+    ) {}
 
     public function handle(SnowballCorpus $command): SnowballCorpusResult
     {
+        $this->lockPolicy?->assertCorpusMutable($command->projectId, CorpusOperation::SNOWBALL);
+
         $providers = $this->providers->matching($command->providerAliases);
         $knownCorpus = $command->initialKnownCorpus();
         $currentSeeds = $command->seedCorpus;
@@ -80,6 +84,7 @@ final readonly class SnowballCorpusHandler
 
             if ($newRoundCorpus->isEmpty()) {
                 $currentSeeds = CorpusSlice::empty();
+
                 continue;
             }
 
@@ -156,7 +161,7 @@ final readonly class SnowballCorpusHandler
     }
 
     /**
-     * @param list<ScholarlyWork> $works
+     * @param  list<ScholarlyWork>  $works
      */
     private function corpusFromWorks(array $works): CorpusSlice
     {

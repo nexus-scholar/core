@@ -209,6 +209,14 @@ final class InMemoryScreeningDecisionRepository implements ScreeningDecisionRepo
     {
         return null;
     }
+
+    public function forRun(string $screeningRunId): array
+    {
+        return array_values(array_filter(
+            $this->recorded,
+            static fn (ScreeningVerdict $verdict): bool => $verdict->screeningRunId === $screeningRunId,
+        ));
+    }
 }
 
 final class InMemoryScreeningVoteRepository implements ScreeningVoteRepositoryPort

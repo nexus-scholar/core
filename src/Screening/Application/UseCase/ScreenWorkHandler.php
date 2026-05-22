@@ -17,6 +17,8 @@ use Nexus\Screening\Domain\ScreeningRationale;
 use Nexus\Screening\Domain\ScreeningRunMode;
 use Nexus\Screening\Domain\ScreeningVerdict;
 use Nexus\Screening\Domain\ScreeningVote;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\ValueObject\CorpusOperation;
 use Throwable;
 
 final readonly class ScreenWorkHandler
@@ -27,10 +29,18 @@ final readonly class ScreenWorkHandler
         private CouncilDecisionAggregator $council,
         private ScreeningDecisionRepositoryPort $decisions,
         private ScreeningVoteRepositoryPort $votes,
+        private ?CorpusLockPolicy $lockPolicy = null,
     ) {}
 
     public function handle(ScreenWorkCommand $command): ScreeningVerdict
     {
+        $this->lockPolicy?->assertCorpusLocked($command->projectId, CorpusOperation::SCREEN);
+        $this->lockPolicy?->assertWorksBelongToProject(
+            $command->projectId,
+            [$command->work->id],
+            CorpusOperation::SCREEN,
+        );
+
         $prompt = $this->promptRenderer->render(
             $command->work,
             $command->criteria,

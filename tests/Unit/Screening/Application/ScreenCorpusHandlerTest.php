@@ -22,6 +22,10 @@ use Nexus\Screening\Domain\ScreeningStage;
 use Nexus\Screening\Domain\ScreeningVerdict;
 use Nexus\Screening\Domain\ScreeningVote;
 use Nexus\Screening\Domain\ScreeningWork;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Exception\ProjectNotLockedException;
+use Nexus\Shared\Port\ProjectLockPort;
+use Nexus\Shared\Port\ProjectWorkMembershipPort;
 
 it('screens a project corpus and records run lifecycle counts', function (): void {
     $source = new InMemoryScreeningWorkSource([
@@ -115,6 +119,58 @@ it('marks a corpus run as failed when work loading fails', function (): void {
     expect($runs->failed['run-failed'])->toBe('source unavailable');
 });
 
+it('rejects corpus screening before the project is locked', function (): void {
+    $runs = new InMemoryScreeningRunRepository;
+    $handler = new ScreenCorpusHandler(
+        new InMemoryScreeningWorkSource([corpusWork('work-1', 'Tomato instance segmentation')]),
+        $runs,
+        new ScreenWorkHandler(
+            new QueueScreeningLlmClient([]),
+            new FixedScreeningPromptRendererForCorpus,
+            new CouncilDecisionAggregator,
+            new InMemoryScreeningDecisionRepositoryForCorpus,
+            new InMemoryScreeningVoteRepositoryForCorpus,
+        ),
+        new CorpusLockPolicy(
+            new ScreenCorpusTestLocks(['project-1' => false]),
+            new ScreenCorpusTestMembership,
+        ),
+    );
+
+    expect(fn () => $handler->handle(new ScreenCorpusCommand(
+        projectId: 'project-1',
+        criteria: corpusCriteria(),
+        screeningRunId: 'run-unlocked',
+    )))->toThrow(ProjectNotLockedException::class);
+
+    expect($runs->started)->toBe([]);
+});
+
+it('rejects explicit screening work ids outside the locked project corpus', function (): void {
+    $handler = new ScreenCorpusHandler(
+        new InMemoryScreeningWorkSource([corpusWork('work-1', 'Tomato instance segmentation')]),
+        new InMemoryScreeningRunRepository,
+        new ScreenWorkHandler(
+            new QueueScreeningLlmClient([]),
+            new FixedScreeningPromptRendererForCorpus,
+            new CouncilDecisionAggregator,
+            new InMemoryScreeningDecisionRepositoryForCorpus,
+            new InMemoryScreeningVoteRepositoryForCorpus,
+        ),
+        new CorpusLockPolicy(
+            new ScreenCorpusTestLocks(['project-1' => true]),
+            new ScreenCorpusTestMembership(['missing-work']),
+        ),
+    );
+
+    expect(fn () => $handler->handle(new ScreenCorpusCommand(
+        projectId: 'project-1',
+        criteria: corpusCriteria(),
+        screeningRunId: 'run-missing',
+        workIds: ['work-1', 'missing-work'],
+    )))->toThrow(InvalidArgumentException::class, 'missing-work');
+});
+
 function corpusCriteria(): ScreeningCriteria
 {
     return ScreeningCriteria::fromArray([
@@ -195,6 +251,17 @@ final class InMemoryScreeningRunRepository implements ScreeningRunRepositoryPort
     /** @var array<string, string> */
     public array $failed = [];
 
+    public function get(string $screeningRunId): ?ScreeningRun
+    {
+        foreach ($this->started as $run) {
+            if ($run->id === $screeningRunId) {
+                return $run;
+            }
+        }
+
+        return null;
+    }
+
     public function start(ScreeningRun $run): void
     {
         $this->started[] = $run;
@@ -246,6 +313,14 @@ final class InMemoryScreeningDecisionRepositoryForCorpus implements ScreeningDec
     {
         return null;
     }
+
+    public function forRun(string $screeningRunId): array
+    {
+        return array_values(array_filter(
+            $this->recorded,
+            static fn (ScreeningVerdict $verdict): bool => $verdict->screeningRunId === $screeningRunId,
+        ));
+    }
 }
 
 final class InMemoryScreeningVoteRepositoryForCorpus implements ScreeningVoteRepositoryPort
@@ -261,5 +336,31 @@ final class InMemoryScreeningVoteRepositoryForCorpus implements ScreeningVoteRep
     public function forDecision(string $screeningDecisionId): array
     {
         return [];
+    }
+}
+
+final class ScreenCorpusTestLocks implements ProjectLockPort
+{
+    /**
+     * @param  array<string, bool>  $locks
+     */
+    public function __construct(private readonly array $locks) {}
+
+    public function isLocked(string $projectId): bool
+    {
+        return $this->locks[$projectId] ?? false;
+    }
+}
+
+final class ScreenCorpusTestMembership implements ProjectWorkMembershipPort
+{
+    /**
+     * @param  list<string>  $missing
+     */
+    public function __construct(private readonly array $missing = []) {}
+
+    public function missingWorkIds(string $projectId, array $workIds): array
+    {
+        return array_values(array_intersect($workIds, $this->missing));
     }
 }

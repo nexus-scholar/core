@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Nexus\Dissemination\Application\UseCase;
 
-use Nexus\Search\Domain\ScholarlyWork;
 use InvalidArgumentException;
+use Nexus\Search\Domain\ScholarlyWork;
 
 final readonly class RetrieveFullText
 {
     public ScholarlyWork $work;
+
+    public ?string $projectId;
+
     public string $destinationFolder;
+
     public int $maxDownloadAttempts;
+
     public int $maxBytes;
+
     public int $failedAttemptCooldownSeconds;
 
     public function __construct(
@@ -21,6 +27,7 @@ final readonly class RetrieveFullText
         int $maxDownloadAttempts = 2,
         int $maxBytes = 50_000_000,
         int $failedAttemptCooldownSeconds = 3600,
+        ?string $projectId = null,
     ) {
         if ($maxDownloadAttempts < 1) {
             throw new InvalidArgumentException('Full-text retrieval must allow at least one download attempt.');
@@ -35,6 +42,7 @@ final readonly class RetrieveFullText
         }
 
         $this->work = $work;
+        $this->projectId = $projectId;
         $this->destinationFolder = $destinationFolder;
         $this->maxDownloadAttempts = $maxDownloadAttempts;
         $this->maxBytes = $maxBytes;

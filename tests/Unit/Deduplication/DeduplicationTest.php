@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 use Nexus\Deduplication\Application\DeduplicateCorpus;
 use Nexus\Deduplication\Application\DeduplicateCorpusHandler;
+use Nexus\Deduplication\Domain\DedupCluster;
+use Nexus\Deduplication\Domain\DedupClusterCollection;
+use Nexus\Deduplication\Domain\Duplicate;
+use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Infrastructure\CompletenessElectionPolicy;
 use Nexus\Deduplication\Infrastructure\DoiMatchPolicy;
 use Nexus\Deduplication\Infrastructure\FingerprintPolicy;
+use Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy;
 use Nexus\Deduplication\Infrastructure\TitleFuzzyPolicy;
 use Nexus\Deduplication\Infrastructure\TitleNormalizer;
-use Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\ScholarlyWork;
-use Nexus\Shared\ValueObject\Author;
-use Nexus\Shared\ValueObject\AuthorList;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Exception\ProjectLockedException;
+use Nexus\Shared\Port\ProjectLockPort;
+use Nexus\Shared\Port\ProjectWorkMembershipPort;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -28,26 +34,27 @@ function makeDeduplicatable(
     ?string $abstract = null,
 ): ScholarlyWork {
     return ScholarlyWork::reconstitute(
-        ids:            WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, $doi)]),
-        title:          $title,
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, $doi)]),
+        title: $title,
         sourceProvider: $provider,
-        year:           $year,
-        abstract:       $abstract,
+        year: $year,
+        abstract: $abstract,
     );
 }
 
-function makeHandler(array $extraPolicies = []): DeduplicateCorpusHandler
+function makeHandler(array $extraPolicies = [], ?CorpusLockPolicy $lockPolicy = null): DeduplicateCorpusHandler
 {
-    $normalizer = new TitleNormalizer();
+    $normalizer = new TitleNormalizer;
 
     return new DeduplicateCorpusHandler(
         policies: array_merge([
-            new DoiMatchPolicy(),
+            new DoiMatchPolicy,
             new NamespaceMatchPolicy(WorkIdNamespace::ARXIV),
             new TitleFuzzyPolicy($normalizer),
             new FingerprintPolicy($normalizer),
         ], $extraPolicies),
-        electionPolicy: new CompletenessElectionPolicy(),
+        electionPolicy: new CompletenessElectionPolicy,
+        lockPolicy: $lockPolicy,
     );
 }
 
@@ -57,8 +64,8 @@ it('detects_two_works_with_identical_doi', function (): void {
     $a = makeDeduplicatable('10.1234/abc');
     $b = makeDeduplicatable('10.1234/abc');
 
-    $policy = new DoiMatchPolicy();
-    $dupes  = $policy->detect([$a, $b]);
+    $policy = new DoiMatchPolicy;
+    $dupes = $policy->detect([$a, $b]);
 
     expect($dupes)->toHaveCount(1);
     expect($dupes[0]->reason->value)->toBe('doi_match');
@@ -70,20 +77,20 @@ it('normalizes_doi_before_comparing', function (): void {
     $a = makeDeduplicatable('https://doi.org/10.1234/abc');
     $b = makeDeduplicatable('doi:10.1234/abc');
 
-    $policy = new DoiMatchPolicy();
-    $dupes  = $policy->detect([$a, $b]);
+    $policy = new DoiMatchPolicy;
+    $dupes = $policy->detect([$a, $b]);
 
     expect($dupes)->toHaveCount(1);
 });
 
 it('ignores_works_without_doi', function (): void {
     $work = ScholarlyWork::reconstitute(
-        ids:            WorkIdSet::fromArray([new WorkId(WorkIdNamespace::ARXIV, '2301.12345')]),
-        title:          'No DOI',
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::ARXIV, '2301.12345')]),
+        title: 'No DOI',
         sourceProvider: 'arxiv',
     );
 
-    $policy = new DoiMatchPolicy();
+    $policy = new DoiMatchPolicy;
     expect($policy->detect([$work]))->toBe([]);
 });
 
@@ -94,15 +101,15 @@ it('returns_empty_when_all_dois_are_unique', function (): void {
         makeDeduplicatable('10.1234/ccc'),
     ];
 
-    $policy = new DoiMatchPolicy();
+    $policy = new DoiMatchPolicy;
     expect($policy->detect($works))->toBe([]);
 });
 
 // ── DedupCluster ──────────────────────────────────────────────────────────────
 
 it('starts_with_single_seed_as_representative', function (): void {
-    $seed    = makeDeduplicatable('10.x/seed');
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
+    $seed = makeDeduplicatable('10.x/seed');
+    $cluster = DedupCluster::startWith($seed, 'test-project');
 
     expect($cluster->size())->toBe(1);
     expect($cluster->representative()->primaryId()?->toString())
@@ -110,15 +117,15 @@ it('starts_with_single_seed_as_representative', function (): void {
 });
 
 it('absorbs_a_duplicate_work', function (): void {
-    $seed  = makeDeduplicatable('10.x/seed');
+    $seed = makeDeduplicatable('10.x/seed');
     $other = makeDeduplicatable('10.x/other');
 
-    $cluster  = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
-    $evidence = new \Nexus\Deduplication\Domain\Duplicate(
-        primaryId:   $seed->primaryId(),
+    $cluster = DedupCluster::startWith($seed, 'test-project');
+    $evidence = new Duplicate(
+        primaryId: $seed->primaryId(),
         secondaryId: $other->primaryId(),
-        reason:      \Nexus\Deduplication\Domain\DuplicateReason::DOI_MATCH,
-        confidence:  1.0,
+        reason: DuplicateReason::DOI_MATCH,
+        confidence: 1.0,
     );
 
     $cluster->absorb($other, $evidence);
@@ -127,16 +134,16 @@ it('absorbs_a_duplicate_work', function (): void {
 });
 
 it('size_grows_on_absorb', function (): void {
-    $seed    = makeDeduplicatable('10.x/a');
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
+    $seed = makeDeduplicatable('10.x/a');
+    $cluster = DedupCluster::startWith($seed, 'test-project');
 
     for ($i = 1; $i <= 3; $i++) {
         $work = makeDeduplicatable("10.x/b{$i}");
-        $ev   = new \Nexus\Deduplication\Domain\Duplicate(
-            primaryId:   $seed->primaryId(),
+        $ev = new Duplicate(
+            primaryId: $seed->primaryId(),
             secondaryId: $work->primaryId(),
-            reason:      \Nexus\Deduplication\Domain\DuplicateReason::DOI_MATCH,
-            confidence:  1.0,
+            reason: DuplicateReason::DOI_MATCH,
+            confidence: 1.0,
         );
         $cluster->absorb($work, $ev);
     }
@@ -146,13 +153,13 @@ it('size_grows_on_absorb', function (): void {
 
 it('collects_all_dois_from_all_members', function (): void {
     $seed = makeDeduplicatable('10.x/a');
-    $b    = makeDeduplicatable('10.x/b');
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($seed, 'test-project');
-    $ev = new \Nexus\Deduplication\Domain\Duplicate(
-        primaryId:   $seed->primaryId(),
+    $b = makeDeduplicatable('10.x/b');
+    $cluster = DedupCluster::startWith($seed, 'test-project');
+    $ev = new Duplicate(
+        primaryId: $seed->primaryId(),
         secondaryId: $b->primaryId(),
-        reason:      \Nexus\Deduplication\Domain\DuplicateReason::DOI_MATCH,
-        confidence:  1.0,
+        reason: DuplicateReason::DOI_MATCH,
+        confidence: 1.0,
     );
     $cluster->absorb($b, $ev);
 
@@ -164,15 +171,15 @@ it('elects_most_complete_work_as_representative', function (): void {
     $bare = makeDeduplicatable('10.x/bare', abstract: null);
     $rich = makeDeduplicatable('10.x/rich', abstract: 'Has abstract');
 
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($bare, 'test-project');
-    $ev = new \Nexus\Deduplication\Domain\Duplicate(
-        primaryId:   $bare->primaryId(),
+    $cluster = DedupCluster::startWith($bare, 'test-project');
+    $ev = new Duplicate(
+        primaryId: $bare->primaryId(),
         secondaryId: $rich->primaryId(),
-        reason:      \Nexus\Deduplication\Domain\DuplicateReason::DOI_MATCH,
-        confidence:  1.0,
+        reason: DuplicateReason::DOI_MATCH,
+        confidence: 1.0,
     );
     $cluster->absorb($rich, $ev);
-    $cluster->electRepresentative(new CompletenessElectionPolicy());
+    $cluster->electRepresentative(new CompletenessElectionPolicy);
 
     expect($cluster->representative()->hasAbstract())->toBeTrue();
 });
@@ -197,19 +204,19 @@ it('fills missing representative fields from duplicate members in exported corpu
         abstract: 'Abstract from arXiv.',
     );
 
-    $cluster = \Nexus\Deduplication\Domain\DedupCluster::startWith($openAlex, 'test-project');
-    $cluster->absorb($arxiv, new \Nexus\Deduplication\Domain\Duplicate(
+    $cluster = DedupCluster::startWith($openAlex, 'test-project');
+    $cluster->absorb($arxiv, new Duplicate(
         primaryId: $openAlex->primaryId(),
         secondaryId: $arxiv->primaryId(),
-        reason: \Nexus\Deduplication\Domain\DuplicateReason::ARXIV_MATCH,
+        reason: DuplicateReason::ARXIV_MATCH,
         confidence: 1.0,
     ));
-    $cluster->electRepresentative(new CompletenessElectionPolicy());
+    $cluster->electRepresentative(new CompletenessElectionPolicy);
 
     expect($cluster->representative()->sourceProvider())->toBe('openalex');
     expect($cluster->representative()->abstract())->toBeNull();
 
-    $corpus = (new \Nexus\Deduplication\Domain\DedupClusterCollection($cluster))->toCorpusSlice();
+    $corpus = (new DedupClusterCollection($cluster))->toCorpusSlice();
 
     expect($corpus->all()[0]->sourceProvider())->toBe('openalex');
     expect($corpus->all()[0]->abstract())->toBe('Abstract from arXiv.');
@@ -233,23 +240,35 @@ it('clusters_two_works_with_same_doi_into_one_cluster', function (): void {
     expect($result->clusters->count())->toBe(1);
 });
 
+it('blocks deduplication when the project corpus is locked', function (): void {
+    $policy = new CorpusLockPolicy(
+        new DedupTestLocks(['project-1' => true]),
+        new DedupTestMembership,
+    );
+
+    expect(fn () => makeHandler(lockPolicy: $policy)->handle(new DeduplicateCorpus(
+        CorpusSlice::fromWorks(makeDeduplicatable('10.1234/locked')),
+        projectId: 'project-1',
+    )))->toThrow(ProjectLockedException::class);
+});
+
 it('clusters_transitively_via_union_find', function (): void {
     // A shares DOI with B; B shares arXiv with C → all three in one cluster
     $arxivId = '2301.99999';
     $a = ScholarlyWork::reconstitute(
-        ids:            WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/abc')]),
-        title:          'Work A', sourceProvider: 'openalex',
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.x/abc')]),
+        title: 'Work A', sourceProvider: 'openalex',
     );
     $b = ScholarlyWork::reconstitute(
-        ids:            WorkIdSet::fromArray([
+        ids: WorkIdSet::fromArray([
             new WorkId(WorkIdNamespace::DOI, '10.x/abc'),
             new WorkId(WorkIdNamespace::ARXIV, $arxivId),
         ]),
-        title:          'Work B', sourceProvider: 'crossref',
+        title: 'Work B', sourceProvider: 'crossref',
     );
     $c = ScholarlyWork::reconstitute(
-        ids:            WorkIdSet::fromArray([new WorkId(WorkIdNamespace::ARXIV, $arxivId)]),
-        title:          'Work C', sourceProvider: 'arxiv',
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::ARXIV, $arxivId)]),
+        title: 'Work C', sourceProvider: 'arxiv',
     );
 
     $corpus = CorpusSlice::fromWorks($a, $b, $c);
@@ -257,6 +276,27 @@ it('clusters_transitively_via_union_find', function (): void {
 
     expect($result->uniqueCount)->toBeLessThan(3);
 });
+
+final class DedupTestLocks implements ProjectLockPort
+{
+    /**
+     * @param  array<string, bool>  $locks
+     */
+    public function __construct(private readonly array $locks) {}
+
+    public function isLocked(string $projectId): bool
+    {
+        return $this->locks[$projectId] ?? false;
+    }
+}
+
+final class DedupTestMembership implements ProjectWorkMembershipPort
+{
+    public function missingWorkIds(string $projectId, array $workIds): array
+    {
+        return [];
+    }
+}
 
 it('reports_correct_duplicate_count', function (): void {
     $corpus = CorpusSlice::fromWorks(

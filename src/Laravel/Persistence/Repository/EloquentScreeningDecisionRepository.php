@@ -35,6 +35,7 @@ final class EloquentScreeningDecisionRepository implements ScreeningDecisionRepo
                 'decided_by' => $verdict->decidedBy,
                 'decided_at' => $verdict->decidedAt ?? now(),
                 'metadata' => [
+                    ...$verdict->metadata,
                     'source' => $verdict->source,
                     'vote_count' => count($verdict->votes),
                 ],
@@ -56,6 +57,23 @@ final class EloquentScreeningDecisionRepository implements ScreeningDecisionRepo
             return null;
         }
 
+        return $this->toDomain($model);
+    }
+
+    public function forRun(string $screeningRunId): array
+    {
+        return ScreeningDecisionModel::query()
+            ->where('screening_run_id', $screeningRunId)
+            ->orderBy('work_id')
+            ->orderByDesc('decided_at')
+            ->get()
+            ->map(fn (ScreeningDecisionModel $model): ScreeningVerdict => $this->toDomain($model))
+            ->values()
+            ->all();
+    }
+
+    private function toDomain(ScreeningDecisionModel $model): ScreeningVerdict
+    {
         return new ScreeningVerdict(
             id: (string) $model->id,
             screeningRunId: $model->screening_run_id === null ? null : (string) $model->screening_run_id,
@@ -74,6 +92,7 @@ final class EloquentScreeningDecisionRepository implements ScreeningDecisionRepo
             decidedBy: $model->decided_by === null ? null : (string) $model->decided_by,
             decidedAt: $model->decided_at?->toDateTimeImmutable(),
             criteriaHash: $model->criteria_hash === null ? null : (string) $model->criteria_hash,
+            metadata: $model->metadata ?? [],
         );
     }
 

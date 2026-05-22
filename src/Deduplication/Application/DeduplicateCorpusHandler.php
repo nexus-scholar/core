@@ -6,10 +6,14 @@ namespace Nexus\Deduplication\Application;
 
 use Nexus\Deduplication\Domain\DedupCluster;
 use Nexus\Deduplication\Domain\DedupClusterCollection;
+use Nexus\Deduplication\Domain\Duplicate;
+use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
 use Nexus\Deduplication\Domain\Port\RepresentativeElectionPort;
 use Nexus\Deduplication\Infrastructure\UnionFind;
 use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\ValueObject\CorpusOperation;
 
 /**
  * Orchestrates the full deduplication pipeline.
@@ -26,12 +30,15 @@ final class DeduplicateCorpusHandler
 {
     public function __construct(
         /** @var DeduplicationPolicyPort[] — ordered: exact-match first, fuzzy last */
-        private readonly array                    $policies,
+        private readonly array $policies,
         private readonly RepresentativeElectionPort $electionPolicy,
+        private readonly ?CorpusLockPolicy $lockPolicy = null,
     ) {}
 
     public function handle(DeduplicateCorpus $command): DeduplicateCorpusResult
     {
+        $this->lockPolicy?->assertCorpusMutable($command->projectId, CorpusOperation::DEDUPLICATE);
+
         $startNs = hrtime(true);
 
         $works = $command->corpus->all();
@@ -39,12 +46,12 @@ final class DeduplicateCorpusHandler
 
         if ($inputCount === 0) {
             return new DeduplicateCorpusResult(
-                clusters:          DedupClusterCollection::empty(),
-                inputCount:        0,
-                uniqueCount:       0,
+                clusters: DedupClusterCollection::empty(),
+                inputCount: 0,
+                uniqueCount: 0,
                 duplicatesRemoved: 0,
-                policyStats:       [],
-                durationMs:        0,
+                policyStats: [],
+                durationMs: 0,
             );
         }
 
@@ -52,8 +59,8 @@ final class DeduplicateCorpusHandler
         $policies = $this->resolvePolicies($command->policyAliases);
 
         // Build a key→work map and initialise UnionFind
-        $uf      = new UnionFind();
-        $keyMap  = []; // key => ScholarlyWork
+        $uf = new UnionFind;
+        $keyMap = []; // key => ScholarlyWork
 
         foreach ($works as $work) {
             $key = $work->primaryId()?->toString() ?? spl_object_hash($work);
@@ -70,10 +77,10 @@ final class DeduplicateCorpusHandler
             $count = 0;
 
             foreach ($found as $duplicate) {
-                $primaryKey   = $duplicate->primaryId->toString();
+                $primaryKey = $duplicate->primaryId->toString();
                 $secondaryKey = $duplicate->secondaryId->toString();
-                $pairKey      = $primaryKey . '|' . $secondaryKey;
-                $pairKeyRev   = $secondaryKey . '|' . $primaryKey;
+                $pairKey = $primaryKey.'|'.$secondaryKey;
+                $pairKeyRev = $secondaryKey.'|'.$primaryKey;
 
                 // Skip already-paired works (from higher-priority policies)
                 if (isset($duplicatesByPair[$pairKey]) || isset($duplicatesByPair[$pairKeyRev])) {
@@ -93,7 +100,7 @@ final class DeduplicateCorpusHandler
         }
 
         // Extract groups and build clusters
-        $groups     = $uf->groups();
+        $groups = $uf->groups();
         $collection = DedupClusterCollection::empty();
 
         foreach ($groups as $memberKeys) {
@@ -124,17 +131,17 @@ final class DeduplicateCorpusHandler
             $collection->add($cluster);
         }
 
-        $uniqueCount       = $collection->count();
+        $uniqueCount = $collection->count();
         $duplicatesRemoved = $inputCount - $uniqueCount;
-        $durationMs        = (int) round((hrtime(true) - $startNs) / 1_000_000);
+        $durationMs = (int) round((hrtime(true) - $startNs) / 1_000_000);
 
         return new DeduplicateCorpusResult(
-            clusters:          $collection,
-            inputCount:        $inputCount,
-            uniqueCount:       $uniqueCount,
+            clusters: $collection,
+            inputCount: $inputCount,
+            uniqueCount: $uniqueCount,
             duplicatesRemoved: $duplicatesRemoved,
-            policyStats:       $policyStats,
-            durationMs:        $durationMs,
+            policyStats: $policyStats,
+            durationMs: $durationMs,
         );
     }
 
@@ -147,7 +154,7 @@ final class DeduplicateCorpusHandler
         ScholarlyWork $secondary,
         array $policies,
         array $works,
-    ): \Nexus\Deduplication\Domain\Duplicate {
+    ): Duplicate {
         foreach ($policies as $policy) {
             $found = $policy->detect([$primary, $secondary]);
 
@@ -161,16 +168,16 @@ final class DeduplicateCorpusHandler
         }
 
         // Synthetic fallback
-        return new \Nexus\Deduplication\Domain\Duplicate(
-            primaryId:   $primary->primaryId() ?? $secondary->primaryId(),
+        return new Duplicate(
+            primaryId: $primary->primaryId() ?? $secondary->primaryId(),
             secondaryId: $secondary->primaryId() ?? $primary->primaryId(),
-            reason:      \Nexus\Deduplication\Domain\DuplicateReason::FINGERPRINT,
-            confidence:  0.85,
+            reason: DuplicateReason::FINGERPRINT,
+            confidence: 0.85,
         );
     }
 
     /**
-     * @param string[] $aliases empty = all
+     * @param  string[]  $aliases  empty = all
      * @return DeduplicationPolicyPort[]
      */
     private function resolvePolicies(array $aliases): array

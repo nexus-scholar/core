@@ -27,6 +27,7 @@ use Nexus\Deduplication\Infrastructure\TitleNormalizer;
 use Nexus\Dissemination\Application\UseCase\ExportBibliographyHandler;
 use Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler;
 use Nexus\Dissemination\Application\UseCase\ExportNetworkHandler;
+use Nexus\Dissemination\Application\UseCase\RetrieveFullTextHandler;
 use Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection;
 use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
@@ -65,6 +66,7 @@ use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
 use Nexus\Laravel\Persistence\EloquentPdfFetchRepository;
 use Nexus\Laravel\Persistence\EloquentProjectLock;
+use Nexus\Laravel\Persistence\EloquentProjectWorkMembership;
 use Nexus\Laravel\Persistence\EloquentScreeningWorkSource;
 use Nexus\Laravel\Persistence\EloquentSearchRunRecorder;
 use Nexus\Laravel\Persistence\LaravelFileStorage;
@@ -83,6 +85,8 @@ use Nexus\Screening\Application\Port\ScreeningPromptRendererPort;
 use Nexus\Screening\Application\Port\ScreeningRunRepositoryPort;
 use Nexus\Screening\Application\Port\ScreeningVoteRepositoryPort;
 use Nexus\Screening\Application\Port\ScreeningWorkSourcePort;
+use Nexus\Screening\Application\UseCase\AdjudicateScreeningDecisionsHandler;
+use Nexus\Screening\Application\UseCase\CompareScreeningRunsHandler;
 use Nexus\Screening\Application\UseCase\ScreenCorpusHandler;
 use Nexus\Screening\Application\UseCase\ScreenWorkHandler;
 use Nexus\Screening\Domain\CouncilDecisionAggregator;
@@ -117,9 +121,11 @@ use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
 use Nexus\Search\Infrastructure\Provider\PubMedAdapter;
 use Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter;
 use Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter;
+use Nexus\Shared\Application\CorpusLockPolicy;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
+use Nexus\Shared\Port\ProjectWorkMembershipPort;
 use Nexus\Shared\Port\TransactionPort;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Psr\Log\LoggerInterface;
@@ -136,6 +142,14 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
         $this->app->singleton(ProjectLockPort::class, EloquentProjectLock::class);
         $this->app->singleton(ProjectLockLifecyclePort::class, fn ($app) => $app->make(ProjectLockPort::class));
+        $this->app->singleton(ProjectWorkMembershipPort::class, EloquentProjectWorkMembership::class);
+        $this->app->singleton(CorpusLockPolicy::class, function ($app) {
+            return new CorpusLockPolicy(
+                $app->make(ProjectLockPort::class),
+                $app->make(ProjectWorkMembershipPort::class),
+                $app->make(ProjectLockLifecyclePort::class),
+            );
+        });
         $this->app->singleton(TransactionPort::class, LaravelTransaction::class);
         $this->app->singleton(JobLifecycleRecorderPort::class, EloquentJobLifecycleRecorder::class);
 
@@ -166,7 +180,8 @@ final class NexusServiceProvider extends ServiceProvider
                         95 // The constructor uses an integer threshold (e.g. 95)
                     ),
                 ],
-                electionPolicy: new CompletenessElectionPolicy
+                electionPolicy: new CompletenessElectionPolicy,
+                lockPolicy: $app->make(CorpusLockPolicy::class),
             );
         });
 
@@ -249,8 +264,32 @@ final class NexusServiceProvider extends ServiceProvider
                 appName: isset($openRouter['app_name']) ? (string) $openRouter['app_name'] : 'Nexus Scholar',
             );
         });
-        $this->app->singleton(ScreenCorpusHandler::class);
-        $this->app->singleton(ScreenWorkHandler::class);
+        $this->app->singleton(ScreenWorkHandler::class, function ($app) {
+            return new ScreenWorkHandler(
+                $app->make(LlmClientPort::class),
+                $app->make(ScreeningPromptRendererPort::class),
+                $app->make(CouncilDecisionAggregator::class),
+                $app->make(ScreeningDecisionRepositoryPort::class),
+                $app->make(ScreeningVoteRepositoryPort::class),
+                $app->make(CorpusLockPolicy::class),
+            );
+        });
+        $this->app->singleton(ScreenCorpusHandler::class, function ($app) {
+            return new ScreenCorpusHandler(
+                $app->make(ScreeningWorkSourcePort::class),
+                $app->make(ScreeningRunRepositoryPort::class),
+                $app->make(ScreenWorkHandler::class),
+                $app->make(CorpusLockPolicy::class),
+            );
+        });
+        $this->app->singleton(AdjudicateScreeningDecisionsHandler::class, function ($app) {
+            return new AdjudicateScreeningDecisionsHandler(
+                $app->make(ScreeningRunRepositoryPort::class),
+                $app->make(ScreeningDecisionRepositoryPort::class),
+                $app->make(CorpusLockPolicy::class),
+            );
+        });
+        $this->app->singleton(CompareScreeningRunsHandler::class);
         $this->app->singleton(
             GraphAlgorithmPort::class,
             MbsoftNetworkMetricsCalculator::class
@@ -287,10 +326,22 @@ final class NexusServiceProvider extends ServiceProvider
             },
         );
         $this->app->singleton(CitationGraphBuilder::class);
-        $this->app->singleton(BuildCitationGraphHandler::class);
+        $this->app->singleton(BuildCitationGraphHandler::class, function ($app) {
+            return new BuildCitationGraphHandler(
+                $app->make(CitationGraphBuilder::class),
+                $app->make(CitationGraphRepositoryPort::class),
+                $app->make(CorpusLockPolicy::class),
+            );
+        });
         $this->app->singleton(AnalyzeNetworkHandler::class);
         $this->app->singleton(FindShortestCitationPathHandler::class);
-        $this->app->singleton(SnowballCorpusHandler::class);
+        $this->app->singleton(SnowballCorpusHandler::class, function ($app) {
+            return new SnowballCorpusHandler(
+                $app->make(SnowballingProviderCollection::class),
+                $app->make(DeduplicationPort::class),
+                $app->make(CorpusLockPolicy::class),
+            );
+        });
 
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
@@ -346,6 +397,16 @@ final class NexusServiceProvider extends ServiceProvider
             GuzzlePdfDownloader::class
         );
 
+        $this->app->singleton(RetrieveFullTextHandler::class, function ($app) {
+            return new RetrieveFullTextHandler(
+                $app->make(FullTextSourceCollection::class),
+                $app->make(FileStoragePort::class),
+                $app->make(PdfDownloaderPort::class),
+                $app->make(PdfFetchRepositoryPort::class),
+                $app->make(CorpusLockPolicy::class),
+            );
+        });
+
         $this->app->singleton(SerializerCollection::class, function ($app) {
             return new SerializerCollection(
                 new BibTexSerializer,
@@ -377,6 +438,7 @@ final class NexusServiceProvider extends ServiceProvider
                 $app->make(SerializerCollection::class),
                 $app->make(FileStoragePort::class),
                 $app->make(ExportHistoryPort::class),
+                $app->make(CorpusLockPolicy::class),
             );
         });
 

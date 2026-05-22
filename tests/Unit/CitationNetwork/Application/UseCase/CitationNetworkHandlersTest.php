@@ -18,6 +18,9 @@ use Nexus\CitationNetwork\Domain\NetworkMetrics;
 use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
 use Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort;
 use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Port\ProjectLockPort;
+use Nexus\Shared\Port\ProjectWorkMembershipPort;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -34,8 +37,8 @@ function citationUseCaseTestWork(string $doi, string $title): ScholarlyWork
 it('builds and persists direct citation graphs through the application handler', function (): void {
     $workA = citationUseCaseTestWork('10.2000/a', 'A');
     $workB = citationUseCaseTestWork('10.2000/b', 'B');
-    $repository = new CitationHandlerTestRepository();
-    $handler = new BuildCitationGraphHandler(new CitationGraphBuilder(), $repository);
+    $repository = new CitationHandlerTestRepository;
+    $handler = new BuildCitationGraphHandler(new CitationGraphBuilder, $repository);
 
     $graph = $handler->handle(BuildCitationGraph::directCitation(
         'project-1',
@@ -51,8 +54,8 @@ it('builds and persists direct citation graphs through the application handler',
 it('can build co-citation graphs without persisting them', function (): void {
     $workA = citationUseCaseTestWork('10.2000/a', 'A');
     $workB = citationUseCaseTestWork('10.2000/b', 'B');
-    $repository = new CitationHandlerTestRepository();
-    $handler = new BuildCitationGraphHandler(new CitationGraphBuilder(), $repository);
+    $repository = new CitationHandlerTestRepository;
+    $handler = new BuildCitationGraphHandler(new CitationGraphBuilder, $repository);
 
     $graph = $handler->handle(BuildCitationGraph::coCitation(
         'project-1',
@@ -66,11 +69,32 @@ it('can build co-citation graphs without persisting them', function (): void {
         ->and($repository->saved)->toBe([]);
 });
 
+it('checks project membership before persisting graphs for a locked corpus', function (): void {
+    $workA = citationUseCaseTestWork('10.2000/a', 'A');
+    $repository = new CitationHandlerTestRepository;
+    $handler = new BuildCitationGraphHandler(
+        new CitationGraphBuilder,
+        $repository,
+        new CorpusLockPolicy(
+            new CitationGraphTestLocks(['project-1' => true]),
+            new CitationGraphTestMembership(['doi:10.2000/a']),
+        ),
+    );
+
+    expect(fn () => $handler->handle(BuildCitationGraph::directCitation(
+        'project-1',
+        [$workA],
+        [],
+    )))->toThrow(InvalidArgumentException::class, 'doi:10.2000/a');
+
+    expect($repository->saved)->toBe([]);
+});
+
 it('analyzes a persisted graph and stores the metrics snapshot by default', function (): void {
     $workA = citationUseCaseTestWork('10.2000/a', 'A');
     $graph = CitationGraph::create(CitationGraphType::CITATION, 'project-1');
     $graph->addWork($workA);
-    $repository = new CitationHandlerTestRepository();
+    $repository = new CitationHandlerTestRepository;
     $repository->save($graph);
     $metrics = new NetworkMetrics(pageRank: [$workA->primaryId()->toString() => 1.0], nodeCount: 1);
     $algorithms = new CitationHandlerTestAlgorithms($metrics);
@@ -85,7 +109,7 @@ it('analyzes a persisted graph and stores the metrics snapshot by default', func
 
 it('can analyze without persisting the metrics snapshot', function (): void {
     $graph = CitationGraph::create(CitationGraphType::CITATION, 'project-1');
-    $repository = new CitationHandlerTestRepository();
+    $repository = new CitationHandlerTestRepository;
     $repository->save($graph);
     $metrics = new NetworkMetrics(nodeCount: 0);
     $algorithms = new CitationHandlerTestAlgorithms($metrics);
@@ -97,8 +121,8 @@ it('can analyze without persisting the metrics snapshot', function (): void {
 });
 
 it('throws a clear exception when analyzing a missing graph', function (): void {
-    $repository = new CitationHandlerTestRepository();
-    $algorithms = new CitationHandlerTestAlgorithms(new NetworkMetrics());
+    $repository = new CitationHandlerTestRepository;
+    $algorithms = new CitationHandlerTestAlgorithms(new NetworkMetrics);
     $missingId = CitationGraphId::generate();
 
     expect(fn () => (new AnalyzeNetworkHandler($repository, $algorithms))
@@ -112,13 +136,13 @@ it('finds shortest citation paths through the application handler', function ():
     $graph = CitationGraph::create(CitationGraphType::CITATION, 'project-1');
     $graph->addWork($workA);
     $graph->addWork($workB);
-    $repository = new CitationHandlerTestRepository();
+    $repository = new CitationHandlerTestRepository;
     $repository->save($graph);
     $path = new CitationPath([
         $workA->primaryId()->toString(),
         $workB->primaryId()->toString(),
     ], 1.0);
-    $algorithms = new CitationHandlerTestAlgorithms(new NetworkMetrics(), $path);
+    $algorithms = new CitationHandlerTestAlgorithms(new NetworkMetrics, $path);
 
     $result = (new FindShortestCitationPathHandler($repository, $algorithms))
         ->handle(new FindShortestCitationPath($graph->id, $workA->primaryId(), $workB->primaryId()));
@@ -179,8 +203,7 @@ final class CitationHandlerTestAlgorithms implements GraphAlgorithmPort
     public function __construct(
         private readonly NetworkMetrics $metrics,
         private readonly ?CitationPath $path = null,
-    ) {
-    }
+    ) {}
 
     public function compute(CitationGraph $graph): NetworkMetrics
     {
@@ -196,5 +219,31 @@ final class CitationHandlerTestAlgorithms implements GraphAlgorithmPort
         $this->shortestPathTarget = $target;
 
         return $this->path;
+    }
+}
+
+final class CitationGraphTestLocks implements ProjectLockPort
+{
+    /**
+     * @param  array<string, bool>  $locks
+     */
+    public function __construct(private readonly array $locks) {}
+
+    public function isLocked(string $projectId): bool
+    {
+        return $this->locks[$projectId] ?? false;
+    }
+}
+
+final class CitationGraphTestMembership implements ProjectWorkMembershipPort
+{
+    /**
+     * @param  list<string>  $missing
+     */
+    public function __construct(private readonly array $missing) {}
+
+    public function missingWorkIds(string $projectId, array $workIds): array
+    {
+        return array_values(array_intersect($workIds, $this->missing));
     }
 }

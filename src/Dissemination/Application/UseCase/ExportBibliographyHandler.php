@@ -10,6 +10,7 @@ use Nexus\Dissemination\Domain\ExportType;
 use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\SerializerCollection;
+use Nexus\Shared\Application\CorpusLockPolicy;
 use RuntimeException;
 
 final readonly class ExportBibliographyHandler
@@ -18,8 +19,9 @@ final readonly class ExportBibliographyHandler
 
     public function __construct(
         private SerializerCollection $serializers,
-        private FileStoragePort      $storage,
-        private ?ExportHistoryPort   $history = null,
+        private FileStoragePort $storage,
+        private ?ExportHistoryPort $history = null,
+        private ?CorpusLockPolicy $lockPolicy = null,
     ) {}
 
     public function handle(ExportBibliography $command): string
@@ -35,6 +37,14 @@ final readonly class ExportBibliographyHandler
                 $content = $serializer->serialize($command->corpus);
                 $path = $this->storage->store($command->filename, $content);
 
+                $metadata = $command->metadata;
+                if ($this->lockPolicy !== null) {
+                    $metadata = [
+                        ...$metadata,
+                        ...$this->lockPolicy->exportMetadata($command->projectId),
+                    ];
+                }
+
                 $this->history?->record(ExportHistoryRecord::create(
                     type: ExportType::BIBLIOGRAPHY,
                     format: $command->format->value,
@@ -45,7 +55,7 @@ final readonly class ExportBibliographyHandler
                     projectId: $command->projectId,
                     corpusSliceId: $command->corpus->id->value,
                     requestedBy: $command->requestedBy,
-                    metadata: $command->metadata,
+                    metadata: $metadata,
                 ));
 
                 return $path;

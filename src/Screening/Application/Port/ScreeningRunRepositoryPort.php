@@ -8,6 +8,8 @@ use Nexus\Screening\Domain\ScreeningRun;
 
 interface ScreeningRunRepositoryPort
 {
+    public function get(string $screeningRunId): ?ScreeningRun;
+
     public function start(ScreeningRun $run): void;
 
     /**
