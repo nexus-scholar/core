@@ -4,7 +4,7 @@ Last updated: 2026-05-20
 
 This note records the scan of two graph packages now managed by the multi-repo workspace:
 
-- `mbsoft31/graph-core` at `repos/graph-core`
+- `nexus-scholar/graph-core` at `repos/graph-core`
 - `mbsoft31/graph-algorithms` at `repos/graph-algorithms`
 
 It answers whether they should be used for P2 citation-network implementation in `nexus-scholar/core`, and what needs package work first.
@@ -159,7 +159,7 @@ Owner:
 
 Tasks:
 
-1. Require `mbsoft31/graph-core` and `mbsoft31/graph-algorithms`.
+1. Require `nexus-scholar/graph-core` and `mbsoft31/graph-algorithms`.
 2. Use local path repositories during multi-repo development if unpublished package versions are needed.
 3. Add adapter tests proving a Nexus `CitationGraph` maps to an Mbsoft graph with:
    - directed/undirected mode

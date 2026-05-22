@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "30a4c5c96bd4c49afde9f34ebffd953d",
+    "content-hash": "f1e4380961f5d290e20d6466e843eb6d",
     "packages": [
         {
             "name": "composer/ca-bundle",
@@ -410,7 +410,7 @@
             "dist": {
                 "type": "path",
                 "url": "../graph-algorithms",
-                "reference": "a31802d014c33f138d8b2d8658838ad255d4ec74"
+                "reference": "e1e2b7630c35b60b14adf00cf1bb73485d1204f8"
             },
             "require": {
                 "mbsoft31/graph-core": "^1.0",
@@ -418,9 +418,9 @@
             },
             "require-dev": {
                 "laravel/pint": "^1.29",
-                "pestphp/pest": "*",
-                "phpbench/phpbench": "*",
-                "phpstan/phpstan": "*"
+                "pestphp/pest": "^3.8",
+                "phpbench/phpbench": "^1.4",
+                "phpstan/phpstan": "^2.1"
             },
             "type": "library",
             "autoload": {
@@ -454,20 +454,23 @@
             }
         },
         {
-            "name": "mbsoft31/graph-core",
-            "version": "1.0.0",
+            "name": "nexus-scholar/graph-core",
+            "version": "1.2.0",
             "dist": {
                 "type": "path",
                 "url": "../graph-core",
-                "reference": "3f614e355586c7abac39e4bb49218a9bd3ed19cf"
+                "reference": "ea5eae39cf355089ba1ed208480a2bda873a7502"
             },
             "require": {
                 "ext-dom": "*",
                 "php": "^8.2"
             },
+            "replace": {
+                "mbsoft31/graph-core": "self.version"
+            },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.87",
-                "pestphp/pest": "^4.0",
+                "pestphp/pest": "^3.8",
                 "phpstan/phpstan": "^2.1"
             },
             "type": "library",
@@ -508,7 +511,7 @@
                 }
             ],
             "description": "A lightweight, performant, and dependency-free graph data structure library for PHP.",
-            "homepage": "https://github.com/mbsoft31/graph-core",
+            "homepage": "https://github.com/nexus-scholar/graph-core",
             "keywords": [
                 "algorithm",
                 "cytoscape",
