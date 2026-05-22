@@ -15,13 +15,15 @@ Ready for pre-release consumers:
 - `.gitattributes` excludes local IDE, agent, storage, temporary, test, and legacy planning artifacts from package archives.
 - Domain and application layers are guarded against framework leakage by architecture tests.
 - Legal OA full-text retrieval avoids shadow-library adapters.
+- Immutable locked corpus snapshots back final/citable corpus membership after lock.
+- A clean Laravel consumer smoke passes when installing `nexus-scholar/core:dev-master`.
 
 Not ready for a stable `1.0` tag yet:
 
-- Immutable locked corpus snapshots are still pending. Current lock membership is inferred from project work links.
-- Host-facing HTTP/API surfaces are not part of this package yet.
+- `nexus-scholar/core` has no stable Packagist tag yet, so `composer require nexus-scholar/core` fails under default Laravel `minimum-stability=stable`.
 - Release notes and semantic-versioning policy are not formalized.
-- The graph packages must be available to Composer consumers through tags or Packagist-compatible repository configuration.
+- The graph packages are available on Packagist, but both repositories need package-cleanliness cleanup before fresh release tags.
+- Host-facing HTTP/API surfaces are not part of this package yet.
 
 ## Release Gate
 
@@ -62,6 +64,56 @@ Expected package-owned commands:
 
 Host applications may expose additional commands, but they must remain thin wrappers around core use cases.
 
+### Latest Consumer Smoke
+
+Date: 2026-05-22
+
+Clean app:
+
+- `composer create-project laravel/laravel smoke-app`
+- Laravel application skeleton `v13.7.0`
+- Laravel framework `v13.11.2`
+
+Stable install status:
+
+```powershell
+composer require nexus-scholar/core
+```
+
+Result: blocked until a stable core tag exists. Composer reports that no version matches the host app's default `minimum-stability=stable`.
+
+Pre-release install status:
+
+```powershell
+composer require nexus-scholar/core:dev-master -W
+php artisan vendor:publish --tag=nexus-config --force
+php artisan vendor:publish --tag=nexus-migrations --force
+php artisan migrate
+php artisan list nexus
+```
+
+Result: passed. Composer installed:
+
+- `nexus-scholar/core` at `dev-master` commit `77988a7`
+- `mbsoft31/graph-core` at `v1.1.0`
+- `mbsoft31/graph-algorithms` at `v1.0.0`
+
+Runtime smoke:
+
+```powershell
+php artisan nexus:search "tomato instance segmentation" --providers=openalex --max=1 --project=smoke_install
+```
+
+Result: passed. OpenAlex returned and persisted one result.
+
+Graph dependency smoke:
+
+```powershell
+php -r 'require "vendor/autoload.php"; /* build a two-node citation graph and compute metrics */'
+```
+
+Result: passed with `2:1`, confirming the installed graph packages can satisfy the core citation-network metrics path.
+
 ## Required Environment
 
 Minimum useful Laravel values:
@@ -95,8 +147,8 @@ Never commit real credentials. Provider availability should be controlled throug
 
 Priority order:
 
-1. Immutable locked corpus snapshots for final/citable exports.
-2. Clean release notes and semantic-versioning policy.
-3. Clean install smoke test in a new Laravel application using tagged graph dependencies.
-4. Host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
-5. Packagist/package archive review after graph package tags are published.
+1. Finish graph package cleanup branches, merge them, and tag fresh graph releases.
+2. Write clean core release notes and semantic-versioning policy.
+3. Tag a pre-`1.0` or `1.0.0` core release, then rerun `composer require nexus-scholar/core` without `dev-master`.
+4. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
+5. Repeat Packagist/package archive review after all tags are published.
