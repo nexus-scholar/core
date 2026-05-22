@@ -18,6 +18,7 @@ use VCR\VCR;
 beforeEach(function () {
     VCR::configure()
         ->setCassettePath(__DIR__ . '/../../Fixture/vcr_cassettes')
+        ->setMode(VCR::MODE_NONE)
         ->enableLibraryHooks(['curl', 'stream_wrapper']);
     VCR::turnOn();
 });
