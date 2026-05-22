@@ -90,7 +90,7 @@ The citation network spec is explicit: **no O(n²) nested loops**. Both co-citat
 
 ```json
 "require": {
-    "nexus-scholar/graph-algorithms": "^1.0"
+    "nexus-scholar/graph-algorithms": "^1.2"
 }
 ```
 

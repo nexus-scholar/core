@@ -20,7 +20,7 @@
             "options": {
                 "symlink": true,
                 "versions": {
-                    "mbsoft31/graph-algorithms": "1.1.0"
+                    "nexus-scholar/graph-algorithms": "1.2.0"
                 }
             }
         }
@@ -28,7 +28,7 @@
     "require": {
         "php": "^8.3",
         "nexus-scholar/graph-core": "^1.0",
-        "mbsoft31/graph-algorithms": "^1.1",
+        "nexus-scholar/graph-algorithms": "^1.2",
         "guzzlehttp/guzzle": "^7.8",
         "composer/ca-bundle": "^1.5",
         "symfony/yaml": "^7.0 || ^8.0"

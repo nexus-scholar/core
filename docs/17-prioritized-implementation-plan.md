@@ -401,7 +401,7 @@ Status: in progress
 
 P2 should not be treated as one large "finish everything" PR. Each item below deserves its own milestone.
 
-For citation-network graph package history and the current use of `mbsoft31/graph-core` and `mbsoft31/graph-algorithms`, see `docs/19-graph-packages-p2-assessment.md`.
+For citation-network graph package history and the current use of `nexus-scholar/graph-core` and `nexus-scholar/graph-algorithms`, see `docs/19-graph-packages-p2-assessment.md`.
 
 ### P2.1 Citation Network Implementation
 

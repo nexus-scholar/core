@@ -26,6 +26,6 @@ Do not tag `1.0.0` until these are true:
 
 - Runtime dependencies should stay minimal and framework-light.
 - Laravel-specific dependencies must stay in Laravel integration code or dev/test tooling.
-- Graph functionality is provided through `nexus-scholar/graph-core` and `mbsoft31/graph-algorithms`.
+- Graph functionality is provided through `nexus-scholar/graph-core` and `nexus-scholar/graph-algorithms`.
 - Live provider integrations must not be required for CI success unless backed by fixtures or explicit integration-test configuration.
 
