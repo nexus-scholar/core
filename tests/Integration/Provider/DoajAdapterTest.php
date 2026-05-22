@@ -17,7 +17,7 @@ use VCR\VCR;
 
 beforeEach(function () {
     VCR::configure()
-        ->setCassettePath(__DIR__ . '/../../Fixture/vcr_cassettes')
+        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
         ->setMode(VCR::MODE_NONE)
         ->enableLibraryHooks(['curl', 'stream_wrapper']);
     VCR::turnOn();
@@ -35,7 +35,7 @@ it('searches doaj with lucene year syntax', function () {
     $adapter = new DoajAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     $query = new SearchQuery(
@@ -47,7 +47,7 @@ it('searches doaj with lucene year syntax', function () {
     $results = $adapter->search($query);
 
     expect($results)->not->toBeEmpty();
-    
+
     $work = $results[0];
     expect($work->sourceProvider())->toBe('doaj');
     expect($work->title())->not->toBeEmpty();
@@ -62,7 +62,7 @@ it('fetches a paper from doaj by DOI', function () {
     $adapter = new DoajAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     // Some DOAJ open access DOI that exists

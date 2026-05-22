@@ -17,7 +17,7 @@ use VCR\VCR;
 
 beforeEach(function () {
     VCR::configure()
-        ->setCassettePath(__DIR__ . '/../../Fixture/vcr_cassettes')
+        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
         ->setMode(VCR::MODE_NONE)
         ->enableLibraryHooks(['curl', 'stream_wrapper']);
     VCR::turnOn();
@@ -32,11 +32,11 @@ it('searches using the bulk endpoint with continuation tokens', function () {
     VCR::insertCassette('s2_bulk_search.yml');
 
     $config = ProviderConfigRegistry::defaults(s2ApiKey: null)['semantic_scholar'];
-    
+
     $adapter = new SemanticScholarAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     // Provide a query that translates boolean syntax
@@ -49,7 +49,7 @@ it('searches using the bulk endpoint with continuation tokens', function () {
     $results = $adapter->search($query);
 
     expect($results)->not->toBeEmpty();
-    
+
     $work = $results[0];
     expect($work->sourceProvider())->toBe('semantic_scholar');
     expect($work->title())->not->toBeEmpty();
@@ -63,7 +63,7 @@ it('fetches a paper by DOIs and S2 IDs', function () {
     $adapter = new SemanticScholarAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     $id = new WorkId(WorkIdNamespace::DOI, '10.1038/nature11409');
@@ -81,7 +81,7 @@ it('paginates using continuation tokens', function () {
     $adapter = new SemanticScholarAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     // Request 4 items. The cassette will return 2 items per page.

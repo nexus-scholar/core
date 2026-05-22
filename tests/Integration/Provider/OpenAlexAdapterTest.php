@@ -17,7 +17,7 @@ use VCR\VCR;
 
 beforeEach(function () {
     VCR::configure()
-        ->setCassettePath(__DIR__ . '/../../Fixture/vcr_cassettes')
+        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
         ->setMode(VCR::MODE_NONE)
         ->enableLibraryHooks(['curl', 'stream_wrapper']);
     VCR::turnOn();
@@ -35,7 +35,7 @@ it('searches using works endpoint', function () {
     $adapter = new OpenAlexAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     $query = new SearchQuery(
@@ -66,7 +66,7 @@ it('fetches a paper by OpenAlex ID', function () {
     $adapter = new OpenAlexAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     // A well-known OpenAlex Work ID (Piwowar et al. 2018 OA study)

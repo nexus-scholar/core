@@ -17,7 +17,7 @@ use VCR\VCR;
 
 beforeEach(function () {
     VCR::configure()
-        ->setCassettePath(__DIR__ . '/../../Fixture/vcr_cassettes')
+        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
         ->setMode(VCR::MODE_NONE)
         ->enableLibraryHooks(['curl', 'stream_wrapper']);
     VCR::turnOn();
@@ -35,7 +35,7 @@ it('searches using crossref api', function () {
     $adapter = new CrossrefAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     $query = new SearchQuery(
@@ -65,7 +65,7 @@ it('fetches a paper by DOI', function () {
     $adapter = new CrossrefAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     $id = new WorkId(WorkIdNamespace::DOI, '10.1109/5.771073');

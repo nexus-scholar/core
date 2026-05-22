@@ -17,7 +17,7 @@ use VCR\VCR;
 
 beforeEach(function () {
     VCR::configure()
-        ->setCassettePath(__DIR__ . '/../../Fixture/vcr_cassettes')
+        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
         ->setMode(VCR::MODE_NONE)
         ->enableLibraryHooks(['curl', 'stream_wrapper']);
     VCR::turnOn();
@@ -35,7 +35,7 @@ it('searches using esearch and efetch', function () {
     $adapter = new PubMedAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     $query = new SearchQuery(
@@ -47,7 +47,7 @@ it('searches using esearch and efetch', function () {
     $results = $adapter->search($query);
 
     expect($results)->not->toBeEmpty();
-    
+
     $work = $results[0];
     expect($work->sourceProvider())->toBe('pubmed');
     expect($work->title())->not->toBeEmpty();
@@ -60,7 +60,7 @@ it('fetches a paper by PMID', function () {
     $adapter = new PubMedAdapter(
         config: $config,
         http: GuzzleHttpClient::create(),
-        rateLimiter: new NullRateLimiter(),
+        rateLimiter: new NullRateLimiter,
     );
 
     // Some valid PMID
