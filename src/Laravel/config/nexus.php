@@ -146,7 +146,7 @@ return [
                     'trim',
                     explode(',', env(
                         'NEXUS_LLM_SCREENING_COUNCIL_MODELS',
-                        'openai/gpt-4.1-mini,google/gemini-2.5-flash,anthropic/claude-3.5-haiku'
+                        'openai/gpt-4.1-mini,google/gemini-2.5-flash,mistralai/mistral-small-2603'
                     ))
                 )),
                 'strategy' => env('NEXUS_LLM_SCREENING_COUNCIL_STRATEGY', 'conservative_majority'),

@@ -140,7 +140,7 @@ Recommended defaults verified against OpenRouter model metadata on 2026-05-22:
 
 ```env
 NEXUS_LLM_SCREENING_MODEL=openai/gpt-4.1-mini
-NEXUS_LLM_SCREENING_COUNCIL_MODELS=openai/gpt-4.1-mini,google/gemini-2.5-flash,anthropic/claude-3.5-haiku
+NEXUS_LLM_SCREENING_COUNCIL_MODELS=openai/gpt-4.1-mini,google/gemini-2.5-flash,mistralai/mistral-small-2603
 NEXUS_LLM_SCREENING_TEMPERATURE=0
 NEXUS_LLM_SCREENING_MAX_TOKENS=600
 ```
@@ -149,8 +149,10 @@ Rationale:
 
 - `openai/gpt-4.1-mini`: strong default for structured classification and cost control.
 - `google/gemini-2.5-flash`: different model family, useful council diversity.
-- `anthropic/claude-3.5-haiku`: different provider family, useful as a third independent vote.
+- `mistralai/mistral-small-2603`: different provider family and verified structured-output support through OpenRouter model metadata on 2026-05-22.
 - `openai/gpt-4.1`: optional high-accuracy adjudicator for hard disagreements, not default for every paper.
+
+Do not assume any OpenRouter model can be used for council screening. The screening client sends a JSON schema through `response_format`, and OpenRouter reports structured outputs as model-dependent. Verify the model metadata includes `structured_outputs` before adding a default council model.
 
 ## Council Screening
 
@@ -173,7 +175,7 @@ Council screening should be configurable:
             'mode' => env('NEXUS_LLM_SCREENING_COUNCIL_MODE', 'uncertain'),
             'models' => explode(',', env(
                 'NEXUS_LLM_SCREENING_COUNCIL_MODELS',
-                'openai/gpt-4.1-mini,google/gemini-2.5-flash,anthropic/claude-3.5-haiku'
+                'openai/gpt-4.1-mini,google/gemini-2.5-flash,mistralai/mistral-small-2603'
             )),
             'strategy' => env('NEXUS_LLM_SCREENING_COUNCIL_STRATEGY', 'conservative_majority'),
             'confidence_threshold' => env('NEXUS_LLM_SCREENING_COUNCIL_CONFIDENCE_THRESHOLD', 0.75),

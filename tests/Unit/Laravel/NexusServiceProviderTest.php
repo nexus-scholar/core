@@ -121,6 +121,14 @@ it('binds screening repositories and council aggregation services', function ():
         ->and(app(ScreenWorkHandler::class))->toBeInstanceOf(ScreenWorkHandler::class);
 });
 
+it('uses structured-output-compatible default council screening models', function (): void {
+    expect(config('nexus.screening.llm.council.models'))->toBe([
+        'openai/gpt-4.1-mini',
+        'google/gemini-2.5-flash',
+        'mistralai/mistral-small-2603',
+    ]);
+});
+
 it('binds export history and export handlers', function (): void {
     expect(app(ExportHistoryPort::class))->toBeInstanceOf(EloquentExportHistoryRecorder::class)
         ->and(app(SerializerCollection::class)->all())->toHaveCount(5)
