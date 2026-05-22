@@ -4,16 +4,91 @@ declare(strict_types=1);
 
 namespace Nexus\Laravel;
 
+use Composer\CaBundle\CaBundle;
+use GuzzleHttp\Client;
 use Illuminate\Support\ServiceProvider;
-use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
-use Nexus\Search\Infrastructure\Provider\ProviderConfig;
-use Nexus\Search\Domain\Port\HttpClientPort;
-use Nexus\Search\Domain\Port\DeduplicationPort;
-use Nexus\Search\Domain\Port\AdapterCollection;
-use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
-use Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter;
-use Nexus\Search\Infrastructure\Deduplication\DeduplicationAdapter;
+use Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder;
+use Nexus\CitationNetwork\Application\UseCase\AnalyzeNetworkHandler;
+use Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler;
+use Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler;
+use Nexus\CitationNetwork\Application\UseCase\SnowballCorpusHandler;
+use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
+use Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort;
+use Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection;
+use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftCitationGraphMapper;
+use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
 use Nexus\Deduplication\Application\DeduplicateCorpusHandler;
+use Nexus\Deduplication\Domain\Port\ClusterRepositoryPort;
+use Nexus\Deduplication\Infrastructure\CompletenessElectionPolicy;
+use Nexus\Deduplication\Infrastructure\DoiMatchPolicy;
+use Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy;
+use Nexus\Deduplication\Infrastructure\TitleFuzzyPolicy;
+use Nexus\Deduplication\Infrastructure\TitleNormalizer;
+use Nexus\Dissemination\Application\UseCase\ExportBibliographyHandler;
+use Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler;
+use Nexus\Dissemination\Application\UseCase\ExportNetworkHandler;
+use Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection;
+use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
+use Nexus\Dissemination\Domain\Port\FileStoragePort;
+use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
+use Nexus\Dissemination\Domain\Port\NetworkSerializerCollection;
+use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
+use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
+use Nexus\Dissemination\Domain\Port\SerializerCollection;
+use Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource;
+use Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource;
+use Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource;
+use Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig;
+use Nexus\Dissemination\Infrastructure\PdfSource\GuzzlePdfDownloader;
+use Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient;
+use Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource;
+use Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource;
+use Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource;
+use Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource;
+use Nexus\Dissemination\Infrastructure\Serializer\BibTexSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\CsvSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\CytoscapeSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\GexfSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\GraphMlSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\JsonlSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\JsonSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer;
+use Nexus\Dissemination\Infrastructure\Serializer\RisSerializer;
+use Nexus\Laravel\Command\NexusScreenCommand;
+use Nexus\Laravel\Command\NexusSearchCommand;
+use Nexus\Laravel\Event\NexusJobCompleted;
+use Nexus\Laravel\Event\NexusJobFailed;
+use Nexus\Laravel\Event\NexusJobProgressed;
+use Nexus\Laravel\Event\NexusJobStarted;
+use Nexus\Laravel\Listener\RecordNexusJobLifecycle;
+use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
+use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
+use Nexus\Laravel\Persistence\EloquentPdfFetchRepository;
+use Nexus\Laravel\Persistence\EloquentProjectLock;
+use Nexus\Laravel\Persistence\EloquentScreeningWorkSource;
+use Nexus\Laravel\Persistence\EloquentSearchRunRecorder;
+use Nexus\Laravel\Persistence\LaravelFileStorage;
+use Nexus\Laravel\Persistence\LaravelSearchCache;
+use Nexus\Laravel\Persistence\LaravelTransaction;
+use Nexus\Laravel\Persistence\Repository\EloquentCitationGraphRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentDedupClusterRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentScreeningDecisionRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentScreeningRunRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentScreeningVoteRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentSearchQueryRepository;
+use Nexus\Laravel\Persistence\Repository\EloquentWorkRepository;
+use Nexus\Screening\Application\Port\LlmClientPort;
+use Nexus\Screening\Application\Port\ScreeningDecisionRepositoryPort;
+use Nexus\Screening\Application\Port\ScreeningPromptRendererPort;
+use Nexus\Screening\Application\Port\ScreeningRunRepositoryPort;
+use Nexus\Screening\Application\Port\ScreeningVoteRepositoryPort;
+use Nexus\Screening\Application\Port\ScreeningWorkSourcePort;
+use Nexus\Screening\Application\UseCase\ScreenCorpusHandler;
+use Nexus\Screening\Application\UseCase\ScreenWorkHandler;
+use Nexus\Screening\Domain\CouncilDecisionAggregator;
+use Nexus\Screening\Infrastructure\Llm\DisabledLlmClient;
+use Nexus\Screening\Infrastructure\Llm\OpenRouterLlmClient;
+use Nexus\Screening\Infrastructure\Prompt\DefaultScreeningPromptRenderer;
 use Nexus\Search\Application\Aggregator\SearchAggregator;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
 use Nexus\Search\Application\Plan\SearchPlanParserPort;
@@ -22,11 +97,31 @@ use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\Port\SearchRunRecorderPort;
 use Nexus\Search\Application\UseCase\PersistentSearchRunner;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
+use Nexus\Search\Domain\Port\AcademicProviderPort;
+use Nexus\Search\Domain\Port\AdapterCollection;
+use Nexus\Search\Domain\Port\DeduplicationPort;
+use Nexus\Search\Domain\Port\HttpClientPort;
+use Nexus\Search\Domain\Port\SearchCachePort;
+use Nexus\Search\Domain\Port\SearchQueryRepositoryPort;
+use Nexus\Search\Domain\Port\WorkRepositoryPort;
+use Nexus\Search\Infrastructure\Deduplication\DeduplicationAdapter;
+use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
 use Nexus\Search\Infrastructure\Plan\YamlSearchPlanParser;
+use Nexus\Search\Infrastructure\Provider\ArXivAdapter;
+use Nexus\Search\Infrastructure\Provider\CrossrefAdapter;
+use Nexus\Search\Infrastructure\Provider\DoajAdapter;
+use Nexus\Search\Infrastructure\Provider\IeeeAdapter;
+use Nexus\Search\Infrastructure\Provider\OpenAlexAdapter;
+use Nexus\Search\Infrastructure\Provider\ProviderConfig;
+use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
+use Nexus\Search\Infrastructure\Provider\PubMedAdapter;
+use Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter;
+use Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\TransactionPort;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Psr\Log\LoggerInterface;
 
 final class NexusServiceProvider extends ServiceProvider
@@ -39,13 +134,13 @@ final class NexusServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/config/nexus.php', 'nexus');
 
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
-        $this->app->singleton(ProjectLockPort::class, \Nexus\Laravel\Persistence\EloquentProjectLock::class);
+        $this->app->singleton(ProjectLockPort::class, EloquentProjectLock::class);
         $this->app->singleton(ProjectLockLifecyclePort::class, fn ($app) => $app->make(ProjectLockPort::class));
-        $this->app->singleton(TransactionPort::class, \Nexus\Laravel\Persistence\LaravelTransaction::class);
-        $this->app->singleton(JobLifecycleRecorderPort::class, \Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder::class);
+        $this->app->singleton(TransactionPort::class, LaravelTransaction::class);
+        $this->app->singleton(JobLifecycleRecorderPort::class, EloquentJobLifecycleRecorder::class);
 
-        $this->app->singleton(\Nexus\Search\Domain\Port\SearchCachePort::class, function ($app) {
-            return new \Nexus\Laravel\Persistence\LaravelSearchCache($app['cache.store']);
+        $this->app->singleton(SearchCachePort::class, function ($app) {
+            return new LaravelSearchCache($app['cache.store']);
         });
 
         $this->app->singleton('nexus.provider_configs', function ($app) {
@@ -61,17 +156,17 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(DeduplicateCorpusHandler::class, function ($app) {
             return new DeduplicateCorpusHandler(
                 policies: [
-                    new \Nexus\Deduplication\Infrastructure\DoiMatchPolicy(),
-                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::ARXIV),
-                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::OPENALEX),
-                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::S2),
-                    new \Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy(\Nexus\Shared\ValueObject\WorkIdNamespace::PUBMED),
-                    new \Nexus\Deduplication\Infrastructure\TitleFuzzyPolicy(
-                        new \Nexus\Deduplication\Infrastructure\TitleNormalizer(),
+                    new DoiMatchPolicy,
+                    new NamespaceMatchPolicy(WorkIdNamespace::ARXIV),
+                    new NamespaceMatchPolicy(WorkIdNamespace::OPENALEX),
+                    new NamespaceMatchPolicy(WorkIdNamespace::S2),
+                    new NamespaceMatchPolicy(WorkIdNamespace::PUBMED),
+                    new TitleFuzzyPolicy(
+                        new TitleNormalizer,
                         95 // The constructor uses an integer threshold (e.g. 95)
                     ),
                 ],
-                electionPolicy: new \Nexus\Deduplication\Infrastructure\CompletenessElectionPolicy()
+                electionPolicy: new CompletenessElectionPolicy
             );
         });
 
@@ -79,40 +174,98 @@ final class NexusServiceProvider extends ServiceProvider
 
         // Persistence repositories
         $this->app->singleton(
-            \Nexus\Search\Domain\Port\WorkRepositoryPort::class,
-            \Nexus\Laravel\Persistence\Repository\EloquentWorkRepository::class
+            WorkRepositoryPort::class,
+            EloquentWorkRepository::class
         );
         $this->app->singleton(
-            \Nexus\Search\Domain\Port\SearchQueryRepositoryPort::class,
-            \Nexus\Laravel\Persistence\Repository\EloquentSearchQueryRepository::class
+            SearchQueryRepositoryPort::class,
+            EloquentSearchQueryRepository::class
         );
         $this->app->singleton(
             SearchRunRecorderPort::class,
-            \Nexus\Laravel\Persistence\EloquentSearchRunRecorder::class
+            EloquentSearchRunRecorder::class
         );
         $this->app->singleton(
-            \Nexus\Deduplication\Domain\Port\ClusterRepositoryPort::class,
-            \Nexus\Laravel\Persistence\Repository\EloquentDedupClusterRepository::class
+            ClusterRepositoryPort::class,
+            EloquentDedupClusterRepository::class
         );
         $this->app->singleton(
-            \Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort::class,
-            \Nexus\Laravel\Persistence\Repository\EloquentCitationGraphRepository::class
+            CitationGraphRepositoryPort::class,
+            EloquentCitationGraphRepository::class
         );
         $this->app->singleton(
-            \Nexus\CitationNetwork\Domain\Port\GraphAlgorithmPort::class,
-            \Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator::class
+            ScreeningRunRepositoryPort::class,
+            EloquentScreeningRunRepository::class
         );
         $this->app->singleton(
-            \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection::class,
+            ScreeningDecisionRepositoryPort::class,
+            EloquentScreeningDecisionRepository::class
+        );
+        $this->app->singleton(
+            ScreeningVoteRepositoryPort::class,
+            EloquentScreeningVoteRepository::class
+        );
+        $this->app->singleton(
+            ScreeningWorkSourcePort::class,
+            EloquentScreeningWorkSource::class
+        );
+        $this->app->singleton(CouncilDecisionAggregator::class);
+        $this->app->singleton(
+            ScreeningPromptRendererPort::class,
+            DefaultScreeningPromptRenderer::class
+        );
+        $this->app->singleton(LlmClientPort::class, function ($app) {
+            $config = $app['config']->get('nexus.screening.llm', []);
+            $config = is_array($config) ? $config : [];
+
+            if (! $this->configBool($config['enabled'] ?? false)) {
+                return new DisabledLlmClient('LLM screening is disabled.');
+            }
+
+            $provider = (string) ($config['provider'] ?? 'openrouter');
+            if ($provider !== 'openrouter') {
+                return new DisabledLlmClient("Unsupported LLM screening provider {$provider}.");
+            }
+
+            $openRouter = $config['openrouter'] ?? [];
+            $openRouter = is_array($openRouter) ? $openRouter : [];
+            $apiKey = (string) ($openRouter['api_key'] ?? '');
+
+            if (trim($apiKey) === '') {
+                return new DisabledLlmClient('OpenRouter API key is not configured.');
+            }
+
+            $caPath = CaBundle::getSystemCaRootBundlePath();
+
+            return new OpenRouterLlmClient(
+                http: new Client([
+                    'timeout' => (int) ($config['timeout'] ?? 45),
+                    'verify' => $caPath !== '' ? $caPath : true,
+                ]),
+                apiKey: $apiKey,
+                baseUrl: (string) ($openRouter['base_url'] ?? 'https://openrouter.ai/api/v1'),
+                timeoutSeconds: (int) ($config['timeout'] ?? 45),
+                referer: isset($openRouter['referer']) ? (string) $openRouter['referer'] : null,
+                appName: isset($openRouter['app_name']) ? (string) $openRouter['app_name'] : 'Nexus Scholar',
+            );
+        });
+        $this->app->singleton(ScreenCorpusHandler::class);
+        $this->app->singleton(ScreenWorkHandler::class);
+        $this->app->singleton(
+            GraphAlgorithmPort::class,
+            MbsoftNetworkMetricsCalculator::class
+        );
+        $this->app->singleton(
+            SnowballingProviderCollection::class,
             function ($app) {
                 $configs = $app->make('nexus.provider_configs');
                 $http = $app->make(HttpClientPort::class);
                 $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
                 $providers = [];
                 $factories = [
-                    'openalex' => \Nexus\Search\Infrastructure\Provider\OpenAlexAdapter::class,
-                    'crossref' => \Nexus\Search\Infrastructure\Provider\CrossrefAdapter::class,
-                    'semantic_scholar' => \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter::class,
+                    'openalex' => OpenAlexAdapter::class,
+                    'crossref' => CrossrefAdapter::class,
+                    'semantic_scholar' => SemanticScholarAdapter::class,
                 ];
 
                 foreach ($factories as $alias => $adapterClass) {
@@ -130,26 +283,26 @@ final class NexusServiceProvider extends ServiceProvider
                     );
                 }
 
-                return new \Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection(...$providers);
+                return new SnowballingProviderCollection(...$providers);
             },
         );
-        $this->app->singleton(\Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder::class);
-        $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\BuildCitationGraphHandler::class);
-        $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\AnalyzeNetworkHandler::class);
-        $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler::class);
-        $this->app->singleton(\Nexus\CitationNetwork\Application\UseCase\SnowballCorpusHandler::class);
+        $this->app->singleton(CitationGraphBuilder::class);
+        $this->app->singleton(BuildCitationGraphHandler::class);
+        $this->app->singleton(AnalyzeNetworkHandler::class);
+        $this->app->singleton(FindShortestCitationPathHandler::class);
+        $this->app->singleton(SnowballCorpusHandler::class);
 
         // Search Aggregator
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
-            $configs     = $app->make('nexus.provider_configs');
-            $http        = $app->make(HttpClientPort::class);
-            $logger      = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
-            $adapters    = $this->searchAdapters($configs, $http, $logger);
+            $configs = $app->make('nexus.provider_configs');
+            $http = $app->make(HttpClientPort::class);
+            $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
+            $adapters = $this->searchAdapters($configs, $http, $logger);
 
             return new SearchAggregator(
                 new AdapterCollection(...$adapters),
                 $app->make(DeduplicationPort::class),
-                $app->make(\Nexus\Search\Domain\Port\SearchCachePort::class),
+                $app->make(SearchCachePort::class),
                 $logger,
             );
         });
@@ -172,84 +325,85 @@ final class NexusServiceProvider extends ServiceProvider
         $this->app->singleton(SearchPlanRunner::class);
 
         // Dissemination Module
-        $this->app->singleton(\Nexus\Dissemination\Domain\Port\FileStoragePort::class, function ($app) {
+        $this->app->singleton(FileStoragePort::class, function ($app) {
             $disk = $app['config']->get('nexus.dissemination.pdf_storage_disk', 'public');
-            return new \Nexus\Laravel\Persistence\LaravelFileStorage($disk);
+
+            return new LaravelFileStorage($disk);
         });
 
         $this->app->singleton(
-            \Nexus\Dissemination\Domain\Port\ExportHistoryPort::class,
-            \Nexus\Laravel\Persistence\EloquentExportHistoryRecorder::class
+            ExportHistoryPort::class,
+            EloquentExportHistoryRecorder::class
         );
 
         $this->app->singleton(
-            \Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort::class,
-            \Nexus\Laravel\Persistence\EloquentPdfFetchRepository::class
+            PdfFetchRepositoryPort::class,
+            EloquentPdfFetchRepository::class
         );
 
         $this->app->singleton(
-            \Nexus\Dissemination\Domain\Port\PdfDownloaderPort::class,
-            \Nexus\Dissemination\Infrastructure\PdfSource\GuzzlePdfDownloader::class
+            PdfDownloaderPort::class,
+            GuzzlePdfDownloader::class
         );
 
-        $this->app->singleton(\Nexus\Dissemination\Domain\Port\SerializerCollection::class, function ($app) {
-            return new \Nexus\Dissemination\Domain\Port\SerializerCollection(
-                new \Nexus\Dissemination\Infrastructure\Serializer\BibTexSerializer(),
-                new \Nexus\Dissemination\Infrastructure\Serializer\RisSerializer(),
-                new \Nexus\Dissemination\Infrastructure\Serializer\CsvSerializer(),
-                new \Nexus\Dissemination\Infrastructure\Serializer\JsonSerializer(),
-                new \Nexus\Dissemination\Infrastructure\Serializer\JsonlSerializer(),
+        $this->app->singleton(SerializerCollection::class, function ($app) {
+            return new SerializerCollection(
+                new BibTexSerializer,
+                new RisSerializer,
+                new CsvSerializer,
+                new JsonSerializer,
+                new JsonlSerializer,
             );
         });
 
-        $this->app->singleton(\Nexus\Dissemination\Domain\Port\NetworkSerializerCollection::class, function ($app) {
-            return new \Nexus\Dissemination\Domain\Port\NetworkSerializerCollection(
-                new \Nexus\Dissemination\Infrastructure\Serializer\CytoscapeSerializer(),
-                new \Nexus\Dissemination\Infrastructure\Serializer\GraphMlSerializer(),
-                new \Nexus\Dissemination\Infrastructure\Serializer\GexfSerializer(),
+        $this->app->singleton(NetworkSerializerCollection::class, function ($app) {
+            return new NetworkSerializerCollection(
+                new CytoscapeSerializer,
+                new GraphMlSerializer,
+                new GexfSerializer,
             );
         });
 
-        $this->app->singleton(\Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection::class, function ($app) {
-            return new \Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection(
-                new \Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer(
-                    $app->make(\Nexus\CitationNetwork\Infrastructure\Graph\MbsoftCitationGraphMapper::class),
+        $this->app->singleton(CitationGraphSerializerCollection::class, function ($app) {
+            return new CitationGraphSerializerCollection(
+                new MbsoftCitationGraphSerializer(
+                    $app->make(MbsoftCitationGraphMapper::class),
                 ),
             );
         });
 
-        $this->app->singleton(\Nexus\Dissemination\Application\UseCase\ExportBibliographyHandler::class, function ($app) {
-            return new \Nexus\Dissemination\Application\UseCase\ExportBibliographyHandler(
-                $app->make(\Nexus\Dissemination\Domain\Port\SerializerCollection::class),
-                $app->make(\Nexus\Dissemination\Domain\Port\FileStoragePort::class),
-                $app->make(\Nexus\Dissemination\Domain\Port\ExportHistoryPort::class),
+        $this->app->singleton(ExportBibliographyHandler::class, function ($app) {
+            return new ExportBibliographyHandler(
+                $app->make(SerializerCollection::class),
+                $app->make(FileStoragePort::class),
+                $app->make(ExportHistoryPort::class),
             );
         });
 
-        $this->app->singleton(\Nexus\Dissemination\Application\UseCase\ExportNetworkHandler::class, function ($app) {
-            return new \Nexus\Dissemination\Application\UseCase\ExportNetworkHandler(
-                $app->make(\Nexus\Dissemination\Domain\Port\NetworkSerializerCollection::class),
-                $app->make(\Nexus\Dissemination\Domain\Port\FileStoragePort::class),
-                $app->make(\Nexus\Dissemination\Domain\Port\ExportHistoryPort::class),
+        $this->app->singleton(ExportNetworkHandler::class, function ($app) {
+            return new ExportNetworkHandler(
+                $app->make(NetworkSerializerCollection::class),
+                $app->make(FileStoragePort::class),
+                $app->make(ExportHistoryPort::class),
             );
         });
 
-        $this->app->singleton(\Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler::class, function ($app) {
-            return new \Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler(
-                $app->make(\Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection::class),
-                $app->make(\Nexus\Dissemination\Domain\Port\FileStoragePort::class),
-                $app->make(\Nexus\Dissemination\Domain\Port\ExportHistoryPort::class),
+        $this->app->singleton(ExportCitationGraphHandler::class, function ($app) {
+            return new ExportCitationGraphHandler(
+                $app->make(CitationGraphSerializerCollection::class),
+                $app->make(FileStoragePort::class),
+                $app->make(ExportHistoryPort::class),
             );
         });
 
-        $this->app->singleton(\Nexus\Dissemination\Domain\Port\FullTextSourceCollection::class, function ($app) {
+        $this->app->singleton(FullTextSourceCollection::class, function ($app) {
             $http = $app->make(HttpClientPort::class);
             $sourceConfig = $app['config']->get('nexus.full_text.sources', []);
             $sourceConfig = is_array($sourceConfig) ? $sourceConfig : [];
             $sources = [];
 
             if ($this->fullTextSourceEnabled($sourceConfig, 'direct')) {
-                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource();
+                $sources[] = new DirectPdfSource;
             }
 
             $unpaywall = $this->fullTextSourceConfig(
@@ -260,8 +414,8 @@ final class NexusServiceProvider extends ServiceProvider
             );
 
             if ($unpaywall->enabled && $unpaywall->email !== null) {
-                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource(
-                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                $sources[] = new UnpaywallPdfSource(
+                    new OaHttpClient(
                         $http,
                         $this->fullTextRateLimiterFor($unpaywall),
                         $unpaywall,
@@ -277,8 +431,8 @@ final class NexusServiceProvider extends ServiceProvider
             );
 
             if ($pmc->enabled) {
-                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource(
-                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                $sources[] = new PmcOaiFullTextSource(
+                    new OaHttpClient(
                         $http,
                         $this->fullTextRateLimiterFor($pmc),
                         $pmc,
@@ -294,8 +448,8 @@ final class NexusServiceProvider extends ServiceProvider
             );
 
             if ($europePmc->enabled) {
-                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource(
-                    new \Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient(
+                $sources[] = new EuropePmcFullTextSource(
+                    new OaHttpClient(
                         $http,
                         $this->fullTextRateLimiterFor($europePmc),
                         $europePmc,
@@ -304,67 +458,67 @@ final class NexusServiceProvider extends ServiceProvider
             }
 
             if ($this->fullTextSourceEnabled($sourceConfig, 'arxiv')) {
-                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\ArXivPdfSource();
+                $sources[] = new ArXivPdfSource;
             }
 
             if ($this->fullTextSourceEnabled($sourceConfig, 'openalex')) {
-                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\OpenAlexPdfSource();
+                $sources[] = new OpenAlexPdfSource;
             }
 
             if ($this->fullTextSourceEnabled($sourceConfig, 'semantic_scholar')) {
-                $sources[] = new \Nexus\Dissemination\Infrastructure\PdfSource\SemanticScholarPdfSource();
+                $sources[] = new SemanticScholarPdfSource;
             }
 
-            return new \Nexus\Dissemination\Domain\Port\FullTextSourceCollection(
+            return new FullTextSourceCollection(
                 ...$sources,
             );
         });
     }
 
     /**
-     * @param array<string, ProviderConfig> $configs
-     * @return array<int, \Nexus\Search\Domain\Port\AcademicProviderPort>
+     * @param  array<string, ProviderConfig>  $configs
+     * @return array<int, AcademicProviderPort>
      */
     private function searchAdapters(array $configs, HttpClientPort $http, ?LoggerInterface $logger): array
     {
         $factories = [
-            'arxiv' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\ArXivAdapter(
+            'arxiv' => fn (ProviderConfig $config) => new ArXivAdapter(
                 $http,
                 $this->rateLimiterFor($config),
                 $config,
                 $logger,
             ),
-            'crossref' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\CrossrefAdapter(
+            'crossref' => fn (ProviderConfig $config) => new CrossrefAdapter(
                 $http,
                 $this->rateLimiterFor($config),
                 $config,
                 $logger,
             ),
-            'doaj' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\DoajAdapter(
+            'doaj' => fn (ProviderConfig $config) => new DoajAdapter(
                 $http,
                 $this->rateLimiterFor($config),
                 $config,
                 $logger,
             ),
-            'ieee' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\IeeeAdapter(
+            'ieee' => fn (ProviderConfig $config) => new IeeeAdapter(
                 $http,
                 $this->rateLimiterFor($config),
                 $config,
                 $logger,
             ),
-            'openalex' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\OpenAlexAdapter(
+            'openalex' => fn (ProviderConfig $config) => new OpenAlexAdapter(
                 $http,
                 $this->rateLimiterFor($config),
                 $config,
                 $logger,
             ),
-            'pubmed' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\PubMedAdapter(
+            'pubmed' => fn (ProviderConfig $config) => new PubMedAdapter(
                 $http,
                 $this->rateLimiterFor($config),
                 $config,
                 $logger,
             ),
-            'semantic_scholar' => fn (ProviderConfig $config) => new \Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter(
+            'semantic_scholar' => fn (ProviderConfig $config) => new SemanticScholarAdapter(
                 $http,
                 $this->rateLimiterFor($config),
                 $config,
@@ -396,18 +550,18 @@ final class NexusServiceProvider extends ServiceProvider
     }
 
     /**
-     * @param array<string, array<string, mixed>> $sourceConfig
-     * @param array<string, mixed> $defaults
+     * @param  array<string, array<string, mixed>>  $sourceConfig
+     * @param  array<string, mixed>  $defaults
      */
     private function fullTextSourceConfig(
         array $sourceConfig,
         string $alias,
         string $baseUrl,
         array $defaults,
-    ): \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig {
+    ): FullTextSourceConfig {
         $values = $sourceConfig[$alias] ?? [];
 
-        return \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig::fromArray(
+        return FullTextSourceConfig::fromArray(
             $alias,
             $baseUrl,
             is_array($values) ? $values : [],
@@ -416,7 +570,7 @@ final class NexusServiceProvider extends ServiceProvider
     }
 
     /**
-     * @param array<string, array<string, mixed>> $sourceConfig
+     * @param  array<string, array<string, mixed>>  $sourceConfig
      */
     private function fullTextSourceEnabled(array $sourceConfig, string $alias): bool
     {
@@ -425,15 +579,20 @@ final class NexusServiceProvider extends ServiceProvider
             return true;
         }
 
-        if (is_bool($values['enabled'])) {
-            return $values['enabled'];
+        return $this->configBool($values['enabled'], true);
+    }
+
+    private function configBool(mixed $value, bool $default = false): bool
+    {
+        if (is_bool($value)) {
+            return $value;
         }
 
-        return filter_var($values['enabled'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true;
+        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $default;
     }
 
     private function fullTextRateLimiterFor(
-        \Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig $config,
+        FullTextSourceConfig $config,
     ): TokenBucketRateLimiter {
         return new TokenBucketRateLimiter(
             ratePerSecond: $config->ratePerSecond,
@@ -450,12 +609,12 @@ final class NexusServiceProvider extends ServiceProvider
 
         $this->app['events']->listen(
             [
-                \Nexus\Laravel\Event\NexusJobStarted::class,
-                \Nexus\Laravel\Event\NexusJobProgressed::class,
-                \Nexus\Laravel\Event\NexusJobCompleted::class,
-                \Nexus\Laravel\Event\NexusJobFailed::class,
+                NexusJobStarted::class,
+                NexusJobProgressed::class,
+                NexusJobCompleted::class,
+                NexusJobFailed::class,
             ],
-            \Nexus\Laravel\Listener\RecordNexusJobLifecycle::class,
+            RecordNexusJobLifecycle::class,
         );
 
         if ($this->app->runningInConsole()) {
@@ -468,7 +627,8 @@ final class NexusServiceProvider extends ServiceProvider
             ], 'nexus-migrations');
 
             $this->commands([
-                \Nexus\Laravel\Command\NexusSearchCommand::class,
+                NexusSearchCommand::class,
+                NexusScreenCommand::class,
             ]);
         }
     }

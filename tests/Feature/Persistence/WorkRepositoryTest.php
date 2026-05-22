@@ -2,17 +2,18 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\ValueObject\Author;
+use Nexus\Shared\ValueObject\AuthorList;
+use Nexus\Shared\ValueObject\OrcidId;
+use Nexus\Shared\ValueObject\Venue;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
-use Nexus\Shared\ValueObject\AuthorList;
-use Nexus\Shared\ValueObject\Author;
-use Nexus\Shared\ValueObject\Venue;
 use Tests\Support\PersistenceFactory;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->repo = app(WorkRepositoryPort::class);
@@ -25,11 +26,11 @@ it('returns null for unknown work id', function () {
 
 it('saves a work and retrieves it by id with all scalar fields intact', function () {
     $work = PersistenceFactory::makeWork(doi: '10.1111/scalar', title: 'Scalar Test', year: 2021);
-    
+
     $this->repo->save($work);
-    
+
     $loaded = $this->repo->findById($work->primaryId());
-    
+
     expect($loaded)->not->toBeNull()
         ->and($loaded->title())->toBe('Scalar Test')
         ->and($loaded->year())->toBe(2021)
@@ -83,19 +84,19 @@ it('saves a work with multiple external ids and retrieves them all', function ()
     $ids = WorkIdSet::fromArray([
         new WorkId(WorkIdNamespace::DOI, '10.2222/multi'),
         new WorkId(WorkIdNamespace::ARXIV, '2101.12345'),
-        new WorkId(WorkIdNamespace::OPENALEX, 'W123456789')
+        new WorkId(WorkIdNamespace::OPENALEX, 'W123456789'),
     ]);
-    
+
     $work = ScholarlyWork::reconstitute(
         ids: $ids,
         title: 'Multi ID Test',
         sourceProvider: 'test'
     );
-    
+
     $this->repo->save($work);
-    
+
     $loaded = $this->repo->findById($work->primaryId());
-    
+
     expect($loaded->ids()->all())->toHaveCount(4); // 3 external + 1 internal
     expect($loaded->ids()->findByNamespace(WorkIdNamespace::ARXIV)->value)->toBe('2101.12345');
     expect($loaded->ids()->findByNamespace(WorkIdNamespace::OPENALEX)->value)->toBe('w123456789'); // normalized
@@ -104,22 +105,22 @@ it('saves a work with multiple external ids and retrieves them all', function ()
 it('marks exactly one external id as primary', function () {
     $doi = new WorkId(WorkIdNamespace::DOI, '10.3333/primary');
     $arxiv = new WorkId(WorkIdNamespace::ARXIV, '2102.12345');
-    
+
     $work = ScholarlyWork::reconstitute(
         ids: WorkIdSet::fromArray([$arxiv, $doi]),
         title: 'Primary Test',
         sourceProvider: 'test'
     );
-    
+
     expect($work->primaryId()->equals($doi))->toBeTrue();
-    
+
     $this->repo->save($work);
-    
+
     $loaded = $this->repo->findById($work->primaryId());
     expect($loaded->primaryId()->equals($doi))->toBeTrue();
 
     $internalId = $loaded->ids()->findByNamespace(WorkIdNamespace::INTERNAL)->value;
-    
+
     $primaryCount = DB::table('work_external_ids')
         ->where('work_id', $internalId)
         ->where('is_primary', true)
@@ -133,38 +134,68 @@ it('saves a work with a full author list and reconstructs author order', functio
         new Author(familyName: 'Beta', givenName: 'B'),
         new Author(familyName: 'Gamma', givenName: 'G'),
     ]);
-    
+
     $work = ScholarlyWork::reconstitute(
         ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.4444/authors')]),
         title: 'Author Order Test',
         sourceProvider: 'test',
         authors: $authors
     );
-    
+
     $this->repo->save($work);
-    
+
     $loaded = $this->repo->findById($work->primaryId());
-    
+
     expect($loaded->authors()->all())->toHaveCount(3)
         ->and($loaded->authors()->get(0)->familyName)->toBe('Alpha')
         ->and($loaded->authors()->get(1)->familyName)->toBe('Beta')
         ->and($loaded->authors()->get(2)->familyName)->toBe('Gamma');
 });
 
+it('deduplicates repeated authors when syncing a work', function () {
+    $authors = AuthorList::fromArray([
+        new Author(familyName: 'Alpha', givenName: 'A', orcid: new OrcidId('0000-0001-6191-9238')),
+        new Author(familyName: 'Beta', givenName: 'B'),
+        new Author(familyName: 'Alpha', givenName: 'A'),
+    ]);
+
+    $work = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.4444/duplicate-authors')]),
+        title: 'Duplicate Author Test',
+        sourceProvider: 'test',
+        authors: $authors
+    );
+
+    $this->repo->save($work);
+
+    $loaded = $this->repo->findById($work->primaryId());
+    $internalId = $loaded->ids()->findByNamespace(WorkIdNamespace::INTERNAL)->value;
+    $positions = DB::table('work_authors')
+        ->where('work_id', $internalId)
+        ->orderBy('position')
+        ->pluck('position')
+        ->all();
+
+    expect($loaded->authors()->all())->toHaveCount(2)
+        ->and($loaded->authors()->get(0)->familyName)->toBe('Alpha')
+        ->and($loaded->authors()->get(1)->familyName)->toBe('Beta')
+        ->and($positions)->toBe([0, 1]);
+});
+
 it('saves a work with venue data and reconstructs venue', function () {
     $venue = new Venue(name: 'Nature', issn: '1476-4687', type: 'journal');
-    
+
     $work = ScholarlyWork::reconstitute(
         ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.5555/venue')]),
         title: 'Venue Test',
         sourceProvider: 'test',
         venue: $venue
     );
-    
+
     $this->repo->save($work);
-    
+
     $loaded = $this->repo->findById($work->primaryId());
-    
+
     expect($loaded->venue())->not->toBeNull()
         ->and($loaded->venue()->name)->toBe('Nature')
         ->and($loaded->venue()->issn)->toBe('1476-4687')
@@ -173,14 +204,14 @@ it('saves a work with venue data and reconstructs venue', function () {
 
 it('save is idempotent: saving the same work twice does not duplicate rows', function () {
     $work = PersistenceFactory::makeWork(doi: '10.6666/idempotent');
-    
+
     $this->repo->save($work);
     $countWorks = DB::table('scholarly_works')->count();
     $countIds = DB::table('work_external_ids')->count();
     $countAuthors = DB::table('work_authors')->count();
-    
+
     $this->repo->save($work);
-    
+
     expect(DB::table('scholarly_works')->count())->toBe($countWorks);
     expect(DB::table('work_external_ids')->count())->toBe($countIds);
     expect(DB::table('work_authors')->count())->toBe($countAuthors);
@@ -189,15 +220,15 @@ it('save is idempotent: saving the same work twice does not duplicate rows', fun
 it('save updates title when called a second time with changed title', function () {
     $work = PersistenceFactory::makeWork(doi: '10.7777/update', title: 'Original Title');
     $this->repo->save($work);
-    
+
     $updatedWork = ScholarlyWork::reconstitute(
         ids: $work->ids(),
         title: 'Updated Title',
         sourceProvider: 'test'
     );
-    
+
     $this->repo->save($updatedWork);
-    
+
     $loaded = $this->repo->findById($work->primaryId());
     expect($loaded->title())->toBe('Updated Title');
 });
@@ -205,23 +236,23 @@ it('save updates title when called a second time with changed title', function (
 it('re-syncs external ids on second save: removed id is gone, new id is present', function () {
     $id1 = new WorkId(WorkIdNamespace::DOI, '10.8888/sync1');
     $id2 = new WorkId(WorkIdNamespace::ARXIV, '2103.12345');
-    
+
     $work = ScholarlyWork::reconstitute(
         ids: WorkIdSet::fromArray([$id1, $id2]),
         title: 'Sync IDs Test',
         sourceProvider: 'test'
     );
     $this->repo->save($work);
-    
+
     $id3 = new WorkId(WorkIdNamespace::S2, 'S2_ID_123');
     $updatedWork = ScholarlyWork::reconstitute(
         ids: WorkIdSet::fromArray([$id1, $id3]), // removed id2, added id3
         title: 'Sync IDs Test',
         sourceProvider: 'test'
     );
-    
+
     $this->repo->save($updatedWork);
-    
+
     $loaded = $this->repo->findById($id1);
     expect($loaded->ids()->all())->toHaveCount(3); // 2 external + 1 internal
     expect($loaded->ids()->findByNamespace(WorkIdNamespace::ARXIV))->toBeNull();
@@ -231,7 +262,7 @@ it('re-syncs external ids on second save: removed id is gone, new id is present'
 it('re-syncs authors on second save: order change is persisted', function () {
     $authorA = new Author(familyName: 'Alpha');
     $authorB = new Author(familyName: 'Beta');
-    
+
     $work = ScholarlyWork::reconstitute(
         ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::DOI, '10.9999/authorsync')]),
         title: 'Sync Authors Test',
@@ -239,16 +270,16 @@ it('re-syncs authors on second save: order change is persisted', function () {
         authors: AuthorList::fromArray([$authorA, $authorB])
     );
     $this->repo->save($work);
-    
+
     $updatedWork = ScholarlyWork::reconstitute(
         ids: $work->ids(),
         title: 'Sync Authors Test',
         sourceProvider: 'test',
         authors: AuthorList::fromArray([$authorB, $authorA]) // Reversed
     );
-    
+
     $this->repo->save($updatedWork);
-    
+
     $loaded = $this->repo->findById($work->primaryId());
     expect($loaded->authors()->get(0)->familyName)->toBe('Beta');
     expect($loaded->authors()->get(1)->familyName)->toBe('Alpha');
@@ -259,9 +290,9 @@ it('findManyByIds returns all requested works in a single call', function () {
     $work2 = PersistenceFactory::makeWork(doi: '10.1010/batch2', title: 'Batch 2');
     $this->repo->save($work1);
     $this->repo->save($work2);
-    
+
     $results = $this->repo->findManyByIds([$work1->primaryId(), $work2->primaryId()]);
-    
+
     expect($results)->toHaveCount(2);
     expect($results[$work1->primaryId()->toString()]->title())->toBe('Batch 1');
     expect($results[$work2->primaryId()->toString()]->title())->toBe('Batch 2');
@@ -274,11 +305,11 @@ it('findManyByIds returns empty array for empty input', function () {
 it('findManyByIds silently omits ids that do not exist', function () {
     $work1 = PersistenceFactory::makeWork(doi: '10.1010/exists');
     $this->repo->save($work1);
-    
+
     $unknownId = new WorkId(WorkIdNamespace::DOI, '10.0000/missing');
-    
+
     $results = $this->repo->findManyByIds([$work1->primaryId(), $unknownId]);
-    
+
     expect($results)->toHaveCount(1);
     expect($results)->toHaveKey($work1->primaryId()->toString());
 });
@@ -286,40 +317,40 @@ it('findManyByIds silently omits ids that do not exist', function () {
 it('findManyByIds keys results by WorkId string', function () {
     $work = PersistenceFactory::makeWork(doi: '10.1010/keyed');
     $this->repo->save($work);
-    
+
     $results = $this->repo->findManyByIds([$work->primaryId()]);
-    
+
     expect(array_keys($results)[0])->toBe($work->primaryId()->toString());
 });
 
 it('deleting a work cascades to work_external_ids', function () {
     $work = PersistenceFactory::makeWork(doi: '10.1212/cascade1');
     $this->repo->save($work);
-    
+
     $workIdStr = $this->repo->findById($work->primaryId())
         ->ids()
         ->findByNamespace(WorkIdNamespace::INTERNAL)
         ->value;
-    
+
     DB::table('scholarly_works')->where('id', $workIdStr)->delete();
-    
+
     $this->assertDatabaseMissing('work_external_ids', [
-        'work_id' => $workIdStr
+        'work_id' => $workIdStr,
     ]);
 });
 
 it('deleting a work cascades to work_authors', function () {
     $work = PersistenceFactory::makeWork(doi: '10.1212/cascade2');
     $this->repo->save($work);
-    
+
     $workIdStr = $this->repo->findById($work->primaryId())
         ->ids()
         ->findByNamespace(WorkIdNamespace::INTERNAL)
         ->value;
-    
+
     DB::table('scholarly_works')->where('id', $workIdStr)->delete();
-    
+
     $this->assertDatabaseMissing('work_authors', [
-        'work_id' => $workIdStr
+        'work_id' => $workIdStr,
     ]);
 });
