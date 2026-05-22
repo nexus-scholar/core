@@ -36,7 +36,7 @@ jobs:
 
       - name: Checkout graph package path repositories
         run: |
-          git clone --depth 1 https://github.com/mbsoft31/graph-core.git ../graph-core
+          git clone --depth 1 https://github.com/nexus-scholar/graph-core.git ../graph-core
           git clone --depth 1 https://github.com/nexus-scholar/graph-algorithms.git ../graph-algorithms
 
       - name: Validate composer metadata
