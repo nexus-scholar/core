@@ -79,6 +79,8 @@ Start here:
 - [Test Strategy Plan](docs/18-test-strategy-plan.md)
 - [Scientific Screening Architecture](docs/20-scientific-screening-architecture.md)
 - [Release Readiness](docs/21-release-readiness.md)
+- [Versioning Policy](docs/22-versioning-policy.md)
+- [Release Notes v0.1.0](docs/23-release-notes-v0.1.0.md)
 
 ## Testing
 
