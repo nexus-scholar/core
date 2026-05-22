@@ -4,26 +4,27 @@ declare(strict_types=1);
 
 namespace Nexus\Laravel\Persistence\Repository;
 
+use Illuminate\Support\Str;
+use Nexus\Laravel\Model\AuthorModel as EloquentAuthor;
+use Nexus\Laravel\Model\ScholarlyWorkModel as EloquentScholarlyWork;
+use Nexus\Laravel\Model\WorkExternalIdModel as EloquentWorkExternalId;
+use Nexus\Laravel\Model\WorkProviderModel as EloquentWorkProvider;
+use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
+use Nexus\Shared\ValueObject\OrcidId;
+use Nexus\Shared\ValueObject\Venue;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
-use Nexus\Shared\ValueObject\Venue;
-use Illuminate\Support\Str;
-use Nexus\Laravel\Model\ScholarlyWorkModel as EloquentScholarlyWork;
-use Nexus\Laravel\Model\WorkExternalIdModel as EloquentWorkExternalId;
-use Nexus\Laravel\Model\WorkAuthorModel as EloquentWorkAuthor;
-use Nexus\Laravel\Model\AuthorModel as EloquentAuthor;
-use Nexus\Laravel\Model\WorkProviderModel as EloquentWorkProvider;
 
 /**
  * Eloquent-backed adapter for persisting and retrieving ScholarlyWork domain objects.
  * This is the most complex repository because works touch five tables:
  * scholarly_works, work_external_ids, work_providers, work_authors, authors.
  */
-final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepositoryPort
+final class EloquentWorkRepository implements WorkRepositoryPort
 {
     /**
      * Fetch a domain ScholarlyWork by its primary ID.
@@ -37,7 +38,7 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
     }
 
     /**
-     * @param WorkId[] $ids
+     * @param  WorkId[]  $ids
      * @return ScholarlyWork[] Keyed by WorkId string (toString())
      */
     public function findManyByIds(array $ids): array
@@ -53,6 +54,7 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
         foreach ($ids as $id) {
             if ($id->namespace === WorkIdNamespace::INTERNAL) {
                 $internalIds[] = $id->value;
+
                 continue;
             }
 
@@ -71,7 +73,7 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
 
         $externalToInternal = [];
         foreach ($externalRows as $externalRow) {
-            $externalToInternal[$externalRow->namespace . ':' . $externalRow->value] = $externalRow->work_id;
+            $externalToInternal[$externalRow->namespace.':'.$externalRow->value] = $externalRow->work_id;
         }
 
         $rows = EloquentScholarlyWork::with([
@@ -123,9 +125,9 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
             }
 
             $row->externalIds()->create([
-                'id'         => (string) Str::uuid(),
-                'namespace'  => $workIdObj->namespace->value,
-                'value'      => $workIdObj->value,
+                'id' => (string) Str::uuid(),
+                'namespace' => $workIdObj->namespace->value,
+                'value' => $workIdObj->value,
                 'is_primary' => $workIdObj->equals($work->primaryId()),
             ]);
         }
@@ -146,9 +148,9 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
 
             $seenAuthorIds[$authorRow->id] = true;
             $row->authors()->create([
-                'id'        => (string) Str::uuid(),
+                'id' => (string) Str::uuid(),
                 'author_id' => $authorRow->id,
-                'position'  => $position++,
+                'position' => $position++,
                 'is_corresponding' => false,
             ]);
         }
@@ -179,15 +181,15 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
     private function authorIdentityKey(Author $author): string
     {
         if ($author->orcid !== null) {
-            return 'orcid:' . $author->orcid->toString();
+            return 'orcid:'.$author->orcid->toString();
         }
 
-        return 'name:' . $author->normalizedFullName;
+        return 'name:'.$author->normalizedFullName;
     }
 
     private function findOrCreateAuthor(Author $author): EloquentAuthor
     {
-        $fullName = $author->familyName . ($author->givenName ? ', ' . $author->givenName : '');
+        $fullName = $author->familyName.($author->givenName ? ', '.$author->givenName : '');
         $orcid = $author->orcid?->toString();
 
         if ($orcid !== null) {
@@ -217,16 +219,16 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
     private function toRow(ScholarlyWork $work): array
     {
         return [
-            'title'             => $work->title(),
-            'abstract'          => $work->abstract(),
-            'year'              => $work->year() ?? 0,
-            'venue_name'        => $work->venue()?->name,
-            'venue_issn'        => $work->venue()?->issn,
-            'venue_type'        => $work->venue()?->type,
-            'language'          => null,
-            'cited_by_count'    => $work->citedByCount() ?? 0,
-            'is_retracted'      => $work->isRetracted(),
-            'retrieved_at'      => $work->retrievedAt(),
+            'title' => $work->title(),
+            'abstract' => $work->abstract(),
+            'year' => $work->year() ?? 0,
+            'venue_name' => $work->venue()?->name,
+            'venue_issn' => $work->venue()?->issn,
+            'venue_type' => $work->venue()?->type,
+            'language' => null,
+            'cited_by_count' => $work->citedByCount() ?? 0,
+            'is_retracted' => $work->isRetracted(),
+            'retrieved_at' => $work->retrievedAt(),
         ];
     }
 
@@ -238,7 +240,7 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
     {
         // Reconstruct WorkIdSet from external_ids
         $ids = WorkIdSet::fromArray([
-            new WorkId(WorkIdNamespace::INTERNAL, $row->id)
+            new WorkId(WorkIdNamespace::INTERNAL, $row->id),
         ]);
         foreach ($row->externalIds as $idRow) {
             $ids = $ids->add(new WorkId(
@@ -255,7 +257,7 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
             $authors[] = new Author(
                 familyName: $nameParts[0],
                 givenName: $nameParts[1] ?? null,
-                orcid: $authorRow->orcid ? new \Nexus\Shared\ValueObject\OrcidId($authorRow->orcid) : null,
+                orcid: $authorRow->orcid ? new OrcidId($authorRow->orcid) : null,
             );
         }
 
@@ -270,15 +272,15 @@ final class EloquentWorkRepository implements \Nexus\Search\Domain\Port\WorkRepo
         }
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $row->title,
+            ids: $ids,
+            title: $row->title,
             sourceProvider: $this->sourceProviderFor($row),
-            year:           $row->year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            abstract:       $row->abstract,
-            citedByCount:   $row->cited_by_count,
-            isRetracted:    $row->is_retracted,
+            year: $row->year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            abstract: $row->abstract,
+            citedByCount: $row->cited_by_count,
+            isRetracted: $row->is_retracted,
         );
     }
 
