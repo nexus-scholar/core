@@ -17,11 +17,11 @@ Ready for pre-release consumers:
 - Legal OA full-text retrieval avoids shadow-library adapters.
 - Immutable locked corpus snapshots back final/citable corpus membership after lock.
 - A clean Laravel consumer smoke passes when installing `nexus-scholar/core:dev-master`.
+- `v0.1.0` release notes and a pre-1.0 versioning policy are documented.
 
 Not ready for a stable `1.0` tag yet:
 
 - `nexus-scholar/core` has no stable Packagist tag yet, so `composer require nexus-scholar/core` fails under default Laravel `minimum-stability=stable`.
-- Release notes and semantic-versioning policy are not formalized.
 - Host-facing HTTP/API surfaces are not part of this package yet.
 
 ## Release Gate
@@ -153,7 +153,6 @@ Never commit real credentials. Provider availability should be controlled throug
 
 Priority order:
 
-1. Write clean core release notes and semantic-versioning policy.
-2. Tag a pre-`1.0` or `1.0.0` core release, then rerun `composer require nexus-scholar/core` without `dev-master`.
-3. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
-4. Repeat Packagist/package archive review after the core tag is published.
+1. Tag `v0.1.0`, then rerun `composer require nexus-scholar/core:^0.1` without `dev-master`.
+2. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
+3. Repeat Packagist/package archive review after the core tag is published.
