@@ -101,7 +101,8 @@ External Composer package smoke after graph package releases:
 
 - `nexus-scholar/graph-core` resolves from Packagist at `v1.2.0`.
 - `mbsoft31/graph-algorithms` resolves from Packagist at `v1.1.0` and now requires `nexus-scholar/graph-core`.
-- `nexus-scholar/core:dev-master` resolves from Packagist with `nexus-scholar/graph-core v1.2.0`.
+- `nexus-scholar/core:dev-master` resolves from Packagist at commit `94eb6b4`.
+- Clean Composer resolution installed `mbsoft31/graph-algorithms v1.1.0` and `nexus-scholar/graph-core v1.2.0` from public package archives.
 
 Runtime smoke:
 
