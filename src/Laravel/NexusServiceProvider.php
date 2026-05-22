@@ -62,6 +62,7 @@ use Nexus\Laravel\Event\NexusJobFailed;
 use Nexus\Laravel\Event\NexusJobProgressed;
 use Nexus\Laravel\Event\NexusJobStarted;
 use Nexus\Laravel\Listener\RecordNexusJobLifecycle;
+use Nexus\Laravel\Persistence\EloquentCorpusSnapshotRepository;
 use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
 use Nexus\Laravel\Persistence\EloquentPdfFetchRepository;
@@ -122,7 +123,9 @@ use Nexus\Search\Infrastructure\Provider\PubMedAdapter;
 use Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter;
 use Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter;
 use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
+use Nexus\Shared\Port\ProjectCorpusWorksPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\Port\ProjectWorkMembershipPort;
@@ -140,14 +143,25 @@ final class NexusServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/config/nexus.php', 'nexus');
 
         $this->app->singleton(HttpClientPort::class, fn () => GuzzleHttpClient::create());
-        $this->app->singleton(ProjectLockPort::class, EloquentProjectLock::class);
+        $this->app->singleton(CorpusSnapshotRepositoryPort::class, EloquentCorpusSnapshotRepository::class);
+        $this->app->singleton(ProjectLockPort::class, function ($app) {
+            return new EloquentProjectLock($app->make(CorpusSnapshotRepositoryPort::class));
+        });
         $this->app->singleton(ProjectLockLifecyclePort::class, fn ($app) => $app->make(ProjectLockPort::class));
-        $this->app->singleton(ProjectWorkMembershipPort::class, EloquentProjectWorkMembership::class);
+        $this->app->singleton(EloquentProjectWorkMembership::class, function ($app) {
+            return new EloquentProjectWorkMembership(
+                $app->make(ProjectLockPort::class),
+                $app->make(CorpusSnapshotRepositoryPort::class),
+            );
+        });
+        $this->app->singleton(ProjectWorkMembershipPort::class, fn ($app) => $app->make(EloquentProjectWorkMembership::class));
+        $this->app->singleton(ProjectCorpusWorksPort::class, fn ($app) => $app->make(EloquentProjectWorkMembership::class));
         $this->app->singleton(CorpusLockPolicy::class, function ($app) {
             return new CorpusLockPolicy(
                 $app->make(ProjectLockPort::class),
                 $app->make(ProjectWorkMembershipPort::class),
                 $app->make(ProjectLockLifecyclePort::class),
+                $app->make(CorpusSnapshotRepositoryPort::class),
             );
         });
         $this->app->singleton(TransactionPort::class, LaravelTransaction::class);
@@ -369,6 +383,7 @@ final class NexusServiceProvider extends ServiceProvider
             return new PersistentSearchRunner(
                 $app->make(SearchAcrossProvidersHandler::class),
                 $app->make(SearchRunRecorderPort::class),
+                $app->make(ProjectLockPort::class),
             );
         });
 

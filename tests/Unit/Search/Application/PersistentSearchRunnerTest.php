@@ -12,6 +12,7 @@ use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Exception\ProjectLockedException;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
@@ -24,7 +25,8 @@ it('records search lifecycle, provider stats, works, and completion', function (
         sourceProvider: 'openalex',
     );
 
-    $aggregator = new class($work) implements SearchAggregatorPort {
+    $aggregator = new class($work) implements SearchAggregatorPort
+    {
         public function __construct(private readonly ScholarlyWork $work) {}
 
         public function aggregate(SearchQuery $query): AggregatedResult
@@ -38,21 +40,42 @@ it('records search lifecycle, provider stats, works, and completion', function (
         }
     };
 
-    $locks = new class implements ProjectLockPort {
-        public function isLocked(string $projectId): bool { return false; }
+    $locks = new class implements ProjectLockPort
+    {
+        public function isLocked(string $projectId): bool
+        {
+            return false;
+        }
     };
 
-    $recorder = new class implements SearchRunRecorderPort {
+    $recorder = new class implements SearchRunRecorderPort
+    {
         public array $events = [];
 
-        public function recordStarted(SearchQuery $query): void { $this->events[] = ['started', $query->id]; }
-        public function recordProviderStat(SearchQuery $query, ProviderStat $stat): void { $this->events[] = ['stat', $stat->alias, $stat->resultCount]; }
+        public function recordStarted(SearchQuery $query): void
+        {
+            $this->events[] = ['started', $query->id];
+        }
+
+        public function recordProviderStat(SearchQuery $query, ProviderStat $stat): void
+        {
+            $this->events[] = ['stat', $stat->alias, $stat->resultCount];
+        }
+
         public function recordWork(SearchQuery $query, ScholarlyWork $work, string $providerAlias, string $providerWorkId, int $rank): void
         {
             $this->events[] = ['work', $providerAlias, $providerWorkId, $rank];
         }
-        public function recordCompleted(SearchQuery $query, AggregatedResult $result): void { $this->events[] = ['completed', $result->totalRaw, $result->corpus->count()]; }
-        public function recordFailed(SearchQuery $query, Throwable $error): void { $this->events[] = ['failed', $error->getMessage()]; }
+
+        public function recordCompleted(SearchQuery $query, AggregatedResult $result): void
+        {
+            $this->events[] = ['completed', $result->totalRaw, $result->corpus->count()];
+        }
+
+        public function recordFailed(SearchQuery $query, Throwable $error): void
+        {
+            $this->events[] = ['failed', $error->getMessage()];
+        }
     };
 
     $runner = new PersistentSearchRunner(new SearchAcrossProvidersHandler($aggregator, $locks), $recorder);
@@ -67,25 +90,41 @@ it('records search lifecycle, provider stats, works, and completion', function (
 });
 
 it('records failure before rethrowing execution errors', function (): void {
-    $aggregator = new class implements SearchAggregatorPort {
+    $aggregator = new class implements SearchAggregatorPort
+    {
         public function aggregate(SearchQuery $query): AggregatedResult
         {
             throw new RuntimeException('unknown provider');
         }
     };
 
-    $locks = new class implements ProjectLockPort {
-        public function isLocked(string $projectId): bool { return false; }
+    $locks = new class implements ProjectLockPort
+    {
+        public function isLocked(string $projectId): bool
+        {
+            return false;
+        }
     };
 
-    $recorder = new class implements SearchRunRecorderPort {
+    $recorder = new class implements SearchRunRecorderPort
+    {
         public array $events = [];
 
-        public function recordStarted(SearchQuery $query): void { $this->events[] = 'started'; }
+        public function recordStarted(SearchQuery $query): void
+        {
+            $this->events[] = 'started';
+        }
+
         public function recordProviderStat(SearchQuery $query, ProviderStat $stat): void {}
+
         public function recordWork(SearchQuery $query, ScholarlyWork $work, string $providerAlias, string $providerWorkId, int $rank): void {}
+
         public function recordCompleted(SearchQuery $query, AggregatedResult $result): void {}
-        public function recordFailed(SearchQuery $query, Throwable $error): void { $this->events[] = 'failed:'.$error->getMessage(); }
+
+        public function recordFailed(SearchQuery $query, Throwable $error): void
+        {
+            $this->events[] = 'failed:'.$error->getMessage();
+        }
     };
 
     $runner = new PersistentSearchRunner(new SearchAcrossProvidersHandler($aggregator, $locks), $recorder);
@@ -94,4 +133,59 @@ it('records failure before rethrowing execution errors', function (): void {
         ->toThrow(RuntimeException::class, 'unknown provider');
 
     expect($recorder->events)->toBe(['started', 'failed:unknown provider']);
+});
+
+it('does not create search persistence records when the project is locked', function (): void {
+    $aggregator = new class implements SearchAggregatorPort
+    {
+        public function aggregate(SearchQuery $query): AggregatedResult
+        {
+            throw new RuntimeException('Aggregator should not run for locked projects.');
+        }
+    };
+
+    $locks = new class implements ProjectLockPort
+    {
+        public function isLocked(string $projectId): bool
+        {
+            return true;
+        }
+    };
+
+    $recorder = new class implements SearchRunRecorderPort
+    {
+        public array $events = [];
+
+        public function recordStarted(SearchQuery $query): void
+        {
+            $this->events[] = 'started';
+        }
+
+        public function recordProviderStat(SearchQuery $query, ProviderStat $stat): void
+        {
+            $this->events[] = 'stat';
+        }
+
+        public function recordWork(SearchQuery $query, ScholarlyWork $work, string $providerAlias, string $providerWorkId, int $rank): void
+        {
+            $this->events[] = 'work';
+        }
+
+        public function recordCompleted(SearchQuery $query, AggregatedResult $result): void
+        {
+            $this->events[] = 'completed';
+        }
+
+        public function recordFailed(SearchQuery $query, Throwable $error): void
+        {
+            $this->events[] = 'failed';
+        }
+    };
+
+    $runner = new PersistentSearchRunner(new SearchAcrossProvidersHandler($aggregator, $locks), $recorder, $locks);
+
+    expect(fn () => $runner->handle(new SearchAcrossProviders('texture analysis', 'locked-project')))
+        ->toThrow(ProjectLockedException::class);
+
+    expect($recorder->events)->toBe([]);
 });

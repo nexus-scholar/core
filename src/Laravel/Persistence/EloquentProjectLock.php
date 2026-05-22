@@ -9,13 +9,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Nexus\Shared\Exception\ProjectNotFoundException;
+use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\ValueObject\ProjectLockAction;
 use Nexus\Shared\ValueObject\ProjectLockState;
 
-final class EloquentProjectLock implements ProjectLockPort, ProjectLockLifecyclePort
+final class EloquentProjectLock implements ProjectLockLifecyclePort, ProjectLockPort
 {
+    public function __construct(private readonly ?CorpusSnapshotRepositoryPort $snapshots = null) {}
+
     public function isLocked(string $projectId): bool
     {
         return DB::table('projects')
@@ -25,7 +28,7 @@ final class EloquentProjectLock implements ProjectLockPort, ProjectLockLifecycle
     }
 
     /**
-     * @param array<string, mixed> $metadata
+     * @param  array<string, mixed>  $metadata
      */
     public function lock(string $projectId, ?string $actorId = null, ?string $reason = null, array $metadata = []): ProjectLockState
     {
@@ -49,12 +52,20 @@ final class EloquentProjectLock implements ProjectLockPort, ProjectLockLifecycle
 
             $this->recordAudit($projectId, ProjectLockAction::LOCKED, $actorId, $reason, $metadata, $now);
 
+            $this->snapshots?->createForLockedProject(
+                projectId: $projectId,
+                lockedAt: DateTimeImmutable::createFromInterface($now),
+                actorId: $actorId,
+                reason: $reason,
+                metadata: $metadata,
+            );
+
             return $this->status($projectId);
         });
     }
 
     /**
-     * @param array<string, mixed> $metadata
+     * @param  array<string, mixed>  $metadata
      */
     public function unlock(string $projectId, ?string $actorId = null, ?string $reason = null, array $metadata = []): ProjectLockState
     {
@@ -111,7 +122,7 @@ final class EloquentProjectLock implements ProjectLockPort, ProjectLockLifecycle
     }
 
     /**
-     * @param array<string, mixed> $metadata
+     * @param  array<string, mixed>  $metadata
      */
     private function recordAudit(
         string $projectId,

@@ -8,14 +8,27 @@ use Nexus\Laravel\Model\QueryWorkModel;
 use Nexus\Laravel\Model\ScholarlyWorkModel;
 use Nexus\Screening\Application\Port\ScreeningWorkSourcePort;
 use Nexus\Screening\Domain\ScreeningWork;
+use Nexus\Shared\Port\ProjectCorpusWorksPort;
 
 final class EloquentScreeningWorkSource implements ScreeningWorkSourcePort
 {
+    public function __construct(private readonly ?ProjectCorpusWorksPort $corpusWorks = null) {}
+
     public function forProject(string $projectId, ?int $limit = null, array $workIds = [], array $queryIds = []): array
     {
         $query = ScholarlyWorkModel::query()
-            ->with(['externalIds', 'providers'])
-            ->whereExists(function ($subquery) use ($projectId, $queryIds): void {
+            ->with(['externalIds', 'providers']);
+
+        if ($this->corpusWorks !== null) {
+            $authoritativeWorkIds = $this->corpusWorks->workIds($projectId, $queryIds);
+
+            if ($authoritativeWorkIds === []) {
+                return [];
+            }
+
+            $query->whereIn('id', $authoritativeWorkIds);
+        } else {
+            $query->whereExists(function ($subquery) use ($projectId, $queryIds): void {
                 $subquery
                     ->selectRaw('1')
                     ->from('query_works')
@@ -26,8 +39,10 @@ final class EloquentScreeningWorkSource implements ScreeningWorkSourcePort
                 if ($queryIds !== []) {
                     $subquery->whereIn('search_queries.id', $queryIds);
                 }
-            })
-            ->orderBy('title');
+            });
+        }
+
+        $query->orderBy('title');
 
         if ($workIds !== []) {
             $query->whereIn('id', $workIds);
