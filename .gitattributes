@@ -1,7 +1,10 @@
 /.agent-skill.md export-ignore
 /.cursor export-ignore
+/.env.example export-ignore
 /.github export-ignore
 /.idea export-ignore
+/docs/UI export-ignore
+/docs/old-nexus-review export-ignore
 /AGENTS.md export-ignore
 /DISSEMINATION_IMPLEMENTATION_STATUS.md export-ignore
 /bootstrap/cache export-ignore
@@ -13,3 +16,4 @@
 /storage export-ignore
 /tests export-ignore
 /tmp export-ignore
+/vendor export-ignore
