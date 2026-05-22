@@ -22,8 +22,6 @@ Not ready for a stable `1.0` tag yet:
 
 - `nexus-scholar/core` has no stable Packagist tag yet, so `composer require nexus-scholar/core` fails under default Laravel `minimum-stability=stable`.
 - Release notes and semantic-versioning policy are not formalized.
-- `nexus-scholar/graph-core` must be submitted to Packagist from the new Nexus Scholar repository before a stable core tag.
-- The graph packages need fresh release tags after the package-cleanliness cleanup branches merge.
 - Host-facing HTTP/API surfaces are not part of this package yet.
 
 ## Release Gate
@@ -99,6 +97,12 @@ Result: passed. Composer installed:
 - `nexus-scholar/graph-core` through the local path repository
 - `mbsoft31/graph-algorithms` at `v1.0.0`
 
+External Composer package smoke after graph package releases:
+
+- `nexus-scholar/graph-core` resolves from Packagist at `v1.2.0`.
+- `mbsoft31/graph-algorithms` resolves from Packagist at `v1.1.0` and now requires `nexus-scholar/graph-core`.
+- `nexus-scholar/core:dev-master` resolves from Packagist with `nexus-scholar/graph-core v1.2.0`.
+
 Runtime smoke:
 
 ```powershell
@@ -148,9 +152,7 @@ Never commit real credentials. Provider availability should be controlled throug
 
 Priority order:
 
-1. Finish graph package cleanup branches, merge them, and tag fresh graph releases.
-2. Submit `nexus-scholar/graph-core` to Packagist, then confirm `composer show -a nexus-scholar/graph-core`.
-3. Write clean core release notes and semantic-versioning policy.
-4. Tag a pre-`1.0` or `1.0.0` core release, then rerun `composer require nexus-scholar/core` without `dev-master`.
-5. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
-6. Repeat Packagist/package archive review after all tags are published.
+1. Write clean core release notes and semantic-versioning policy.
+2. Tag a pre-`1.0` or `1.0.0` core release, then rerun `composer require nexus-scholar/core` without `dev-master`.
+3. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
+4. Repeat Packagist/package archive review after the core tag is published.
