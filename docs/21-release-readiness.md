@@ -86,7 +86,7 @@ Result: passed. Composer installed:
 
 - `nexus-scholar/core` at `v0.1.0`
 - `nexus-scholar/graph-core` at `v1.2.0`
-- `mbsoft31/graph-algorithms` at `v1.1.0`
+- `nexus-scholar/graph-algorithms` at `v1.2.0`
 
 Published Laravel resources:
 
@@ -103,9 +103,9 @@ Package-owned commands discovered:
 External Composer package smoke after graph package releases:
 
 - `nexus-scholar/graph-core` resolves from Packagist at `v1.2.0`.
-- `mbsoft31/graph-algorithms` resolves from Packagist at `v1.1.0` and now requires `nexus-scholar/graph-core`.
-- `nexus-scholar/core:dev-master` resolves from Packagist at commit `94eb6b4`.
-- Clean Composer resolution installed `mbsoft31/graph-algorithms v1.1.0` and `nexus-scholar/graph-core v1.2.0` from public package archives.
+- `nexus-scholar/graph-algorithms` resolves from Packagist at `v1.2.0` and replaces `mbsoft31/graph-algorithms`.
+- `nexus-scholar/core:dev-master` resolves from Packagist with the Nexus graph package names.
+- Clean Composer resolution installed `nexus-scholar/graph-algorithms v1.2.0` and `nexus-scholar/graph-core v1.2.0` from public package archives.
 
 Runtime smoke:
 

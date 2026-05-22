@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "105355667aea613fc248fca02a3c39b8",
+    "content-hash": "34a30997d4c3798daee2ae45f66b0460",
     "packages": [
         {
             "name": "composer/ca-bundle",
@@ -405,16 +405,19 @@
             "time": "2026-03-10T16:41:02+00:00"
         },
         {
-            "name": "mbsoft31/graph-algorithms",
-            "version": "1.1.0",
+            "name": "nexus-scholar/graph-algorithms",
+            "version": "1.2.0",
             "dist": {
                 "type": "path",
                 "url": "../graph-algorithms",
-                "reference": "faa5161389062783188b1e1f43cc014b8dafe890"
+                "reference": "d214d2266497fe6d245d862803c629b97332f8e7"
             },
             "require": {
                 "nexus-scholar/graph-core": "^1.0",
                 "php": "^8.2"
+            },
+            "replace": {
+                "mbsoft31/graph-algorithms": "self.version"
             },
             "require-dev": {
                 "laravel/pint": "^1.29",
@@ -448,6 +451,15 @@
                 "MIT"
             ],
             "description": "A high-performance library of standard graph algorithms for PHP.",
+            "homepage": "https://github.com/nexus-scholar/graph-algorithms",
+            "keywords": [
+                "algorithms",
+                "centrality",
+                "graph",
+                "network",
+                "pagerank",
+                "pathfinding"
+            ],
             "transport-options": {
                 "symlink": true,
                 "relative": true

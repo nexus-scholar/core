@@ -81,6 +81,7 @@ Start here:
 - [Release Readiness](docs/21-release-readiness.md)
 - [Versioning Policy](docs/22-versioning-policy.md)
 - [Release Notes v0.1.0](docs/23-release-notes-v0.1.0.md)
+- [Release Notes v0.1.1](docs/24-release-notes-v0.1.1.md)
 
 ## Testing
 
