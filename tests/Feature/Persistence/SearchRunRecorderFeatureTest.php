@@ -8,9 +8,9 @@ use Nexus\Search\Application\Aggregator\ProviderStat;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
 use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\UseCase\SearchAcrossProviders;
-use Nexus\Search\Domain\CorpusSlice;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -30,7 +30,8 @@ it('persists a complete search trace through the Laravel recorder', function ():
         abstract: 'Traceable abstract.',
     );
 
-    app()->instance(SearchAggregatorPort::class, new class($work) implements SearchAggregatorPort {
+    app()->instance(SearchAggregatorPort::class, new class($work) implements SearchAggregatorPort
+    {
         public function __construct(private readonly ScholarlyWork $work) {}
 
         public function aggregate(SearchQuery $query): AggregatedResult

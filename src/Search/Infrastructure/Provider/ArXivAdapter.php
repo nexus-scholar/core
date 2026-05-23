@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use Nexus\Search\Domain\ScholarlyWork;
+use GuzzleHttp\Promise\PromiseInterface;
+use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
@@ -55,7 +58,7 @@ final class ArXivAdapter extends BaseProviderAdapter
         );
     }
 
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    public function searchAsync(SearchQuery $query): PromiseInterface
     {
         $params = array_merge(
             ['search_query' => $this->searchQuery($query)],
@@ -63,7 +66,7 @@ final class ArXivAdapter extends BaseProviderAdapter
         );
 
         return $this->requestAsync('http://export.arxiv.org/api/query', $params)
-            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+            ->then(function (HttpResponse $response) use ($query) {
                 if (! $response->ok()) {
                     return [];
                 }
@@ -98,7 +101,7 @@ final class ArXivAdapter extends BaseProviderAdapter
         }
 
         return $this->normalize($entries[0], new SearchQuery(
-            term: new \Nexus\Search\Domain\SearchTerm('fetch'),
+            term: new SearchTerm('fetch'),
         ));
     }
 
@@ -114,7 +117,7 @@ final class ArXivAdapter extends BaseProviderAdapter
             }
         }
 
-        $title    = trim(preg_replace('/\s+/', ' ', $raw['title'] ?? 'Unknown Title'));
+        $title = trim(preg_replace('/\s+/', ' ', $raw['title'] ?? 'Unknown Title'));
         $abstract = trim($raw['summary'] ?? '');
         $abstract = $abstract !== '' ? $abstract : null;
 
@@ -129,9 +132,9 @@ final class ArXivAdapter extends BaseProviderAdapter
         $authors = [];
 
         foreach ($raw['authors'] ?? [] as $authorName) {
-            $parts  = explode(', ', $authorName, 2);
+            $parts = explode(', ', $authorName, 2);
             $family = count($parts) === 2 ? trim($parts[0]) : trim($authorName);
-            $given  = count($parts) === 2 ? trim($parts[1]) : null;
+            $given = count($parts) === 2 ? trim($parts[1]) : null;
 
             $authors[] = new Author(familyName: $family, givenName: $given);
         }
@@ -141,21 +144,21 @@ final class ArXivAdapter extends BaseProviderAdapter
         $rawData = $query->includeRawData ? $raw : null;
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $title,
+            ids: $ids,
+            title: $title,
             sourceProvider: $this->alias(),
-            year:           $year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            abstract:       $abstract,
-            rawData:        $rawData,
+            year: $year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            abstract: $abstract,
+            rawData: $rawData,
         );
     }
 
     protected function paginationParams(SearchQuery $query): array
     {
         return [
-            'start'       => $query->offset,
+            'start' => $query->offset,
             'max_results' => $query->maxResults,
         ];
     }
@@ -240,11 +243,11 @@ final class ArXivAdapter extends BaseProviderAdapter
             }
 
             $entries[] = [
-                'id'         => (string) $entry->id,
-                'title'      => (string) $entry->title,
-                'summary'    => (string) $entry->summary,
-                'published'  => (string) $entry->published,
-                'authors'    => $authors,
+                'id' => (string) $entry->id,
+                'title' => (string) $entry->title,
+                'summary' => (string) $entry->summary,
+                'published' => (string) $entry->published,
+                'authors' => $authors,
                 'categories' => $categories,
             ];
         }

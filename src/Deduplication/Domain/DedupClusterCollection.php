@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Nexus\Deduplication\Domain;
 
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 
 /**
@@ -22,7 +23,7 @@ final class DedupClusterCollection
 
     public static function empty(): self
     {
-        return new self();
+        return new self;
     }
 
     public function add(DedupCluster $cluster): void
@@ -61,7 +62,7 @@ final class DedupClusterCollection
         return CorpusSlice::fromWorks(...$reps);
     }
 
-    private function mergedRepresentative(DedupCluster $cluster): ?\Nexus\Search\Domain\ScholarlyWork
+    private function mergedRepresentative(DedupCluster $cluster): ?ScholarlyWork
     {
         $representative = $cluster->representative();
 

@@ -6,7 +6,7 @@ namespace Nexus\Dissemination\Infrastructure\Serializer;
 
 use Nexus\Dissemination\Domain\BibliographyFormat;
 use Nexus\Dissemination\Domain\Port\BibliographySerializerPort;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 final class CsvSerializer implements BibliographySerializerPort

@@ -6,8 +6,8 @@ namespace Nexus\Search\Infrastructure\Deduplication;
 
 use Nexus\Deduplication\Application\DeduplicateCorpus;
 use Nexus\Deduplication\Application\DeduplicateCorpusHandler;
-use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Port\DeduplicationPort;
+use Nexus\Shared\Domain\CorpusSlice;
 
 final class DeduplicationAdapter implements DeduplicationPort
 {

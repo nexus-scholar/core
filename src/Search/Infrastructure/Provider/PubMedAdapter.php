@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace Nexus\Search\Infrastructure\Provider;
 
 use Closure;
-use Nexus\Search\Domain\ScholarlyWork;
+use GuzzleHttp\Promise\PromiseInterface;
+use Nexus\Search\Domain\Port\HttpClientPort;
+use Nexus\Search\Domain\Port\RateLimiterPort;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Psr\Log\LoggerInterface;
-use Nexus\Search\Domain\Port\HttpClientPort;
-use Nexus\Search\Domain\Port\RateLimiterPort;
 
 /**
  * Adapter for NCBI PubMed E-utilities.
@@ -25,15 +27,15 @@ final class PubMedAdapter extends BaseProviderAdapter
     private PubMedXmlParser $parser;
 
     public function __construct(
-        HttpClientPort    $http,
-        RateLimiterPort   $rateLimiter,
-        ProviderConfig    $config,
-        ?LoggerInterface  $logger = null,
-        ?Closure          $sleeper = null,
-        ?PubMedXmlParser  $parser = null,
+        HttpClientPort $http,
+        RateLimiterPort $rateLimiter,
+        ProviderConfig $config,
+        ?LoggerInterface $logger = null,
+        ?Closure $sleeper = null,
+        ?PubMedXmlParser $parser = null,
     ) {
         parent::__construct($http, $rateLimiter, $config, $logger, $sleeper);
-        $this->parser = $parser ?? new PubMedXmlParser();
+        $this->parser = $parser ?? new PubMedXmlParser;
     }
 
     public function alias(): string
@@ -50,10 +52,10 @@ final class PubMedAdapter extends BaseProviderAdapter
     {
         // Step 1: esearch — get PMIDs and history server params
         $esearchParams = [
-            'db'         => 'pubmed',
-            'term'       => $this->buildSearchTerm($query),
-            'retmode'    => 'xml',
-            'retmax'     => min($query->maxResults, 10000),
+            'db' => 'pubmed',
+            'term' => $this->buildSearchTerm($query),
+            'retmode' => 'xml',
+            'retmax' => min($query->maxResults, 10000),
             'usehistory' => 'y',
         ];
 
@@ -82,18 +84,20 @@ final class PubMedAdapter extends BaseProviderAdapter
 
         for ($start = 0; $start < min($esearchResult['count'], $query->maxResults); $start += $batchSize) {
             $efetchParams = [
-                'db'        => 'pubmed',
-                'retmode'   => 'xml',
-                'retstart'  => $start,
-                'retmax'    => $batchSize,
+                'db' => 'pubmed',
+                'retmode' => 'xml',
+                'retstart' => $start,
+                'retmax' => $batchSize,
             ];
 
             if ($esearchResult['webenv'] !== '' && $esearchResult['queryKey'] !== '') {
                 $efetchParams['query_key'] = $esearchResult['queryKey'];
-                $efetchParams['WebEnv']    = $esearchResult['webenv'];
+                $efetchParams['WebEnv'] = $esearchResult['webenv'];
             } else {
                 $batch = array_slice($esearchResult['ids'], $start, $batchSize);
-                if ($batch === []) break;
+                if ($batch === []) {
+                    break;
+                }
                 $efetchParams['id'] = implode(',', $batch);
             }
 
@@ -124,13 +128,13 @@ final class PubMedAdapter extends BaseProviderAdapter
         return $collected;
     }
 
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    public function searchAsync(SearchQuery $query): PromiseInterface
     {
         $esearchParams = [
-            'db'         => 'pubmed',
-            'term'       => $this->buildSearchTerm($query),
-            'retmode'    => 'xml',
-            'retmax'     => min($query->maxResults, 10000),
+            'db' => 'pubmed',
+            'term' => $this->buildSearchTerm($query),
+            'retmode' => 'xml',
+            'retmax' => min($query->maxResults, 10000),
             'usehistory' => 'y',
         ];
 
@@ -152,12 +156,12 @@ final class PubMedAdapter extends BaseProviderAdapter
 
                 $batchSize = min($esearchResult['count'], $query->maxResults, 200);
                 $efetchParams = [
-                    'db'        => 'pubmed',
-                    'retmode'   => 'xml',
-                    'retstart'  => 0,
-                    'retmax'    => $batchSize,
+                    'db' => 'pubmed',
+                    'retmode' => 'xml',
+                    'retstart' => 0,
+                    'retmax' => $batchSize,
                     'query_key' => $esearchResult['queryKey'],
-                    'WebEnv'    => $esearchResult['webenv'],
+                    'WebEnv' => $esearchResult['webenv'],
                 ];
 
                 if ($this->config->apiKey !== null) {
@@ -181,8 +185,8 @@ final class PubMedAdapter extends BaseProviderAdapter
     {
         $identifier = match ($id->namespace) {
             WorkIdNamespace::PUBMED => $id->value,
-            WorkIdNamespace::DOI   => null,
-            default                => null,
+            WorkIdNamespace::DOI => null,
+            default => null,
         };
 
         if ($identifier === null) {
@@ -190,8 +194,8 @@ final class PubMedAdapter extends BaseProviderAdapter
         }
 
         $params = [
-            'db'      => 'pubmed',
-            'id'      => $identifier,
+            'db' => 'pubmed',
+            'id' => $identifier,
             'retmode' => 'xml',
         ];
 
@@ -205,7 +209,7 @@ final class PubMedAdapter extends BaseProviderAdapter
             return null;
         }
 
-        $query   = new SearchQuery(term: new \Nexus\Search\Domain\SearchTerm('fetch'));
+        $query = new SearchQuery(term: new SearchTerm('fetch'));
         $results = $this->parser->parseEfetchResponse($response->rawBody, $query);
 
         return $results[0] ?? null;
@@ -216,9 +220,10 @@ final class PubMedAdapter extends BaseProviderAdapter
         $term = $query->term->value;
         if ($query->yearRange !== null) {
             $from = $query->yearRange->from ?? 1000;
-            $to   = $query->yearRange->to   ?? 3000;
+            $to = $query->yearRange->to ?? 3000;
             $term = "({$term}) AND {$from}:{$to}[Date - Publication]";
         }
+
         return $term;
     }
 

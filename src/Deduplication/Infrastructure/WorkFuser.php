@@ -6,7 +6,7 @@ namespace Nexus\Deduplication\Infrastructure;
 
 use Nexus\Deduplication\Domain\DedupCluster;
 use Nexus\Deduplication\Domain\Port\RepresentativeElectionPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 /**
  * Produces a single merged ScholarlyWork from a DedupCluster.

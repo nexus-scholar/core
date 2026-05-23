@@ -7,32 +7,32 @@ namespace Tests\Unit\Search\Infrastructure\Provider;
 use GuzzleHttp\Promise\FulfilledPromise;
 use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
+use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\Port\RateLimiterPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Infrastructure\Provider\ProviderConfig;
 use Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter;
-use Nexus\Search\Domain\Exception\ProviderUnavailable;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 
 it('returns_partial_results_if_subsequent_page_fails', function (): void {
     $http = \Mockery::mock(HttpClientPort::class);
-    
+
     // Page 1 succeeds
-    $http->shouldReceive('get')->once()->withArgs(function($url, $params) {
-        return !isset($params['token']);
+    $http->shouldReceive('get')->once()->withArgs(function ($url, $params) {
+        return ! isset($params['token']);
     })->andReturn(new HttpResponse(200, [
         'data' => [['paperId' => '1', 'title' => 'Page 1']],
-        'token' => 'page2token'
+        'token' => 'page2token',
     ]));
 
     // Page 2 fails
-    $http->shouldReceive('get')->once()->withArgs(function($url, $params) {
+    $http->shouldReceive('get')->once()->withArgs(function ($url, $params) {
         return isset($params['token']) && $params['token'] === 'page2token';
     })->andThrow(new ProviderUnavailable('semantic_scholar', 'Network error'));
 
@@ -68,7 +68,7 @@ it('fetches citing works from Semantic Scholar citation traversal endpoint', fun
             ],
         ]),
     );
-    $rateLimiter = new SemanticScholarSnowballRateLimiter();
+    $rateLimiter = new SemanticScholarSnowballRateLimiter;
     $adapter = new SemanticScholarAdapter(
         $http,
         $rateLimiter,
@@ -114,7 +114,7 @@ it('fetches referenced works using DOI identifiers', function (): void {
     );
     $adapter = new SemanticScholarAdapter(
         $http,
-        new SemanticScholarSnowballRateLimiter(),
+        new SemanticScholarSnowballRateLimiter,
         new ProviderConfig('semantic_scholar', 'https://api.semanticscholar.org', 10.0),
     );
 
@@ -154,7 +154,7 @@ it('paginates Semantic Scholar citation traversal with offsets', function (): vo
     );
     $adapter = new SemanticScholarAdapter(
         $http,
-        new SemanticScholarSnowballRateLimiter(),
+        new SemanticScholarSnowballRateLimiter,
         new ProviderConfig('semantic_scholar', 'https://api.semanticscholar.org', 10.0),
     );
 
@@ -172,10 +172,10 @@ it('paginates Semantic Scholar citation traversal with offsets', function (): vo
 });
 
 it('returns no snowballing works for seeds without supported identifiers', function (): void {
-    $http = new SemanticScholarSnowballHttp();
+    $http = new SemanticScholarSnowballHttp;
     $adapter = new SemanticScholarAdapter(
         $http,
-        new SemanticScholarSnowballRateLimiter(),
+        new SemanticScholarSnowballRateLimiter,
         new ProviderConfig('semantic_scholar', 'https://api.semanticscholar.org', 10.0),
     );
 

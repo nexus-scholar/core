@@ -10,8 +10,9 @@ use Nexus\Search\Domain\Port\AcademicProviderPort;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\Port\RateLimiterPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Domain\ScholarlyWork;
+use Psr\Log\LoggerInterface;
 
 /**
  * Abstract base for all provider adapters.
@@ -26,10 +27,10 @@ use Nexus\Search\Domain\SearchQuery;
 abstract class BaseProviderAdapter implements AcademicProviderPort
 {
     public function __construct(
-        protected readonly HttpClientPort  $http,
+        protected readonly HttpClientPort $http,
         protected readonly RateLimiterPort $rateLimiter,
-        protected readonly ProviderConfig  $config,
-        protected readonly ?\Psr\Log\LoggerInterface $logger = null,
+        protected readonly ProviderConfig $config,
+        protected readonly ?LoggerInterface $logger = null,
         private readonly ?\Closure $sleeper = null,
     ) {}
 
@@ -40,11 +41,11 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
      */
     final protected function request(
         string $url,
-        array  $query   = [],
-        array  $headers = [],
+        array $query = [],
+        array $headers = [],
     ): HttpResponse {
         $attempt = 0;
-        $backoff  = 1; // seconds
+        $backoff = 1; // seconds
 
         while (true) {
             $this->rateLimiter->waitForToken();
@@ -68,8 +69,9 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
                 }
 
                 $jitter = (random_int(0, 1000) / 1000.0); // 0 to 1 second jitter
-                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
+                ($this->sleeper ?? static fn (float $s) => usleep((int) ($s * 1_000_000)))($backoff + $jitter);
                 $backoff *= 2;
+
                 continue;
             }
 
@@ -99,8 +101,9 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
                 }
 
                 $jitter = (random_int(0, 1000) / 1000.0); // 0 to 1 second jitter
-                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
+                ($this->sleeper ?? static fn (float $s) => usleep((int) ($s * 1_000_000)))($backoff + $jitter);
                 $backoff *= 2;
+
                 continue;
             }
 
@@ -152,18 +155,18 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
      */
     final protected function requestAsync(
         string $url,
-        array  $query   = [],
-        array  $headers = [],
+        array $query = [],
+        array $headers = [],
     ): PromiseInterface {
         return $this->doRequestAsync($url, $query, $headers, 0, 1.0);
     }
 
     private function doRequestAsync(
         string $url,
-        array  $query,
-        array  $headers,
-        int    $attempt,
-        float  $backoff
+        array $query,
+        array $headers,
+        int $attempt,
+        float $backoff
     ): PromiseInterface {
         if (! $this->rateLimiter->tryConsume()) {
             $this->rateLimiter->waitForToken();
@@ -171,11 +174,11 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
         return $this->http->getAsync($url, $query, $headers, $this->config->timeoutSeconds)->then(
             function (HttpResponse $response) use ($url, $query, $headers, $attempt, $backoff) {
-                if ($response->ok() && !$response->rateLimited() && !$response->serverError()) {
+                if ($response->ok() && ! $response->rateLimited() && ! $response->serverError()) {
                     return $response;
                 }
 
-                if ($response->statusCode >= 400 && $response->statusCode < 500 && !$response->rateLimited()) {
+                if ($response->statusCode >= 400 && $response->statusCode < 500 && ! $response->rateLimited()) {
                     return $response;
                 }
 
@@ -189,11 +192,11 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
                 $this->logger?->warning("Provider {$this->alias()} async retry {$attempt}", [
                     'status' => $response->statusCode,
-                    'url'    => $url,
+                    'url' => $url,
                 ]);
 
                 $jitter = (random_int(0, 1000) / 1000.0);
-                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
+                ($this->sleeper ?? static fn (float $s) => usleep((int) ($s * 1_000_000)))($backoff + $jitter);
 
                 return $this->doRequestAsync($url, $query, $headers, $attempt, $backoff * 2);
             },
@@ -205,11 +208,11 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
                 $this->logger?->warning("Provider {$this->alias()} async connection retry {$attempt}", [
                     'error' => $e->getMessage(),
-                    'url'   => $url,
+                    'url' => $url,
                 ]);
 
                 $jitter = (random_int(0, 1000) / 1000.0);
-                ($this->sleeper ?? static fn(float $s) => usleep((int)($s * 1_000_000)))($backoff + $jitter);
+                ($this->sleeper ?? static fn (float $s) => usleep((int) ($s * 1_000_000)))($backoff + $jitter);
 
                 return $this->doRequestAsync($url, $query, $headers, $attempt, $backoff * 2);
             }
@@ -258,7 +261,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
     protected function extractNestedString(array $data, string $path): ?string
     {
         $segments = explode('.', $path);
-        $current  = $data;
+        $current = $data;
 
         foreach ($segments as $segment) {
             if (! is_array($current) || ! array_key_exists($segment, $current)) {
@@ -287,7 +290,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
             return [
                 'family' => trim($parts[0]),
-                'given'  => isset($parts[1]) && trim($parts[1]) !== '' ? trim($parts[1]) : null,
+                'given' => isset($parts[1]) && trim($parts[1]) !== '' ? trim($parts[1]) : null,
             ];
         }
 
@@ -300,7 +303,7 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
         return [
             'family' => array_pop($parts),
-            'given'  => implode(' ', $parts),
+            'given' => implode(' ', $parts),
         ];
     }
 }

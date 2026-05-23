@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\OrcidId;

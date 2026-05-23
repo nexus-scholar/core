@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nexus\Search\Domain;
+namespace Nexus\Shared\Domain;
 
 final class CorpusSliceId
 {

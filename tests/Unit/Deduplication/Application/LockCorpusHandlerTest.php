@@ -7,7 +7,7 @@ use Nexus\Deduplication\Application\LockCorpusHandler;
 use Nexus\Deduplication\Domain\DedupCluster;
 use Nexus\Deduplication\Domain\DedupClusterId;
 use Nexus\Deduplication\Domain\Port\ClusterRepositoryPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Nexus\Shared\Port\TransactionPort;
 use Nexus\Shared\ValueObject\ProjectLockState;
@@ -30,7 +30,8 @@ it('locks the project and every unlocked cluster inside a transaction', function
         isLocked: false,
     );
 
-    $repository = new class($cluster) implements ClusterRepositoryPort {
+    $repository = new class($cluster) implements ClusterRepositoryPort
+    {
         /** @var DedupCluster[] */
         public array $saved = [];
 
@@ -52,7 +53,8 @@ it('locks the project and every unlocked cluster inside a transaction', function
         }
     };
 
-    $transactions = new class implements TransactionPort {
+    $transactions = new class implements TransactionPort
+    {
         public bool $ran = false;
 
         public function run(callable $callback): mixed
@@ -63,10 +65,14 @@ it('locks the project and every unlocked cluster inside a transaction', function
         }
     };
 
-    $locks = new class implements ProjectLockLifecyclePort {
+    $locks = new class implements ProjectLockLifecyclePort
+    {
         public ?string $lockedProjectId = null;
+
         public ?string $actorId = null;
+
         public ?string $reason = null;
+
         /** @var array<string, mixed> */
         public array $metadata = [];
 

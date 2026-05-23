@@ -461,7 +461,7 @@ Tests:
 - Application: snowball round counts through fake providers.
 - Application: provider failure does not discard other provider results.
 - Feature: graph save/load with weighted edges.
-- Integration: provider citation fixtures with VCR only.
+- Integration: provider citation fixtures with cassette-backed HTTP only.
 - Performance guard: representative graph does not use O(n^2) implementation where avoidable.
 
 Done criteria:
@@ -777,7 +777,7 @@ Plan:
    - Composer validate.
    - Unit tests.
    - Feature tests.
-   - Integration provider tests with VCR only.
+   - Integration provider tests with cassette-backed HTTP only.
    - Static analysis.
    - Format check.
 4. Add a separate `nexus-cli` consumer smoke workflow later if cross-repo automation is available.

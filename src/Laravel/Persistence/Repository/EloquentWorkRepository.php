@@ -10,7 +10,7 @@ use Nexus\Laravel\Model\ScholarlyWorkModel as EloquentScholarlyWork;
 use Nexus\Laravel\Model\WorkExternalIdModel as EloquentWorkExternalId;
 use Nexus\Laravel\Model\WorkProviderModel as EloquentWorkProvider;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\OrcidId;

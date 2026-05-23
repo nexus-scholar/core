@@ -22,12 +22,12 @@
 - Tests use Pest with shared bootstrapping in `tests/Pest.php` (`Feature`, `Unit`, `Integration`).
 - Verified command for focused runs:
   - `php vendor/bin/pest tests/Unit/Search/SearchQueryTest.php`
-- Provider integration tests use PHP-VCR cassettes from `tests/Fixture/vcr_cassettes` (example: `tests/Integration/Provider/OpenAlexAdapterTest.php`); do not switch CI tests to live APIs.
+- Provider integration tests replay YAML cassettes from `tests/Fixture/vcr_cassettes` through `Tests\Support\CassetteHttpClient`; do not switch CI tests to live APIs.
 - Prefer unit tests around value objects/policies first, then adapter integration tests, then Laravel-level feature tests (see `docs/12-tdd-strategy.md`).
 
 ## Integrations and External Dependencies
 - Core runtime deps: `guzzlehttp/guzzle` (HTTP) and `composer/ca-bundle` (CA resolution) in `composer.json`.
-- Dev/test deps: Pest, Mockery, php-vcr, Orchestra Testbench.
+- Dev/test deps: Pest, Mockery, Orchestra Testbench.
 - Provider defaults and API-key-sensitive rates are in `src/Search/Infrastructure/Provider/ProviderConfigRegistry.php`.
 - Package config surface is `src/Laravel/config/nexus.php` (`NEXUS_IEEE_API_KEY`, `NEXUS_S2_API_KEY`, `NEXUS_PUBMED_API_KEY`, `NEXUS_MAIL_TO`).
 

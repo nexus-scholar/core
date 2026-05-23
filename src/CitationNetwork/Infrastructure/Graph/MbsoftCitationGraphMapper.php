@@ -7,7 +7,7 @@ namespace Nexus\CitationNetwork\Infrastructure\Graph;
 use Mbsoft\Graph\Domain\Graph;
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 
 final class MbsoftCitationGraphMapper

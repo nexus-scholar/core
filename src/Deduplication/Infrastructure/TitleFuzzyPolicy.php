@@ -7,7 +7,6 @@ namespace Nexus\Deduplication\Infrastructure;
 use Nexus\Deduplication\Domain\Duplicate;
 use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
-use Nexus\Search\Domain\ScholarlyWork;
 
 /**
  * Detects near-duplicate titles using sorted-list adjacent comparison.
@@ -28,9 +27,9 @@ final class TitleFuzzyPolicy implements DeduplicationPolicyPort
 {
     public function __construct(
         private readonly TitleNormalizer $normalizer,
-        private readonly int             $threshold  = 92,
+        private readonly int $threshold = 92,
         // 92 recommended over old default of 97 (better recall)
-        private readonly int             $maxYearGap = 1,
+        private readonly int $maxYearGap = 1,
     ) {}
 
     public function name(): string
@@ -50,20 +49,20 @@ final class TitleFuzzyPolicy implements DeduplicationPolicyPort
         foreach ($works as $i => $work) {
             $indexed[] = [
                 'normalized' => $this->normalizer->normalize($work->title()),
-                'index'      => $i,
+                'index' => $i,
             ];
         }
 
         usort($indexed, fn (array $a, array $b) => $a['normalized'] <=> $b['normalized']);
 
         $duplicates = [];
-        $count      = count($indexed);
+        $count = count($indexed);
 
         for ($i = 0; $i < $count - 1; $i++) {
-            $currNorm  = $indexed[$i]['normalized'];
-            $currWork  = $works[$indexed[$i]['index']];
-            $nextNorm  = $indexed[$i + 1]['normalized'];
-            $nextWork  = $works[$indexed[$i + 1]['index']];
+            $currNorm = $indexed[$i]['normalized'];
+            $currWork = $works[$indexed[$i]['index']];
+            $nextNorm = $indexed[$i + 1]['normalized'];
+            $nextWork = $works[$indexed[$i + 1]['index']];
 
             if ($currNorm === '' || $nextNorm === '') {
                 continue;
@@ -85,7 +84,7 @@ final class TitleFuzzyPolicy implements DeduplicationPolicyPort
                 continue;
             }
 
-            $primaryId   = $currWork->primaryId();
+            $primaryId = $currWork->primaryId();
             $secondaryId = $nextWork->primaryId();
 
             if ($primaryId === null || $secondaryId === null) {
@@ -93,10 +92,10 @@ final class TitleFuzzyPolicy implements DeduplicationPolicyPort
             }
 
             $duplicates[] = new Duplicate(
-                primaryId:   $primaryId,
+                primaryId: $primaryId,
                 secondaryId: $secondaryId,
-                reason:      DuplicateReason::TITLE_FUZZY,
-                confidence:  round($ratio / 100, 2),
+                reason: DuplicateReason::TITLE_FUZZY,
+                confidence: round($ratio / 100, 2),
             );
         }
 

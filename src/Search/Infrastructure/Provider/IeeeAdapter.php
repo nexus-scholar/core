@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use Nexus\Search\Domain\ScholarlyWork;
+use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Promise\RejectedPromise;
+use Nexus\Search\Domain\Exception\ProviderUnavailable;
+use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
@@ -43,7 +48,7 @@ final class IeeeAdapter extends BaseProviderAdapter
     public function search(SearchQuery $query): array
     {
         if ($this->config->apiKey === null) {
-            throw new \Nexus\Search\Domain\Exception\ProviderUnavailable(
+            throw new ProviderUnavailable(
                 $this->alias(),
                 'IEEE API key is missing. Results cannot be retrieved.'
             );
@@ -51,12 +56,12 @@ final class IeeeAdapter extends BaseProviderAdapter
 
         $params = array_merge(
             [
-                'apikey'      => $this->config->apiKey,
-                'querytext'   => $query->term->value,
-                'format'      => 'json',
+                'apikey' => $this->config->apiKey,
+                'querytext' => $query->term->value,
+                'format' => 'json',
                 'max_records' => min($query->maxResults, 200),
-                'sort_field'  => 'publication_year',
-                'sort_order'  => 'desc',
+                'sort_field' => 'publication_year',
+                'sort_order' => 'desc',
             ],
             $this->paginationParams($query),
         );
@@ -83,11 +88,11 @@ final class IeeeAdapter extends BaseProviderAdapter
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
     }
 
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    public function searchAsync(SearchQuery $query): PromiseInterface
     {
         if ($this->config->apiKey === null) {
-            return new \GuzzleHttp\Promise\RejectedPromise(
-                new \Nexus\Search\Domain\Exception\ProviderUnavailable(
+            return new RejectedPromise(
+                new ProviderUnavailable(
                     $this->alias(),
                     'IEEE API key is missing. Results cannot be retrieved.'
                 )
@@ -96,12 +101,12 @@ final class IeeeAdapter extends BaseProviderAdapter
 
         $params = array_merge(
             [
-                'apikey'      => $this->config->apiKey,
-                'querytext'   => $query->term->value,
-                'format'      => 'json',
+                'apikey' => $this->config->apiKey,
+                'querytext' => $query->term->value,
+                'format' => 'json',
                 'max_records' => min($query->maxResults, 200),
-                'sort_field'  => 'publication_year',
-                'sort_order'  => 'desc',
+                'sort_field' => 'publication_year',
+                'sort_order' => 'desc',
             ],
             $this->paginationParams($query),
         );
@@ -118,7 +123,7 @@ final class IeeeAdapter extends BaseProviderAdapter
         }
 
         return $this->requestAsync("{$this->config->baseUrl}/search/articles", $params)
-            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+            ->then(function (HttpResponse $response) use ($query) {
                 if (! $response->ok()) {
                     return [];
                 }
@@ -132,7 +137,7 @@ final class IeeeAdapter extends BaseProviderAdapter
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         if ($this->config->apiKey === null) {
-            throw new \Nexus\Search\Domain\Exception\ProviderUnavailable(
+            throw new ProviderUnavailable(
                 $this->alias(),
                 'IEEE API key is missing.'
             );
@@ -141,14 +146,14 @@ final class IeeeAdapter extends BaseProviderAdapter
         if ($id->namespace === WorkIdNamespace::DOI) {
             $params = [
                 'apikey' => $this->config->apiKey,
-                'doi'    => $id->value,
+                'doi' => $id->value,
                 'format' => 'json',
             ];
         } elseif ($id->namespace === WorkIdNamespace::IEEE) {
             $params = [
-                'apikey'         => $this->config->apiKey,
+                'apikey' => $this->config->apiKey,
                 'article_number' => $id->value,
-                'format'         => 'json',
+                'format' => 'json',
             ];
         } else {
             return null;
@@ -167,14 +172,14 @@ final class IeeeAdapter extends BaseProviderAdapter
         }
 
         return $this->normalize($items[0], new SearchQuery(
-            term: new \Nexus\Search\Domain\SearchTerm('fetch'),
+            term: new SearchTerm('fetch'),
         ));
     }
 
     protected function normalize(array $raw, SearchQuery $query): ScholarlyWork
     {
         $extractor = new FieldExtractor($raw);
-        $ids       = WorkIdSet::empty();
+        $ids = WorkIdSet::empty();
 
         $doi = $extractor->getString('doi');
 
@@ -194,12 +199,12 @@ final class IeeeAdapter extends BaseProviderAdapter
             $title = 'Unknown Title';
         }
 
-        $year     = $extractor->getInt('publication_year');
+        $year = $extractor->getInt('publication_year');
         $abstract = $extractor->getString('abstract');
         $abstract = $abstract !== '' ? $abstract : null;
 
         // Authors — IEEE nests: { "authors": { "authors": [ { "full_name": "..." } ] } }
-        $authors   = [];
+        $authors = [];
         $authorData = $raw['authors'] ?? [];
 
         if (is_array($authorData) && isset($authorData['authors'])) {
@@ -210,13 +215,13 @@ final class IeeeAdapter extends BaseProviderAdapter
                     continue;
                 }
 
-                $parsed    = $this->parseAuthorName(trim($fullName));
+                $parsed = $this->parseAuthorName(trim($fullName));
                 $authors[] = new Author(familyName: $parsed['family'], givenName: $parsed['given']);
             }
         }
 
         // Venue from publication_title
-        $venue     = null;
+        $venue = null;
         $venueName = $extractor->getString('publication_title');
 
         if ($venueName !== '') {
@@ -232,15 +237,15 @@ final class IeeeAdapter extends BaseProviderAdapter
         $rawData = $query->includeRawData ? $raw : null;
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $title,
+            ids: $ids,
+            title: $title,
             sourceProvider: $this->alias(),
-            year:           $year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            abstract:       $abstract,
-            citedByCount:   $cited,
-            rawData:        $rawData,
+            year: $year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            abstract: $abstract,
+            citedByCount: $cited,
+            rawData: $rawData,
         );
     }
 

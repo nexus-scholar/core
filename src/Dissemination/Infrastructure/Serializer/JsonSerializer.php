@@ -6,14 +6,15 @@ namespace Nexus\Dissemination\Infrastructure\Serializer;
 
 use Nexus\Dissemination\Domain\BibliographyFormat;
 use Nexus\Dissemination\Domain\Port\BibliographySerializerPort;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Search\Application\Dto\ScholarlyWorkDto;
+use Nexus\Shared\Domain\CorpusSlice;
 
 final class JsonSerializer implements BibliographySerializerPort
 {
     public function serialize(CorpusSlice $corpus): string
     {
         $data = array_map(
-            fn ($w) => \Nexus\Search\Application\Dto\ScholarlyWorkDto::fromDomain($w),
+            fn ($w) => ScholarlyWorkDto::fromDomain($w),
             $corpus->all()
         );
 

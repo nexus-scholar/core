@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Deduplication\Infrastructure;
 
 use Nexus\Deduplication\Domain\Port\RepresentativeElectionPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 /**
@@ -19,13 +19,13 @@ use Nexus\Shared\ValueObject\WorkIdNamespace;
 final class CompletenessElectionPolicy implements RepresentativeElectionPort
 {
     private const DEFAULT_PRIORITY = [
-        'openalex'        => 5,
-        'crossref'        => 4,
+        'openalex' => 5,
+        'crossref' => 4,
         'semantic_scholar' => 3,
-        'arxiv'           => 2,
-        'pubmed'          => 2,
-        'ieee'            => 1,
-        'doaj'            => 1,
+        'arxiv' => 2,
+        'pubmed' => 2,
+        'ieee' => 1,
+        'doaj' => 1,
     ];
 
     public function __construct(

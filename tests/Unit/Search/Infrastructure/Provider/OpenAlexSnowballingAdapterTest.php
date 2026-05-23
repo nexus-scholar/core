@@ -10,9 +10,9 @@ use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\Port\RateLimiterPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Infrastructure\Provider\OpenAlexAdapter;
 use Nexus\Search\Infrastructure\Provider\ProviderConfig;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -27,7 +27,7 @@ it('fetches citing works from the OpenAlex cites filter', function (): void {
             ),
         ],
     ]));
-    $rateLimiter = new OpenAlexSnowballRateLimiter();
+    $rateLimiter = new OpenAlexSnowballRateLimiter;
     $adapter = new OpenAlexAdapter(
         $http,
         $rateLimiter,
@@ -67,7 +67,7 @@ it('fetches referenced works from OpenAlex seed metadata', function (): void {
     ]));
     $adapter = new OpenAlexAdapter(
         $http,
-        new OpenAlexSnowballRateLimiter(),
+        new OpenAlexSnowballRateLimiter,
         new ProviderConfig('openalex', 'https://api.openalex.org', 10.0, mailTo: 'ops@example.com'),
     );
     $seed = ScholarlyWork::reconstitute(
@@ -104,7 +104,7 @@ it('resolves DOI seeds before OpenAlex forward snowballing', function (): void {
     );
     $adapter = new OpenAlexAdapter(
         $http,
-        new OpenAlexSnowballRateLimiter(),
+        new OpenAlexSnowballRateLimiter,
         new ProviderConfig('openalex', 'https://api.openalex.org', 10.0, mailTo: 'ops@example.com'),
     );
 
@@ -121,10 +121,10 @@ it('resolves DOI seeds before OpenAlex forward snowballing', function (): void {
 });
 
 it('returns no OpenAlex snowballing works for seeds without supported identifiers', function (): void {
-    $http = new OpenAlexSnowballHttp();
+    $http = new OpenAlexSnowballHttp;
     $adapter = new OpenAlexAdapter(
         $http,
-        new OpenAlexSnowballRateLimiter(),
+        new OpenAlexSnowballRateLimiter,
         new ProviderConfig('openalex', 'https://api.openalex.org', 10.0),
     );
     $seed = ScholarlyWork::reconstitute(

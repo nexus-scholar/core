@@ -5,10 +5,8 @@ declare(strict_types=1);
 use Nexus\Deduplication\Domain\DedupClusterId;
 use Nexus\Deduplication\Domain\Duplicate;
 use Nexus\Deduplication\Domain\DuplicateReason;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
-use Nexus\Shared\ValueObject\WorkIdSet;
 
 // ── DedupClusterId ───────────────────────────────────────────────────────────
 
@@ -66,7 +64,7 @@ it('checks_high_confidence', function (): void {
     $workB = new WorkId(WorkIdNamespace::DOI, '10.x/b');
 
     $high = new Duplicate($workA, $workB, DuplicateReason::DOI_MATCH, 0.95);
-    $low  = new Duplicate($workA, $workB, DuplicateReason::TITLE_FUZZY, 0.85);
+    $low = new Duplicate($workA, $workB, DuplicateReason::TITLE_FUZZY, 0.85);
 
     expect($high->isHighConfidence())->toBeTrue();
     expect($low->isHighConfidence())->toBeFalse();

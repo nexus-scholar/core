@@ -15,6 +15,8 @@ use Nexus\Dissemination\Application\UseCase\ExportCitationGraphHandler;
 use Nexus\Dissemination\Application\UseCase\ExportNetworkHandler;
 use Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection;
 use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
+use Nexus\Dissemination\Domain\Port\ExportHistoryReaderPort;
+use Nexus\Dissemination\Domain\Port\FullTextFetchReaderPort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\NetworkSerializerCollection;
 use Nexus\Dissemination\Domain\Port\SerializerCollection;
@@ -24,7 +26,10 @@ use Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource;
 use Nexus\Dissemination\Infrastructure\Serializer\MbsoftCitationGraphSerializer;
 use Nexus\Laravel\Persistence\EloquentCorpusSnapshotRepository;
+use Nexus\Laravel\Persistence\EloquentExportHistoryReader;
 use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
+use Nexus\Laravel\Persistence\EloquentFullTextFetchReader;
+use Nexus\Laravel\Persistence\EloquentJobLifecycleReader;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
 use Nexus\Laravel\Persistence\EloquentScreeningWorkSource;
 use Nexus\Laravel\Persistence\Repository\EloquentScreeningDecisionRepository;
@@ -42,6 +47,7 @@ use Nexus\Screening\Domain\CouncilDecisionAggregator;
 use Nexus\Screening\Infrastructure\Llm\DisabledLlmClient;
 use Nexus\Screening\Infrastructure\Prompt\DefaultScreeningPromptRenderer;
 use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
+use Nexus\Shared\Port\JobLifecycleReaderPort;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
 use Nexus\Shared\Port\ProjectCorpusWorksPort;
 use Nexus\Shared\Port\ProjectWorkMembershipPort;
@@ -111,6 +117,12 @@ it('registers enabled snowballing providers from provider config', function (): 
 
 it('binds the default sql-backed job lifecycle recorder', function (): void {
     expect(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(EloquentJobLifecycleRecorder::class);
+});
+
+it('binds host read-side APIs', function (): void {
+    expect(app(JobLifecycleReaderPort::class))->toBeInstanceOf(EloquentJobLifecycleReader::class)
+        ->and(app(ExportHistoryReaderPort::class))->toBeInstanceOf(EloquentExportHistoryReader::class)
+        ->and(app(FullTextFetchReaderPort::class))->toBeInstanceOf(EloquentFullTextFetchReader::class);
 });
 
 it('binds screening repositories and council aggregation services', function (): void {

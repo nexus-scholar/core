@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Nexus\Deduplication\Domain;
 
 use Nexus\Deduplication\Domain\Port\RepresentativeElectionPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
+use Nexus\Shared\Exception\ProjectLockedException;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 /**
@@ -29,14 +30,14 @@ final class DedupCluster
 
     private function __construct(
         public readonly DedupClusterId $id,
-        public readonly string         $projectId,
-        ScholarlyWork                  $seed,
-        public readonly string         $strategy = 'default',
-        public readonly array          $thresholds = [],
-        public readonly ?float         $confidence = null,
-        public bool                    $isLocked = false,
+        public readonly string $projectId,
+        ScholarlyWork $seed,
+        public readonly string $strategy = 'default',
+        public readonly array $thresholds = [],
+        public readonly ?float $confidence = null,
+        public bool $isLocked = false,
     ) {
-        $this->members[]     = $seed;
+        $this->members[] = $seed;
         $this->representative = $seed;
     }
 
@@ -47,21 +48,21 @@ final class DedupCluster
 
     public static function reconstitute(
         DedupClusterId $id,
-        string         $projectId,
+        string $projectId,
         ?ScholarlyWork $representative,
-        array          $members,
-        array          $duplicates = [],
-        string         $strategy = 'default',
-        array          $thresholds = [],
-        ?float         $confidence = null,
-        bool           $isLocked = false,
+        array $members,
+        array $duplicates = [],
+        string $strategy = 'default',
+        array $thresholds = [],
+        ?float $confidence = null,
+        bool $isLocked = false,
     ): self {
         if ($representative === null && empty($members)) {
-             throw new \InvalidArgumentException('Cannot reconstitute empty cluster');
+            throw new \InvalidArgumentException('Cannot reconstitute empty cluster');
         }
 
         $seed = $representative ?? $members[0];
-        
+
         $cluster = new self($id, $projectId, $seed, $strategy, $thresholds, $confidence, $isLocked);
         $cluster->members = $members;
         $cluster->duplicates = $duplicates;
@@ -77,7 +78,7 @@ final class DedupCluster
     public function absorb(ScholarlyWork $work, Duplicate $evidence): void
     {
         if ($this->isLocked) {
-            throw new \Nexus\Shared\Exception\ProjectLockedException("Cannot absorb new members into a locked cluster.");
+            throw new ProjectLockedException('Cannot absorb new members into a locked cluster.');
         }
 
         $incomingKey = $work->primaryId()?->value ?? spl_object_hash($work);
@@ -90,7 +91,7 @@ final class DedupCluster
             }
         }
 
-        $this->members[]    = $work;
+        $this->members[] = $work;
         $this->duplicates[] = $evidence;
     }
 

@@ -8,19 +8,20 @@ use Nexus\Dissemination\Application\UseCase\RetrieveFullTextHandler;
 use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
-use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCandidate;
+use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Tests\Support\PersistenceFactory;
 
 it('retrieves_full_text_and_persists_audit_entry', function (): void {
     $work = PersistenceFactory::makeWork();
 
-    $source = new class implements FullTextSourcePort {
+    $source = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/test.pdf';
@@ -37,7 +38,8 @@ it('retrieves_full_text_and_persists_audit_entry', function (): void {
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public array $stored = [];
 
         public function store(string $filename, string $content): string
@@ -64,18 +66,20 @@ it('retrieves_full_text_and_persists_audit_entry', function (): void {
 
         public function url(string $path): ?string
         {
-            return $this->exists($path) ? 'memory://' . $path : null;
+            return $this->exists($path) ? 'memory://'.$path : null;
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public function download(string $url): DownloadResult
         {
             return new DownloadResult('%PDF-1.4 test-content', 200);
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -113,7 +117,8 @@ it('retrieves_full_text_and_persists_audit_entry', function (): void {
 it('stores pdfs with deterministic portable paths', function (): void {
     $work = PersistenceFactory::makeWork(doi: '10.5555/path/test');
 
-    $source = new class implements FullTextSourcePort {
+    $source = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/test.pdf';
@@ -130,7 +135,8 @@ it('stores pdfs with deterministic portable paths', function (): void {
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public ?string $storedPath = null;
 
         public function store(string $filename, string $content): string
@@ -158,14 +164,16 @@ it('stores pdfs with deterministic portable paths', function (): void {
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public function download(string $url): DownloadResult
         {
             return new DownloadResult('%PDF-1.4 test-content', 200);
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void {}
 
         public function findSuccessfulPath(WorkId $workId): ?string
@@ -208,7 +216,8 @@ it('returns an existing successful fetch without downloading again', function ()
         'saves' => 0,
     ];
 
-    $source = new class($calls) implements FullTextSourcePort {
+    $source = new class($calls) implements FullTextSourcePort
+    {
         public function __construct(private readonly object $calls) {}
 
         public function resolve(ScholarlyWork $work): ?string
@@ -231,7 +240,8 @@ it('returns an existing successful fetch without downloading again', function ()
         }
     };
 
-    $storage = new class($calls) implements FileStoragePort {
+    $storage = new class($calls) implements FileStoragePort
+    {
         public function __construct(private readonly object $calls) {}
 
         public function store(string $filename, string $content): string
@@ -259,7 +269,8 @@ it('returns an existing successful fetch without downloading again', function ()
         }
     };
 
-    $downloader = new class($calls) implements PdfDownloaderPort {
+    $downloader = new class($calls) implements PdfDownloaderPort
+    {
         public function __construct(private readonly object $calls) {}
 
         public function download(string $url): DownloadResult
@@ -270,7 +281,8 @@ it('returns an existing successful fetch without downloading again', function ()
         }
     };
 
-    $repository = new class($calls) implements PdfFetchRepositoryPort {
+    $repository = new class($calls) implements PdfFetchRepositoryPort
+    {
         public function __construct(private readonly object $calls) {}
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -309,7 +321,8 @@ it('returns an existing successful fetch without downloading again', function ()
 });
 
 it('rejects non-pdf downloads and continues to the next source', function (): void {
-    $sourceA = new class implements FullTextSourcePort {
+    $sourceA = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/not-pdf';
@@ -326,7 +339,8 @@ it('rejects non-pdf downloads and continues to the next source', function (): vo
         }
     };
 
-    $sourceB = new class implements FullTextSourcePort {
+    $sourceB = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/good.pdf';
@@ -343,7 +357,8 @@ it('rejects non-pdf downloads and continues to the next source', function (): vo
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public array $stored = [];
 
         public function store(string $filename, string $content): string
@@ -374,7 +389,8 @@ it('rejects non-pdf downloads and continues to the next source', function (): vo
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public function download(string $url): DownloadResult
         {
             if ($url === 'https://example.org/not-pdf') {
@@ -385,7 +401,8 @@ it('rejects non-pdf downloads and continues to the next source', function (): vo
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -425,7 +442,8 @@ it('rejects non-pdf downloads and continues to the next source', function (): vo
 });
 
 it('retries transient download failures before auditing success', function (): void {
-    $source = new class implements FullTextSourcePort {
+    $source = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/retry.pdf';
@@ -442,7 +460,8 @@ it('retries transient download failures before auditing success', function (): v
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public array $stored = [];
 
         public function store(string $filename, string $content): string
@@ -470,7 +489,8 @@ it('retries transient download failures before auditing success', function (): v
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public int $attempts = 0;
 
         public function download(string $url): DownloadResult
@@ -485,7 +505,8 @@ it('retries transient download failures before auditing success', function (): v
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -525,7 +546,8 @@ it('retries transient download failures before auditing success', function (): v
 });
 
 it('audits failure after exhausting download retries', function (): void {
-    $source = new class implements FullTextSourcePort {
+    $source = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/failing.pdf';
@@ -542,7 +564,8 @@ it('audits failure after exhausting download retries', function (): void {
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public function store(string $filename, string $content): string
         {
             throw new RuntimeException('storage should not be called');
@@ -566,7 +589,8 @@ it('audits failure after exhausting download retries', function (): void {
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public int $attempts = 0;
 
         public function download(string $url): DownloadResult
@@ -577,7 +601,8 @@ it('audits failure after exhausting download retries', function (): void {
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -618,7 +643,8 @@ it('audits failure after exhausting download retries', function (): void {
 });
 
 it('rejects oversized pdf downloads before storage', function (): void {
-    $source = new class implements FullTextSourcePort {
+    $source = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/oversized.pdf';
@@ -635,7 +661,8 @@ it('rejects oversized pdf downloads before storage', function (): void {
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public int $stores = 0;
 
         public function store(string $filename, string $content): string
@@ -663,14 +690,16 @@ it('rejects oversized pdf downloads before storage', function (): void {
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public function download(string $url): DownloadResult
         {
             return new DownloadResult('%PDF-1.7 oversized-content', 200, 'application/pdf');
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -710,7 +739,8 @@ it('rejects oversized pdf downloads before storage', function (): void {
 });
 
 it('skips sources with recent failed attempts during cooldown', function (): void {
-    $sourceA = new class implements FullTextSourcePort {
+    $sourceA = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/recent-failure.pdf';
@@ -727,7 +757,8 @@ it('skips sources with recent failed attempts during cooldown', function (): voi
         }
     };
 
-    $sourceB = new class implements FullTextSourcePort {
+    $sourceB = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/available.pdf';
@@ -744,7 +775,8 @@ it('skips sources with recent failed attempts during cooldown', function (): voi
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public array $stored = [];
 
         public function store(string $filename, string $content): string
@@ -772,7 +804,8 @@ it('skips sources with recent failed attempts during cooldown', function (): voi
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         /** @var list<string> */
         public array $urls = [];
 
@@ -784,7 +817,8 @@ it('skips sources with recent failed attempts during cooldown', function (): voi
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -824,7 +858,8 @@ it('skips sources with recent failed attempts during cooldown', function (): voi
 });
 
 it('carries full text source candidate metadata into audit rows', function (): void {
-    $source = new class implements FullTextCandidateSourcePort {
+    $source = new class implements FullTextCandidateSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return $this->resolveCandidate($work)?->url;
@@ -849,7 +884,8 @@ it('carries full text source candidate metadata into audit rows', function (): v
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public function store(string $filename, string $content): string
         {
             return $filename;
@@ -873,14 +909,16 @@ it('carries full text source candidate metadata into audit rows', function (): v
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public function download(string $url): DownloadResult
         {
             return new DownloadResult('%PDF-1.7 metadata-content', 200, 'application/pdf');
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -915,7 +953,8 @@ it('carries full text source candidate metadata into audit rows', function (): v
 });
 
 it('stores XML full text candidates and extracts a text sidecar', function (): void {
-    $source = new class implements FullTextCandidateSourcePort {
+    $source = new class implements FullTextCandidateSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return $this->resolveCandidate($work)?->url;
@@ -940,7 +979,8 @@ it('stores XML full text candidates and extracts a text sidecar', function (): v
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public array $stored = [];
 
         public function store(string $filename, string $content): string
@@ -968,7 +1008,8 @@ it('stores XML full text candidates and extracts a text sidecar', function (): v
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public int $downloads = 0;
 
         public function download(string $url): DownloadResult
@@ -983,7 +1024,8 @@ it('stores XML full text candidates and extracts a text sidecar', function (): v
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
@@ -1027,7 +1069,8 @@ it('stores XML full text candidates and extracts a text sidecar', function (): v
 });
 
 it('rejects invalid XML artifacts and continues to the next source', function (): void {
-    $xmlSource = new class implements FullTextCandidateSourcePort {
+    $xmlSource = new class implements FullTextCandidateSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return $this->resolveCandidate($work)?->url;
@@ -1049,7 +1092,8 @@ it('rejects invalid XML artifacts and continues to the next source', function ()
         }
     };
 
-    $pdfSource = new class implements FullTextSourcePort {
+    $pdfSource = new class implements FullTextSourcePort
+    {
         public function resolve(ScholarlyWork $work): ?string
         {
             return 'https://example.org/good.pdf';
@@ -1066,7 +1110,8 @@ it('rejects invalid XML artifacts and continues to the next source', function ()
         }
     };
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public array $stored = [];
 
         public function store(string $filename, string $content): string
@@ -1094,7 +1139,8 @@ it('rejects invalid XML artifacts and continues to the next source', function ()
         }
     };
 
-    $downloader = new class implements PdfDownloaderPort {
+    $downloader = new class implements PdfDownloaderPort
+    {
         public function download(string $url): DownloadResult
         {
             if ($url === 'https://pmc.example.invalid/bad.xml') {
@@ -1105,7 +1151,8 @@ it('rejects invalid XML artifacts and continues to the next source', function ()
         }
     };
 
-    $repository = new class implements PdfFetchRepositoryPort {
+    $repository = new class implements PdfFetchRepositoryPort
+    {
         public array $saved = [];
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void

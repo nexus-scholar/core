@@ -6,14 +6,14 @@ namespace Nexus\CitationNetwork\Application\Builder;
 
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 
 final class CitationGraphBuilder
 {
     /**
-     * @param list<ScholarlyWork> $works
-     * @param array<string, list<WorkId|string>> $referencesByCitingWorkId
+     * @param  list<ScholarlyWork>  $works
+     * @param  array<string, list<WorkId|string>>  $referencesByCitingWorkId
      */
     public function buildDirectCitationGraph(
         string $projectId,
@@ -52,9 +52,9 @@ final class CitationGraphBuilder
     }
 
     /**
-     * @param list<ScholarlyWork> $works
-     * @param array<string, list<WorkId|string>> $referencesByCitingWorkId
-     * @param array<string, list<WorkId|string>> $citingWorkIdsByCitedWorkId
+     * @param  list<ScholarlyWork>  $works
+     * @param  array<string, list<WorkId|string>>  $referencesByCitingWorkId
+     * @param  array<string, list<WorkId|string>>  $citingWorkIdsByCitedWorkId
      */
     public function buildCoCitationGraph(
         string $projectId,
@@ -80,8 +80,8 @@ final class CitationGraphBuilder
     }
 
     /**
-     * @param list<ScholarlyWork> $works
-     * @param array<string, list<WorkId|string>> $referencesByWorkId
+     * @param  list<ScholarlyWork>  $works
+     * @param  array<string, list<WorkId|string>>  $referencesByWorkId
      */
     public function buildBibliographicCouplingGraph(
         string $projectId,
@@ -119,7 +119,7 @@ final class CitationGraphBuilder
     }
 
     /**
-     * @param list<ScholarlyWork> $works
+     * @param  list<ScholarlyWork>  $works
      */
     private function newGraph(CitationGraphType $type, string $projectId, array $works): CitationGraph
     {
@@ -133,7 +133,7 @@ final class CitationGraphBuilder
     }
 
     /**
-     * @param list<ScholarlyWork> $works
+     * @param  list<ScholarlyWork>  $works
      * @return array<string, ScholarlyWork>
      */
     private function indexWorksByAllIds(array $works): array
@@ -150,7 +150,7 @@ final class CitationGraphBuilder
     }
 
     /**
-     * @param array<string, list<WorkId|string>> $referencesByWorkId
+     * @param  array<string, list<WorkId|string>>  $referencesByWorkId
      * @return list<WorkId|string>
      */
     private function referencesFor(ScholarlyWork $work, array $referencesByWorkId): array
@@ -165,9 +165,9 @@ final class CitationGraphBuilder
     }
 
     /**
-     * @param array<string, list<WorkId|string>> $referencesByCitingWorkId
-     * @param array<string, list<WorkId|string>> $citingWorkIdsByCitedWorkId
-     * @param array<string, ScholarlyWork> $workIndex
+     * @param  array<string, list<WorkId|string>>  $referencesByCitingWorkId
+     * @param  array<string, list<WorkId|string>>  $citingWorkIdsByCitedWorkId
+     * @param  array<string, ScholarlyWork>  $workIndex
      * @return array<string, array<string, true>>
      */
     private function knownCitedIdsByCitingId(
@@ -211,7 +211,7 @@ final class CitationGraphBuilder
     }
 
     /**
-     * @param array<string, array<string, true>> $groups
+     * @param  array<string, array<string, true>>  $groups
      * @return array<string, array<string, int>>
      */
     private function pairCountsFromGroupedIds(array $groups): array

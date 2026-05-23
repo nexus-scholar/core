@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Search\Domain\Exception\ProviderUnavailable;
+use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
@@ -48,14 +51,14 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
     public function search(SearchQuery $query): array
     {
         $params = [
-            'query'  => $this->toBulkQuery($query->term->value),
+            'query' => $this->toBulkQuery($query->term->value),
             'fields' => self::FIELDS,
         ];
 
         // Year range filter (S2 bulk supports "2020-2024" syntax)
         if ($query->yearRange !== null) {
             $from = $query->yearRange->from;
-            $to   = $query->yearRange->to;
+            $to = $query->yearRange->to;
 
             if ($from !== null && $to !== null) {
                 $params['year'] = "{$from}-{$to}";
@@ -74,7 +77,7 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
 
         // Bulk endpoint with continuation-token pagination
         $collected = [];
-        $token     = null;
+        $token = null;
         $maxResults = $query->maxResults;
 
         while (count($collected) < $maxResults) {
@@ -115,7 +118,7 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
                 if ($token === null) {
                     break;
                 }
-            } catch (\Nexus\Search\Domain\Exception\ProviderUnavailable $e) {
+            } catch (ProviderUnavailable $e) {
                 // Return partial results collected so far
                 break;
             }
@@ -128,16 +131,16 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
      * Single-page async fetch. Supports up to ~1000 results per S2 bulk page.
      * For maxResults > 1000, use the synchronous search() instead.
      */
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    public function searchAsync(SearchQuery $query): PromiseInterface
     {
         $params = [
-            'query'  => $this->toBulkQuery($query->term->value),
+            'query' => $this->toBulkQuery($query->term->value),
             'fields' => self::FIELDS,
         ];
 
         if ($query->yearRange !== null) {
             $from = $query->yearRange->from;
-            $to   = $query->yearRange->to;
+            $to = $query->yearRange->to;
 
             if ($from !== null && $to !== null) {
                 $params['year'] = "{$from}-{$to}";
@@ -158,7 +161,7 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
             "{$this->config->baseUrl}/graph/v1/paper/search/bulk",
             $params,
             $headers
-        )->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+        )->then(function (HttpResponse $response) use ($query) {
             if (! $response->ok()) {
                 return [];
             }
@@ -182,11 +185,11 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         $identifier = match ($id->namespace) {
-            WorkIdNamespace::DOI    => "DOI:{$id->value}",
-            WorkIdNamespace::S2     => $id->value,
-            WorkIdNamespace::ARXIV  => "ARXIV:{$id->value}",
+            WorkIdNamespace::DOI => "DOI:{$id->value}",
+            WorkIdNamespace::S2 => $id->value,
+            WorkIdNamespace::ARXIV => "ARXIV:{$id->value}",
             WorkIdNamespace::PUBMED => "PMID:{$id->value}",
-            default                 => null,
+            default => null,
         };
 
         if ($identifier === null) {
@@ -210,7 +213,7 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
         }
 
         return $this->normalize($response->body, new SearchQuery(
-            term: new \Nexus\Search\Domain\SearchTerm('fetch'),
+            term: new SearchTerm('fetch'),
         ));
     }
 
@@ -257,9 +260,9 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
             $ids = $ids->add(new WorkId(WorkIdNamespace::PUBMED, $externalIds['PubMed']));
         }
 
-        $title    = $this->extractString($raw, 'title') ?? 'Unknown Title';
-        $year     = $this->extractInt($raw, 'year');
-        $cited    = $this->extractInt($raw, 'citationCount');
+        $title = $this->extractString($raw, 'title') ?? 'Unknown Title';
+        $year = $this->extractInt($raw, 'year');
+        $cited = $this->extractInt($raw, 'citationCount');
         $abstract = $this->extractString($raw, 'abstract');
 
         $venue = null;
@@ -283,10 +286,10 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
 
             if (count($parts) === 1) {
                 $family = $parts[0];
-                $given  = null;
+                $given = null;
             } else {
                 $family = array_pop($parts);
-                $given  = implode(' ', $parts);
+                $given = implode(' ', $parts);
             }
 
             $authors[] = new Author(familyName: $family, givenName: $given);
@@ -295,15 +298,15 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
         $rawData = $query->includeRawData ? $raw : null;
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $title,
+            ids: $ids,
+            title: $title,
             sourceProvider: $this->alias(),
-            year:           $year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            abstract:       $abstract,
-            citedByCount:   $cited,
-            rawData:        $rawData,
+            year: $year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            abstract: $abstract,
+            citedByCount: $cited,
+            rawData: $rawData,
         );
     }
 

@@ -7,7 +7,7 @@ namespace Nexus\Deduplication\Infrastructure;
 use Nexus\Deduplication\Domain\Duplicate;
 use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 /**
@@ -24,7 +24,7 @@ final class DoiMatchPolicy implements DeduplicationPolicyPort
     public function detect(array $works): array
     {
         /** @var array<string, ScholarlyWork> $index doi_value => first work seen */
-        $index      = [];
+        $index = [];
         $duplicates = [];
 
         foreach ($works as $work) {
@@ -38,7 +38,7 @@ final class DoiMatchPolicy implements DeduplicationPolicyPort
 
             if (isset($index[$key])) {
                 $primaryWork = $index[$key];
-                $primaryId   = $primaryWork->primaryId();
+                $primaryId = $primaryWork->primaryId();
                 $secondaryId = $work->primaryId();
 
                 if ($primaryId === null || $secondaryId === null) {
@@ -46,10 +46,10 @@ final class DoiMatchPolicy implements DeduplicationPolicyPort
                 }
 
                 $duplicates[] = new Duplicate(
-                    primaryId:   $primaryId,
+                    primaryId: $primaryId,
                     secondaryId: $secondaryId,
-                    reason:      DuplicateReason::DOI_MATCH,
-                    confidence:  1.0,
+                    reason: DuplicateReason::DOI_MATCH,
+                    confidence: 1.0,
                 );
             } else {
                 $index[$key] = $work;

@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Event;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
-use Nexus\Dissemination\Application\UseCase\RetrieveFullText;
 use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
@@ -16,7 +15,7 @@ use Nexus\Laravel\Event\NexusJobCompleted;
 use Nexus\Laravel\Event\NexusJobFailed;
 use Nexus\Laravel\Event\NexusJobStarted;
 use Nexus\Laravel\Job\RetrieveFullTextJob;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Tests\Support\PersistenceFactory;
 
@@ -50,7 +49,8 @@ it('resolves the full text handler from the container when handling the job', fu
     ];
 
     app()->instance(FullTextSourceCollection::class, new FullTextSourceCollection(
-        new class($received) implements FullTextSourcePort {
+        new class($received) implements FullTextSourcePort
+        {
             public function __construct(private readonly object $received) {}
 
             public function resolve(ScholarlyWork $work): ?string
@@ -72,7 +72,8 @@ it('resolves the full text handler from the container when handling the job', fu
         },
     ));
 
-    app()->instance(FileStoragePort::class, new class($received) implements FileStoragePort {
+    app()->instance(FileStoragePort::class, new class($received) implements FileStoragePort
+    {
         public function __construct(private readonly object $received) {}
 
         public function store(string $filename, string $content): string
@@ -100,14 +101,16 @@ it('resolves the full text handler from the container when handling the job', fu
         }
     });
 
-    app()->instance(PdfDownloaderPort::class, new class implements PdfDownloaderPort {
+    app()->instance(PdfDownloaderPort::class, new class implements PdfDownloaderPort
+    {
         public function download(string $url): DownloadResult
         {
             return new DownloadResult('%PDF-1.4 test-content', 200);
         }
     });
 
-    app()->instance(PdfFetchRepositoryPort::class, new class($received) implements PdfFetchRepositoryPort {
+    app()->instance(PdfFetchRepositoryPort::class, new class($received) implements PdfFetchRepositoryPort
+    {
         public function __construct(private readonly object $received) {}
 
         public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void

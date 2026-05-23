@@ -16,7 +16,7 @@ use Nexus\Deduplication\Application\DeduplicateCorpusResult;
 use Nexus\Laravel\Event\NexusJobCompleted;
 use Nexus\Laravel\Event\NexusJobFailed;
 use Nexus\Laravel\Event\NexusJobStarted;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 use Throwable;
 
 final class DeduplicateCorpusJob implements ShouldQueue
@@ -27,7 +27,7 @@ final class DeduplicateCorpusJob implements ShouldQueue
     use SerializesModels;
 
     /**
-     * @param string[] $policyAliases
+     * @param  string[]  $policyAliases
      */
     public function __construct(
         public CorpusSlice $corpus,

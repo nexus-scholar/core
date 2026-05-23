@@ -82,10 +82,11 @@ Start here:
 - [Versioning Policy](docs/22-versioning-policy.md)
 - [Release Notes v0.1.0](docs/23-release-notes-v0.1.0.md)
 - [Release Notes v0.1.1](docs/24-release-notes-v0.1.1.md)
+- [Host API Examples](docs/25-host-api-examples.md)
 
 ## Testing
 
-To run the Pest suite included with the core, use the Composer scripts. The scripts set a higher memory limit because the integration test VCR YAML recordings can exceed PHP defaults.
+To run the Pest suite included with the core, use the Composer scripts. Provider integration tests replay fixture cassettes through a test-only HTTP port and do not reach live provider networks in CI.
 
 ```bash
 composer test

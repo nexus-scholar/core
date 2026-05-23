@@ -7,34 +7,18 @@ namespace Tests\Integration\Provider;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
-use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
 use Nexus\Search\Infrastructure\Provider\CrossrefAdapter;
 use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
 use Nexus\Search\Infrastructure\RateLimit\NullRateLimiter;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
-use VCR\VCR;
-
-beforeEach(function () {
-    VCR::configure()
-        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
-        ->setMode(VCR::MODE_NONE)
-        ->enableLibraryHooks(['curl', 'stream_wrapper']);
-    VCR::turnOn();
-});
-
-afterEach(function () {
-    VCR::eject();
-    VCR::turnOff();
-});
+use Tests\Support\CassetteHttpClient;
 
 it('searches using crossref api', function () {
-    VCR::insertCassette('crossref_search.yml');
-
     $config = ProviderConfigRegistry::defaults(mailTo: 'test@example.com')['crossref'];
     $adapter = new CrossrefAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('crossref_search.yml'),
         rateLimiter: new NullRateLimiter,
     );
 
@@ -59,12 +43,10 @@ it('searches using crossref api', function () {
 });
 
 it('fetches a paper by DOI', function () {
-    VCR::insertCassette('crossref_fetch_by_id.yml');
-
     $config = ProviderConfigRegistry::defaults(mailTo: 'test@example.com')['crossref'];
     $adapter = new CrossrefAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('crossref_fetch_by_id.yml'),
         rateLimiter: new NullRateLimiter,
     );
 

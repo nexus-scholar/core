@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Dissemination\Infrastructure\PdfSource;
 
 use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final class DirectPdfSource implements FullTextSourcePort
 {
@@ -41,7 +41,7 @@ final class DirectPdfSource implements FullTextSourcePort
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function firstUrlFrom(array $data): ?string
     {

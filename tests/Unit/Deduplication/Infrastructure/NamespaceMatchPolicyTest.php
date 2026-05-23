@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Deduplication\Infrastructure;
 
 use Nexus\Deduplication\Infrastructure\NamespaceMatchPolicy;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;

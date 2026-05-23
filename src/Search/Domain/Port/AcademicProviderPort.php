@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Domain\Port;
 
-use Nexus\Search\Domain\ScholarlyWork;
+use GuzzleHttp\Promise\PromiseInterface;
+use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
@@ -27,7 +29,8 @@ interface AcademicProviderPort
      * MUST return an empty array (not throw) when provider returns 0 results.
      *
      * @return ScholarlyWork[]
-     * @throws \Nexus\Search\Domain\Exception\ProviderUnavailable on HTTP 5xx or connection failure after retries
+     *
+     * @throws ProviderUnavailable on HTTP 5xx or connection failure after retries
      */
     public function search(SearchQuery $query): array;
 
@@ -35,13 +38,13 @@ interface AcademicProviderPort
      * Asynchronous search matching the query.
      * Returns a promise that resolves to ScholarlyWork[].
      */
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface;
+    public function searchAsync(SearchQuery $query): PromiseInterface;
 
     /**
      * Fetch a single work by known external identifier.
      * Returns null if the provider cannot find or does not support this ID.
      *
-     * @throws \Nexus\Search\Domain\Exception\ProviderUnavailable on network failure
+     * @throws ProviderUnavailable on network failure
      */
     public function fetchById(WorkId $id): ?ScholarlyWork;
 

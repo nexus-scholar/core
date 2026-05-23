@@ -6,7 +6,7 @@ namespace Nexus\Dissemination\Infrastructure\PdfSource;
 
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCandidate;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final readonly class EuropePmcFullTextSource implements FullTextCandidateSourcePort
 {
@@ -28,9 +28,9 @@ final readonly class EuropePmcFullTextSource implements FullTextCandidateSourceP
         $doi = WorkIdentifierExtractor::doi($work);
         $pmcid = WorkIdentifierExtractor::pmcid($work);
         $response = $this->client->get(
-            rtrim($this->client->config()->baseUrl, '/') . '/search',
+            rtrim($this->client->config()->baseUrl, '/').'/search',
             [
-                'query' => $doi !== null ? 'DOI:"' . addcslashes($doi, '"\\') . '"' : 'EXT_ID:' . $pmcid,
+                'query' => $doi !== null ? 'DOI:"'.addcslashes($doi, '"\\').'"' : 'EXT_ID:'.$pmcid,
                 'resultType' => 'core',
                 'format' => 'json',
                 'pageSize' => 1,
@@ -64,7 +64,7 @@ final readonly class EuropePmcFullTextSource implements FullTextCandidateSourceP
         }
 
         return FullTextSourceCandidate::xml(
-            rtrim($this->client->config()->baseUrl, '/') . '/' . rawurlencode($recordPmcid) . '/fullTextXML',
+            rtrim($this->client->config()->baseUrl, '/').'/'.rawurlencode($recordPmcid).'/fullTextXML',
             $this->metadata($record, $doi, $recordPmcid, ['artifact_source' => 'fullTextXML']),
         );
     }
@@ -83,7 +83,7 @@ final readonly class EuropePmcFullTextSource implements FullTextCandidateSourceP
     }
 
     /**
-     * @param array<string, mixed> $record
+     * @param  array<string, mixed>  $record
      */
     private function pdfCandidate(array $record, ?string $doi, ?string $pmcid): ?FullTextSourceCandidate
     {
@@ -122,7 +122,7 @@ final readonly class EuropePmcFullTextSource implements FullTextCandidateSourceP
     }
 
     /**
-     * @param array<string, mixed> $item
+     * @param  array<string, mixed>  $item
      */
     private function isOpenPdfUrl(array $item): bool
     {
@@ -141,7 +141,7 @@ final readonly class EuropePmcFullTextSource implements FullTextCandidateSourceP
     }
 
     /**
-     * @param array<string, mixed> $record
+     * @param  array<string, mixed>  $record
      */
     private function hasOpenFullTextSignal(array $record): bool
     {
@@ -155,8 +155,8 @@ final readonly class EuropePmcFullTextSource implements FullTextCandidateSourceP
     }
 
     /**
-     * @param array<string, mixed> $record
-     * @param array<string, mixed> $extra
+     * @param  array<string, mixed>  $record
+     * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
     private function metadata(array $record, ?string $doi, ?string $pmcid, array $extra = []): array
@@ -191,4 +191,3 @@ final readonly class EuropePmcFullTextSource implements FullTextCandidateSourceP
         return in_array($scheme, ['http', 'https'], true) ? $url : null;
     }
 }
-

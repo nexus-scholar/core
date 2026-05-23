@@ -1,6 +1,6 @@
 # Release Readiness
 
-Last updated: 2026-05-22
+Last updated: 2026-05-23
 
 This document defines the release gate for `nexus-scholar/core`. It is intentionally separate from feature roadmaps: a release can ship only when the package can be installed, validated, and reasoned about without local workspace assumptions.
 
@@ -16,6 +16,9 @@ Ready for pre-1.0 Laravel consumers:
 - Domain and application layers are guarded against framework leakage by architecture tests.
 - Legal OA full-text retrieval avoids shadow-library adapters.
 - Immutable locked corpus snapshots back final/citable corpus membership after lock.
+- Host read APIs expose export history, job lifecycle, and full-text fetch audit records without direct SQL reads.
+- Provider integration tests are fixture-backed through a test-only HTTP port and are guarded against live-capable clients in CI.
+- Shared work/corpus models are canonical under `Nexus\Shared\Domain`; old Search-domain work/corpus classes are removed instead of retained as aliases.
 - A clean Laravel consumer smoke passes when installing `nexus-scholar/core:^0.1`.
 - `v0.1.0` release notes and a pre-1.0 versioning policy are documented.
 
@@ -143,12 +146,23 @@ NEXUS_LLM_OPENROUTER_API_KEY=
 
 Never commit real credentials. Provider availability should be controlled through config/env, not code edits.
 
+## 0.2.0 Scope
+
+`0.2.0` is defined as the host-read and CI-hardening release:
+
+- additive Laravel package read APIs for exports, job progress, and full-text fetch artifacts,
+- host-facing usage examples for resolving handlers/readers,
+- provider integration tests isolated from live networks,
+- first boundary hardening by moving shared work/corpus models to `Nexus\Shared\Domain`.
+
+Tagging/publishing remains a separate release task after a clean consumer install smoke.
+
 ## Stability Rules
 
 - Keep domain and application code independent from Laravel, Eloquent, queues, storage, and facades.
 - Add ports before infrastructure-specific dependencies.
 - Keep package commands delegated to application services.
-- Keep live network calls out of CI; use fakes or VCR fixtures.
+- Keep live network calls out of CI; use fakes or cassette-backed `HttpClientPort` fixtures.
 - Add a regression test for every bug found through `nexus-cli` command output when the behavior belongs to `core`.
 - Do not add shadow-library full-text sources.
 
@@ -156,6 +170,6 @@ Never commit real credentials. Provider availability should be controlled throug
 
 Priority order:
 
-1. Add host API examples for search, screening, adjudication, comparison, full-text, graph, and export flows.
-2. Repeat Packagist/package archive review before the next tag.
-3. Decide the `0.2.0` scope and keep breaking API changes explicit until `1.0.0`.
+1. Replace Guzzle promises in provider ports with a package-owned async abstraction.
+2. Add streaming full-text downloads for large artifacts.
+3. Repeat Packagist/package archive review before the next tag.

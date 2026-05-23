@@ -11,8 +11,8 @@ use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
 use Nexus\Deduplication\Domain\Port\RepresentativeElectionPort;
 use Nexus\Deduplication\Infrastructure\UnionFind;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\CorpusOperation;
 
 /**

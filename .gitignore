@@ -3,5 +3,7 @@
 /output
 coverage/
 tmp/
+storage/*.log
+storage/logs/
 .phpunit.result.cache
 test_cmd*.php

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Dissemination\Domain\Port;
 
 use Nexus\Dissemination\Domain\BibliographyFormat;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 
 interface BibliographySerializerPort
 {

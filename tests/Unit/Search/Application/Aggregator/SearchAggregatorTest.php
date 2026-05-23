@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Search\Application\Aggregator;
 
+use GuzzleHttp\Promise\FulfilledPromise;
+use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Promise\RejectedPromise;
 use Nexus\Search\Application\Aggregator\SearchAggregator;
-use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Exception\UnknownProviderAlias;
 use Nexus\Search\Domain\Port\AcademicProviderPort;
 use Nexus\Search\Domain\Port\AdapterCollection;
 use Nexus\Search\Domain\Port\DeduplicationPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Search\Domain\Port\SearchCachePort;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -33,55 +37,117 @@ it('aggregates results from multiple providers and deduplicates them', function 
         sourceProvider: 'provider_2'
     );
 
-    $adapter1 = new class($work1) implements AcademicProviderPort {
+    $adapter1 = new class($work1) implements AcademicProviderPort
+    {
         public function __construct(private $work) {}
-        public function alias(): string { return 'provider_1'; }
-        public function supports(WorkIdNamespace $ns): bool { return true; }
-        public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
-        public function search(SearchQuery $query): array {
+
+        public function alias(): string
+        {
+            return 'provider_1';
+        }
+
+        public function supports(WorkIdNamespace $ns): bool
+        {
+            return true;
+        }
+
+        public function fetchById(WorkId $id): ?ScholarlyWork
+        {
+            return null;
+        }
+
+        public function search(SearchQuery $query): array
+        {
             return [$this->work];
         }
-        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
-            return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+
+        public function searchAsync(SearchQuery $query): PromiseInterface
+        {
+            return new FulfilledPromise($this->search($query));
         }
     };
 
-    $adapter2 = new class($work2) implements AcademicProviderPort {
+    $adapter2 = new class($work2) implements AcademicProviderPort
+    {
         public function __construct(private $work) {}
-        public function alias(): string { return 'provider_2'; }
-        public function supports(WorkIdNamespace $ns): bool { return true; }
-        public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
-        public function search(SearchQuery $query): array {
+
+        public function alias(): string
+        {
+            return 'provider_2';
+        }
+
+        public function supports(WorkIdNamespace $ns): bool
+        {
+            return true;
+        }
+
+        public function fetchById(WorkId $id): ?ScholarlyWork
+        {
+            return null;
+        }
+
+        public function search(SearchQuery $query): array
+        {
             return [$this->work];
         }
-        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
-            return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+
+        public function searchAsync(SearchQuery $query): PromiseInterface
+        {
+            return new FulfilledPromise($this->search($query));
         }
     };
 
-    $adapter3 = new class implements AcademicProviderPort {
-        public function alias(): string { return 'provider_error'; }
-        public function supports(WorkIdNamespace $ns): bool { return true; }
-        public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
-        public function search(SearchQuery $query): array {
+    $adapter3 = new class implements AcademicProviderPort
+    {
+        public function alias(): string
+        {
+            return 'provider_error';
+        }
+
+        public function supports(WorkIdNamespace $ns): bool
+        {
+            return true;
+        }
+
+        public function fetchById(WorkId $id): ?ScholarlyWork
+        {
+            return null;
+        }
+
+        public function search(SearchQuery $query): array
+        {
             throw new ProviderUnavailable('provider_error', 'Simulated failure');
         }
-        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
-            return new \GuzzleHttp\Promise\RejectedPromise(new ProviderUnavailable('provider_error', 'Simulated failure'));
+
+        public function searchAsync(SearchQuery $query): PromiseInterface
+        {
+            return new RejectedPromise(new ProviderUnavailable('provider_error', 'Simulated failure'));
         }
     };
 
-    $dedup = new class implements DeduplicationPort {
-        public function deduplicate(CorpusSlice $corpus): CorpusSlice {
+    $dedup = new class implements DeduplicationPort
+    {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice
+        {
             // Simply return the corpus as-is for the stub
             return $corpus;
         }
     };
 
-    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
-        public function get(string $key): ?array { return null; }
+    $cache = new class implements SearchCachePort
+    {
+        public function get(string $key): ?array
+        {
+            return null;
+        }
+
         public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
-        public function has(string $key): bool { return false; }
+
+        public function has(string $key): bool
+        {
+            return false;
+        }
+
         public function invalidateAll(): void {}
     };
 
@@ -92,10 +158,10 @@ it('aggregates results from multiple providers and deduplicates them', function 
     // Assertions
     expect($result->totalRaw)->toBe(2);
     expect($result->corpus->count())->toBe(2);
-    
+
     // Stats array should have 3 items (2 successes, 1 failure)
     expect($result->providerStats)->toHaveCount(3);
-    
+
     expect($result->providerStats[0]->alias)->toBe('provider_1');
     expect($result->providerStats[0]->resultCount)->toBe(1);
     expect($result->providerStats[0]->skipReason)->toBeNull();
@@ -110,26 +176,56 @@ it('aggregates results from multiple providers and deduplicates them', function 
 });
 
 it('returns empty corpus when all providers fail', function () {
-    $failingAdapter = new class implements AcademicProviderPort {
-        public function alias(): string { return 'dead'; }
-        public function supports(WorkIdNamespace $ns): bool { return true; }
-        public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
-        public function search(SearchQuery $query): array {
+    $failingAdapter = new class implements AcademicProviderPort
+    {
+        public function alias(): string
+        {
+            return 'dead';
+        }
+
+        public function supports(WorkIdNamespace $ns): bool
+        {
+            return true;
+        }
+
+        public function fetchById(WorkId $id): ?ScholarlyWork
+        {
+            return null;
+        }
+
+        public function search(SearchQuery $query): array
+        {
             throw new ProviderUnavailable('dead', 'All down');
         }
-        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface {
-            return new \GuzzleHttp\Promise\RejectedPromise(new ProviderUnavailable('dead', 'All down'));
+
+        public function searchAsync(SearchQuery $query): PromiseInterface
+        {
+            return new RejectedPromise(new ProviderUnavailable('dead', 'All down'));
         }
     };
 
-    $dedup = new class implements DeduplicationPort {
-        public function deduplicate(CorpusSlice $corpus): CorpusSlice { return $corpus; }
+    $dedup = new class implements DeduplicationPort
+    {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice
+        {
+            return $corpus;
+        }
     };
 
-    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
-        public function get(string $key): ?array { return null; }
+    $cache = new class implements SearchCachePort
+    {
+        public function get(string $key): ?array
+        {
+            return null;
+        }
+
         public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
-        public function has(string $key): bool { return false; }
+
+        public function has(string $key): bool
+        {
+            return false;
+        }
+
         public function invalidateAll(): void {}
     };
 
@@ -146,12 +242,24 @@ it('uses only provider aliases selected on the query', function (): void {
     $calls = (object) ['counts' => []];
 
     $makeAdapter = static function (string $alias) use ($calls): AcademicProviderPort {
-        return new class($alias, $calls) implements AcademicProviderPort {
+        return new class($alias, $calls) implements AcademicProviderPort
+        {
             public function __construct(private readonly string $providerAlias, private readonly object $calls) {}
 
-            public function alias(): string { return $this->providerAlias; }
-            public function supports(WorkIdNamespace $ns): bool { return true; }
-            public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
+            public function alias(): string
+            {
+                return $this->providerAlias;
+            }
+
+            public function supports(WorkIdNamespace $ns): bool
+            {
+                return true;
+            }
+
+            public function fetchById(WorkId $id): ?ScholarlyWork
+            {
+                return null;
+            }
 
             public function search(SearchQuery $query): array
             {
@@ -164,18 +272,23 @@ it('uses only provider aliases selected on the query', function (): void {
                 )];
             }
 
-            public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+            public function searchAsync(SearchQuery $query): PromiseInterface
             {
-                return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+                return new FulfilledPromise($this->search($query));
             }
         };
     };
 
-    $dedup = new class implements DeduplicationPort {
-        public function deduplicate(CorpusSlice $corpus): CorpusSlice { return $corpus; }
+    $dedup = new class implements DeduplicationPort
+    {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice
+        {
+            return $corpus;
+        }
     };
 
-    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
+    $cache = new class implements SearchCachePort
+    {
         public ?string $lastKey = null;
 
         public function get(string $key): ?array
@@ -186,7 +299,12 @@ it('uses only provider aliases selected on the query', function (): void {
         }
 
         public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
-        public function has(string $key): bool { return false; }
+
+        public function has(string $key): bool
+        {
+            return false;
+        }
+
         public function invalidateAll(): void {}
     };
 
@@ -211,37 +329,64 @@ it('uses only provider aliases selected on the query', function (): void {
 it('fails clearly before execution when a selected provider alias is unknown', function (): void {
     $calls = (object) ['count' => 0];
 
-    $adapter = new class($calls) implements AcademicProviderPort {
+    $adapter = new class($calls) implements AcademicProviderPort
+    {
         public function __construct(private readonly object $calls) {}
-        public function alias(): string { return 'provider_1'; }
-        public function supports(WorkIdNamespace $ns): bool { return true; }
-        public function fetchById(WorkId $id): ?ScholarlyWork { return null; }
+
+        public function alias(): string
+        {
+            return 'provider_1';
+        }
+
+        public function supports(WorkIdNamespace $ns): bool
+        {
+            return true;
+        }
+
+        public function fetchById(WorkId $id): ?ScholarlyWork
+        {
+            return null;
+        }
+
         public function search(SearchQuery $query): array
         {
             $this->calls->count++;
 
             return [];
         }
-        public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+
+        public function searchAsync(SearchQuery $query): PromiseInterface
         {
-            return new \GuzzleHttp\Promise\FulfilledPromise($this->search($query));
+            return new FulfilledPromise($this->search($query));
         }
     };
 
-    $dedup = new class implements DeduplicationPort {
-        public function deduplicate(CorpusSlice $corpus): CorpusSlice { return $corpus; }
+    $dedup = new class implements DeduplicationPort
+    {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice
+        {
+            return $corpus;
+        }
     };
 
-    $cache = new class implements \Nexus\Search\Domain\Port\SearchCachePort {
+    $cache = new class implements SearchCachePort
+    {
         public int $gets = 0;
+
         public function get(string $key): ?array
         {
             $this->gets++;
 
             return null;
         }
+
         public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
-        public function has(string $key): bool { return false; }
+
+        public function has(string $key): bool
+        {
+            return false;
+        }
+
         public function invalidateAll(): void {}
     };
 

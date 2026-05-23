@@ -6,7 +6,7 @@ namespace Nexus\Dissemination\Infrastructure\PdfSource;
 
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCandidate;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final readonly class PmcOaiFullTextSource implements FullTextCandidateSourcePort
 {
@@ -30,12 +30,12 @@ final readonly class PmcOaiFullTextSource implements FullTextCandidateSourcePort
 
         $query = [
             'verb' => 'GetRecord',
-            'identifier' => 'oai:pubmedcentral.nih.gov:' . $pmcidNumber,
+            'identifier' => 'oai:pubmedcentral.nih.gov:'.$pmcidNumber,
             'metadataPrefix' => 'pmc',
         ];
 
         $response = $this->client->get(
-            rtrim($this->client->config()->baseUrl, '/') . '/',
+            rtrim($this->client->config()->baseUrl, '/').'/',
             $query,
             [
                 'Accept' => 'application/xml',
@@ -48,7 +48,7 @@ final readonly class PmcOaiFullTextSource implements FullTextCandidateSourcePort
         }
 
         return FullTextSourceCandidate::xml(
-            $this->urlWithQuery(rtrim($this->client->config()->baseUrl, '/') . '/', $query),
+            $this->urlWithQuery(rtrim($this->client->config()->baseUrl, '/').'/', $query),
             [
                 'source' => 'pmc',
                 'pmcid' => $pmcid,
@@ -91,11 +91,10 @@ final readonly class PmcOaiFullTextSource implements FullTextCandidateSourcePort
     }
 
     /**
-     * @param array<string, string> $query
+     * @param  array<string, string>  $query
      */
     private function urlWithQuery(string $url, array $query): string
     {
-        return $url . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        return $url.'?'.http_build_query($query, '', '&', PHP_QUERY_RFC3986);
     }
 }
-

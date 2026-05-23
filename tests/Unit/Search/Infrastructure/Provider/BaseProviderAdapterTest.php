@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Search\Infrastructure\Provider;
 
+use GuzzleHttp\Promise\FulfilledPromise;
+use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\Port\RateLimiterPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
-use Psr\Log\AbstractLogger;
 use Nexus\Search\Infrastructure\Provider\BaseProviderAdapter;
 use Nexus\Search\Infrastructure\Provider\ProviderConfig;
+use Nexus\Shared\Domain\ScholarlyWork;
+use Nexus\Shared\ValueObject\WorkId;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
+use Psr\Log\AbstractLogger;
 
 final class StubAdapter extends BaseProviderAdapter
 {
@@ -22,12 +26,12 @@ final class StubAdapter extends BaseProviderAdapter
         return 'stub';
     }
 
-    public function supports(\Nexus\Shared\ValueObject\WorkIdNamespace $ns): bool
+    public function supports(WorkIdNamespace $ns): bool
     {
         return true;
     }
 
-    public function fetchById(\Nexus\Shared\ValueObject\WorkId $id): ?ScholarlyWork
+    public function fetchById(WorkId $id): ?ScholarlyWork
     {
         return null;
     }
@@ -35,6 +39,7 @@ final class StubAdapter extends BaseProviderAdapter
     public function search(SearchQuery $query): array
     {
         $this->request('http://example.com');
+
         return [];
     }
 
@@ -55,30 +60,40 @@ final class StubAdapter extends BaseProviderAdapter
 }
 
 it('logs a warning on 429 retry and error on exhaustion', function (): void {
-    $logger = new class extends AbstractLogger {
+    $logger = new class extends AbstractLogger
+    {
         public array $logs = [];
-        
+
         public function log($level, \Stringable|string $message, array $context = []): void
         {
             $this->logs[] = ['level' => $level, 'message' => (string) $message];
         }
-        
-        public function hasWarningThatContains(string $str): bool {
+
+        public function hasWarningThatContains(string $str): bool
+        {
             foreach ($this->logs as $log) {
-                if ($log['level'] === 'warning' && str_contains($log['message'], $str)) return true;
+                if ($log['level'] === 'warning' && str_contains($log['message'], $str)) {
+                    return true;
+                }
             }
+
             return false;
         }
 
-        public function hasErrorThatContains(string $str): bool {
+        public function hasErrorThatContains(string $str): bool
+        {
             foreach ($this->logs as $log) {
-                if ($log['level'] === 'error' && str_contains($log['message'], $str)) return true;
+                if ($log['level'] === 'error' && str_contains($log['message'], $str)) {
+                    return true;
+                }
             }
+
             return false;
         }
     };
-    
-    $http = new class implements HttpClientPort {
+
+    $http = new class implements HttpClientPort
+    {
         public ?int $lastTimeout = null;
 
         public function get(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): HttpResponse
@@ -92,18 +107,36 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
                 headers: [],
             );
         }
-        public function getAsync(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): \GuzzleHttp\Promise\PromiseInterface
+
+        public function getAsync(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): PromiseInterface
         {
-            return new \GuzzleHttp\Promise\FulfilledPromise($this->get($url, $query, $headers, $timeoutSeconds));
+            return new FulfilledPromise($this->get($url, $query, $headers, $timeoutSeconds));
         }
     };
 
-    $rateLimiter = new class implements RateLimiterPort {
+    $rateLimiter = new class implements RateLimiterPort
+    {
         public function waitForToken(): void {}
-        public function remainingTokens(): int { return 10; }
-        public function capacity(): int { return 10; }
-        public function tryConsume(): bool { return true; }
-        public function ratePerSecond(): float { return 1.0; }
+
+        public function remainingTokens(): int
+        {
+            return 10;
+        }
+
+        public function capacity(): int
+        {
+            return 10;
+        }
+
+        public function tryConsume(): bool
+        {
+            return true;
+        }
+
+        public function ratePerSecond(): float
+        {
+            return 1.0;
+        }
     };
 
     $config = new ProviderConfig(
@@ -114,7 +147,7 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
         maxRetries: 2
     );
 
-    $adapter = new StubAdapter($http, $rateLimiter, $config, $logger, fn(float $s) => null);
+    $adapter = new StubAdapter($http, $rateLimiter, $config, $logger, fn (float $s) => null);
 
     $query = new SearchQuery(
         term: new SearchTerm('test'),
@@ -122,7 +155,7 @@ it('logs a warning on 429 retry and error on exhaustion', function (): void {
 
     // With maxRetries = 2, it will attempt once, log warning, attempt second time, log error and throw.
     // However, sleep(1) is called on backoff. This will take ~1 second to run.
-    expect(fn() => $adapter->search($query))->toThrow(ProviderUnavailable::class);
+    expect(fn () => $adapter->search($query))->toThrow(ProviderUnavailable::class);
 
     expect($logger->hasWarningThatContains('rate limited'))->toBeTrue();
     expect($logger->hasErrorThatContains('failed permanently'))->toBeTrue();

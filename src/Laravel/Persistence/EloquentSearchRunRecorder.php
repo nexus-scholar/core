@@ -13,8 +13,8 @@ use Nexus\Search\Application\Port\SearchRunRecorderPort;
 use Nexus\Search\Domain\Port\SearchQueryRepositoryPort;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
 use Nexus\Search\Domain\ProviderProgress;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Throwable;
 
 final class EloquentSearchRunRecorder implements SearchRunRecorderPort

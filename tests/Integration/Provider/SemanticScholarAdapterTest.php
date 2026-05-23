@@ -7,35 +7,19 @@ namespace Tests\Integration\Provider;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
-use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
 use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
 use Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter;
 use Nexus\Search\Infrastructure\RateLimit\NullRateLimiter;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
-use VCR\VCR;
-
-beforeEach(function () {
-    VCR::configure()
-        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
-        ->setMode(VCR::MODE_NONE)
-        ->enableLibraryHooks(['curl', 'stream_wrapper']);
-    VCR::turnOn();
-});
-
-afterEach(function () {
-    VCR::eject();
-    VCR::turnOff();
-});
+use Tests\Support\CassetteHttpClient;
 
 it('searches using the bulk endpoint with continuation tokens', function () {
-    VCR::insertCassette('s2_bulk_search.yml');
-
     $config = ProviderConfigRegistry::defaults(s2ApiKey: null)['semantic_scholar'];
 
     $adapter = new SemanticScholarAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('s2_bulk_search.yml'),
         rateLimiter: new NullRateLimiter,
     );
 
@@ -57,12 +41,10 @@ it('searches using the bulk endpoint with continuation tokens', function () {
 });
 
 it('fetches a paper by DOIs and S2 IDs', function () {
-    VCR::insertCassette('s2_fetch_by_id.yml');
-
     $config = ProviderConfigRegistry::defaults(s2ApiKey: null)['semantic_scholar'];
     $adapter = new SemanticScholarAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('s2_fetch_by_id.yml'),
         rateLimiter: new NullRateLimiter,
     );
 
@@ -75,12 +57,10 @@ it('fetches a paper by DOIs and S2 IDs', function () {
 });
 
 it('paginates using continuation tokens', function () {
-    VCR::insertCassette('s2_pagination.yml');
-
     $config = ProviderConfigRegistry::defaults(s2ApiKey: null)['semantic_scholar'];
     $adapter = new SemanticScholarAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('s2_pagination.yml'),
         rateLimiter: new NullRateLimiter,
     );
 

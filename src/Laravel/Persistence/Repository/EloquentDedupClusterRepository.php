@@ -6,12 +6,13 @@ namespace Nexus\Laravel\Persistence\Repository;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Nexus\Laravel\Model\DedupClusterModel;
-use Nexus\Laravel\Model\ClusterMemberModel;
 use Nexus\Deduplication\Domain\DedupCluster;
 use Nexus\Deduplication\Domain\DedupClusterId;
 use Nexus\Deduplication\Domain\Port\ClusterRepositoryPort;
+use Nexus\Laravel\Model\ClusterMemberModel;
+use Nexus\Laravel\Model\DedupClusterModel;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
@@ -19,8 +20,7 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
 {
     public function __construct(
         private readonly WorkRepositoryPort $workRepository
-    ) {
-    }
+    ) {}
 
     public function save(DedupCluster $cluster): void
     {
@@ -32,13 +32,13 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
             $clusterRow = DedupClusterModel::updateOrCreate(
                 ['id' => $cluster->id->toString()],
                 [
-                    'project_id'             => $cluster->projectId,
-                    'strategy'               => $cluster->strategy,
-                    'thresholds'             => $cluster->thresholds,
+                    'project_id' => $cluster->projectId,
+                    'strategy' => $cluster->strategy,
+                    'thresholds' => $cluster->thresholds,
                     'representative_work_id' => $representativeWorkId,
-                    'cluster_size'           => $cluster->size(),
-                    'confidence'             => $cluster->confidence,
-                    'is_locked'              => $cluster->isLocked,
+                    'cluster_size' => $cluster->size(),
+                    'confidence' => $cluster->confidence,
+                    'is_locked' => $cluster->isLocked,
                 ]
             );
 
@@ -65,7 +65,7 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
                 ClusterMemberModel::updateOrCreate(
                     [
                         'cluster_id' => $clusterRow->id,
-                        'work_id'    => $memberId,
+                        'work_id' => $memberId,
                     ],
                     ['id' => (string) Str::uuid()]
                 );
@@ -76,7 +76,7 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
     public function findById(string $clusterId): ?DedupCluster
     {
         $row = DedupClusterModel::with('members')->find($clusterId);
-        if (!$row) {
+        if (! $row) {
             return null;
         }
 
@@ -98,15 +98,15 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
         }
 
         $works = [];
-        if (!empty($allWorkIds)) {
+        if (! empty($allWorkIds)) {
             $ids = array_map(fn ($idStr) => new WorkId(WorkIdNamespace::INTERNAL, $idStr), array_keys($allWorkIds));
             $loadedWorks = $this->workRepository->findManyByIds($ids);
-            
+
             // Re-key by internal ID to avoid N+1 in toDomain
             foreach ($loadedWorks as $work) {
                 $internalId = $work->ids()->findByNamespace(WorkIdNamespace::INTERNAL);
                 if ($internalId) {
-                    $works['internal:' . $internalId->value] = $work;
+                    $works['internal:'.$internalId->value] = $work;
                 }
             }
         }
@@ -123,16 +123,16 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
     }
 
     /**
-     * @param array<string, \Nexus\Search\Domain\ScholarlyWork> $preloadedWorks
+     * @param  array<string, ScholarlyWork>  $preloadedWorks
      */
     private function toDomain(DedupClusterModel $row, array $preloadedWorks = []): ?DedupCluster
     {
-        $repIdStr = $row->representative_work_id ? 'internal:' . $row->representative_work_id : null;
+        $repIdStr = $row->representative_work_id ? 'internal:'.$row->representative_work_id : null;
         $representative = $repIdStr ? ($preloadedWorks[$repIdStr] ?? $this->workRepository->findById(new WorkId(WorkIdNamespace::INTERNAL, $row->representative_work_id))) : null;
 
         $members = [];
         foreach ($row->members as $memberRow) {
-            $mIdStr = 'internal:' . $memberRow->work_id;
+            $mIdStr = 'internal:'.$memberRow->work_id;
             $work = $preloadedWorks[$mIdStr] ?? $this->workRepository->findById(new WorkId(WorkIdNamespace::INTERNAL, $memberRow->work_id));
             if ($work) {
                 $members[] = $work;
@@ -141,21 +141,21 @@ final class EloquentDedupClusterRepository implements ClusterRepositoryPort
 
         try {
             return DedupCluster::reconstitute(
-                id:             new DedupClusterId($row->id),
-                projectId:      $row->project_id,
+                id: new DedupClusterId($row->id),
+                projectId: $row->project_id,
                 representative: $representative,
-                members:        $members,
-                strategy:       $row->strategy ?? 'default',
-                thresholds:     $row->thresholds ?? [],
-                confidence:     $row->confidence ? (float) $row->confidence : null,
-                isLocked:       (bool) $row->is_locked,
+                members: $members,
+                strategy: $row->strategy ?? 'default',
+                thresholds: $row->thresholds ?? [],
+                confidence: $row->confidence ? (float) $row->confidence : null,
+                isLocked: (bool) $row->is_locked,
             );
         } catch (\InvalidArgumentException $e) {
             return null;
         }
     }
 
-    private function internalIdForWork(\Nexus\Search\Domain\ScholarlyWork $work): ?string
+    private function internalIdForWork(ScholarlyWork $work): ?string
     {
         $internalId = $work->ids()->findByNamespace(WorkIdNamespace::INTERNAL);
 

@@ -1,6 +1,6 @@
 # Test Strategy Plan
 
-Last updated: 2026-05-20
+Last updated: 2026-05-23
 
 This document defines how to test the Nexus Scholar packages as the code moves from stabilization into reusable search orchestration, citation-network work, jobs, PDF retrieval, and release readiness.
 
@@ -16,6 +16,7 @@ Current repository state on 2026-05-20:
 - P2 corpus lock lifecycle has unit and feature coverage for project lock/unlock state, dedup cluster lock/unlock state, and persisted lock audit rows.
 - P2 export foundation has unit and feature coverage for filename/format validation, SQL export history rows, and graph-core-backed citation graph exports to Cytoscape JSON, GraphML, and GEXF.
 - P3 baseline release validation is implemented: Composer scripts, Composer metadata validation, PHPStan, Pint config, changed-file style checks, and a PHP/Laravel CI matrix are present.
+- 0.2.0 hardening adds host read API feature tests, provider fixture replay through a cassette-backed `HttpClientPort`, and architecture guards for shared model boundaries, unsafe corpus construction, provider live-network blockers, and runtime logs.
 
 ## Principles
 
@@ -23,7 +24,7 @@ Current repository state on 2026-05-20:
 - Keep domain tests fast and framework-free.
 - Keep application tests focused on orchestration through fake ports.
 - Keep Laravel feature tests around bindings, migrations, repositories, commands, jobs, and storage.
-- Keep provider integration tests VCR-backed. Do not use live network in CI.
+- Keep provider integration tests fixture-backed. Do not use live network in CI.
 - Every bug found through `nexus-cli` command output should produce a regression test in `core` when the behavior belongs to the package.
 - Test the behavior that should be stable, not incidental console formatting.
 
@@ -126,7 +127,8 @@ Targets:
 - IEEE.
 
 Rules:
-- Use PHP-VCR cassettes.
+- Use test-only cassette-backed `HttpClientPort` fixtures.
+- Do not use live-capable HTTP clients, PHP-VCR hooks, raw Guzzle clients, cURL, or stream-wrapper hooks in provider integration tests.
 - Do not record credentials in cassettes.
 - Use placeholder or test API keys only when a provider requires an API key.
 - Sanitize request headers and query params containing secrets.
@@ -332,7 +334,7 @@ Core package workflow:
 4. Run the Pest suite through `composer test`.
 5. Run static analysis through `composer analyse`.
 6. Run changed-file format checks.
-7. Keep provider integration tests on VCR/fake data only.
+7. Keep provider integration tests on cassette/fake data only.
 
 Provider integration rule:
 - CI must fail if a provider test attempts live network.
@@ -342,7 +344,7 @@ Future consumer workflow:
 - Checkout `nexus-cli`.
 - Install local/path or dev branch version of `core`.
 - Run `composer test`.
-- Run one search command smoke test using VCR/fake providers or a small local fixture.
+- Run one search command smoke test using fake providers or a small local fixture.
 
 ## Fixture Strategy
 

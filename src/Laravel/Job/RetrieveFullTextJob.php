@@ -16,7 +16,7 @@ use Nexus\Dissemination\Application\UseCase\RetrieveFullTextHandler;
 use Nexus\Laravel\Event\NexusJobCompleted;
 use Nexus\Laravel\Event\NexusJobFailed;
 use Nexus\Laravel\Event\NexusJobStarted;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Throwable;
 
 final class RetrieveFullTextJob implements ShouldQueue

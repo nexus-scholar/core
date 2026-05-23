@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\DB;
 use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Application\Aggregator\ProviderStat;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
-use Nexus\Search\Domain\CorpusSlice;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -24,7 +24,8 @@ it('passes selected providers from the CLI into the reusable search flow and per
         sourceProvider: 'openalex',
     );
 
-    app()->instance(SearchAggregatorPort::class, new class($received, $work) implements SearchAggregatorPort {
+    app()->instance(SearchAggregatorPort::class, new class($received, $work) implements SearchAggregatorPort
+    {
         public function __construct(private readonly object $received, private readonly ScholarlyWork $work) {}
 
         public function aggregate(SearchQuery $query): AggregatedResult
@@ -61,7 +62,8 @@ it('runs query files through the reusable YAML parser and honors filters', funct
     $project = PersistenceFactory::makeProject();
     $receivedTerms = [];
 
-    app()->instance(SearchAggregatorPort::class, new class($receivedTerms) implements SearchAggregatorPort {
+    app()->instance(SearchAggregatorPort::class, new class($receivedTerms) implements SearchAggregatorPort
+    {
         public function __construct(private array &$receivedTerms) {}
 
         public function aggregate(SearchQuery $query): AggregatedResult
@@ -77,7 +79,7 @@ it('runs query files through the reusable YAML parser and honors filters', funct
         }
     });
 
-    $fixture = realpath(__DIR__ . '/../../Fixture/search_plans/nexus_cli_v4_searches.yml');
+    $fixture = realpath(__DIR__.'/../../Fixture/search_plans/nexus_cli_v4_searches.yml');
 
     $this->artisan('nexus:search', [
         '--file' => $fixture,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\CitationNetwork\Domain\Port;
 
 use Nexus\CitationNetwork\Domain\SnowballDirection;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 interface SnowballingProviderPort
 {

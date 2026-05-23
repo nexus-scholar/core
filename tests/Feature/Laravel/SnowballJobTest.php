@@ -15,9 +15,9 @@ use Nexus\Laravel\Event\NexusJobFailed;
 use Nexus\Laravel\Event\NexusJobProgressed;
 use Nexus\Laravel\Event\NexusJobStarted;
 use Nexus\Laravel\Job\SnowballJob;
-use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Port\DeduplicationPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -64,7 +64,7 @@ it('resolves the snowballing handler from the container when handling the job', 
 
     app()->instance(SnowballCorpusHandler::class, new SnowballCorpusHandler(
         new SnowballingProviderCollection($provider),
-        new SnowballJobTestDeduplication(),
+        new SnowballJobTestDeduplication,
     ));
 
     $job = new SnowballJob(new SnowballCorpus(
@@ -140,7 +140,7 @@ it('dispatches a failed lifecycle event before rethrowing snowballing failures',
 
     app()->instance(SnowballCorpusHandler::class, new SnowballCorpusHandler(
         new SnowballingProviderCollection(new SnowballJobTestProvider('semantic_scholar')),
-        new SnowballJobTestDeduplication(),
+        new SnowballJobTestDeduplication,
     ));
 
     $job = new SnowballJob(new SnowballCorpus(
@@ -185,9 +185,7 @@ final class SnowballJobTestProvider implements SnowballingProviderPort
     /** @var list<string> */
     public array $fetchedSeeds = [];
 
-    public function __construct(private readonly string $alias)
-    {
-    }
+    public function __construct(private readonly string $alias) {}
 
     public function alias(): string
     {

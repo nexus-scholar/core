@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Domain\Port;
 
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 
 /**
  * Port for the deduplication bounded context.

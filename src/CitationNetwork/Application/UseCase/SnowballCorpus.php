@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\CitationNetwork\Application\UseCase;
 
 use InvalidArgumentException;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 
 final class SnowballCorpus
 {

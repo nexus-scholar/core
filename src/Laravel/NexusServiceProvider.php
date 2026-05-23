@@ -30,7 +30,9 @@ use Nexus\Dissemination\Application\UseCase\ExportNetworkHandler;
 use Nexus\Dissemination\Application\UseCase\RetrieveFullTextHandler;
 use Nexus\Dissemination\Domain\Port\CitationGraphSerializerCollection;
 use Nexus\Dissemination\Domain\Port\ExportHistoryPort;
+use Nexus\Dissemination\Domain\Port\ExportHistoryReaderPort;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
+use Nexus\Dissemination\Domain\Port\FullTextFetchReaderPort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\NetworkSerializerCollection;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
@@ -63,7 +65,10 @@ use Nexus\Laravel\Event\NexusJobProgressed;
 use Nexus\Laravel\Event\NexusJobStarted;
 use Nexus\Laravel\Listener\RecordNexusJobLifecycle;
 use Nexus\Laravel\Persistence\EloquentCorpusSnapshotRepository;
+use Nexus\Laravel\Persistence\EloquentExportHistoryReader;
 use Nexus\Laravel\Persistence\EloquentExportHistoryRecorder;
+use Nexus\Laravel\Persistence\EloquentFullTextFetchReader;
+use Nexus\Laravel\Persistence\EloquentJobLifecycleReader;
 use Nexus\Laravel\Persistence\EloquentJobLifecycleRecorder;
 use Nexus\Laravel\Persistence\EloquentPdfFetchRepository;
 use Nexus\Laravel\Persistence\EloquentProjectLock;
@@ -124,6 +129,7 @@ use Nexus\Search\Infrastructure\Provider\SemanticScholarAdapter;
 use Nexus\Search\Infrastructure\RateLimit\TokenBucketRateLimiter;
 use Nexus\Shared\Application\CorpusLockPolicy;
 use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
+use Nexus\Shared\Port\JobLifecycleReaderPort;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
 use Nexus\Shared\Port\ProjectCorpusWorksPort;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
@@ -166,6 +172,7 @@ final class NexusServiceProvider extends ServiceProvider
         });
         $this->app->singleton(TransactionPort::class, LaravelTransaction::class);
         $this->app->singleton(JobLifecycleRecorderPort::class, EloquentJobLifecycleRecorder::class);
+        $this->app->singleton(JobLifecycleReaderPort::class, EloquentJobLifecycleReader::class);
 
         $this->app->singleton(SearchCachePort::class, function ($app) {
             return new LaravelSearchCache($app['cache.store']);
@@ -401,6 +408,15 @@ final class NexusServiceProvider extends ServiceProvider
             ExportHistoryPort::class,
             EloquentExportHistoryRecorder::class
         );
+
+        $this->app->singleton(
+            ExportHistoryReaderPort::class,
+            EloquentExportHistoryReader::class
+        );
+
+        $this->app->singleton(FullTextFetchReaderPort::class, function ($app) {
+            return new EloquentFullTextFetchReader($app->make(ProjectCorpusWorksPort::class));
+        });
 
         $this->app->singleton(
             PdfFetchRepositoryPort::class,

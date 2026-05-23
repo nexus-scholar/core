@@ -10,9 +10,9 @@ use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\Port\RateLimiterPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Infrastructure\Provider\CrossrefAdapter;
 use Nexus\Search\Infrastructure\Provider\ProviderConfig;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -35,7 +35,7 @@ it('fetches referenced works from Crossref DOI metadata', function (): void {
             ],
         ],
     ]));
-    $rateLimiter = new CrossrefSnowballRateLimiter();
+    $rateLimiter = new CrossrefSnowballRateLimiter;
     $adapter = new CrossrefAdapter(
         $http,
         $rateLimiter,
@@ -68,10 +68,10 @@ it('fetches referenced works from Crossref DOI metadata', function (): void {
 });
 
 it('does not model Crossref public metadata as forward snowballing', function (): void {
-    $http = new CrossrefSnowballHttp();
+    $http = new CrossrefSnowballHttp;
     $adapter = new CrossrefAdapter(
         $http,
-        new CrossrefSnowballRateLimiter(),
+        new CrossrefSnowballRateLimiter,
         new ProviderConfig('crossref', 'https://api.crossref.org', 15.0),
     );
     $seed = crossrefSnowballTestWork(new WorkId(WorkIdNamespace::DOI, '10.1000/seed'));
@@ -82,10 +82,10 @@ it('does not model Crossref public metadata as forward snowballing', function ()
 });
 
 it('returns no Crossref references for seeds without DOI identifiers', function (): void {
-    $http = new CrossrefSnowballHttp();
+    $http = new CrossrefSnowballHttp;
     $adapter = new CrossrefAdapter(
         $http,
-        new CrossrefSnowballRateLimiter(),
+        new CrossrefSnowballRateLimiter,
         new ProviderConfig('crossref', 'https://api.crossref.org', 15.0),
     );
     $seed = ScholarlyWork::reconstitute(

@@ -14,7 +14,7 @@ use Nexus\Search\Application\Plan\SearchPlanItem;
 use Nexus\Search\Application\Plan\SearchPlanRunOptions;
 use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\UseCase\SearchAcrossProviders;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 
 it('is a queueable job that serializes only the search plan payload', function (): void {
     $job = new SearchJob(
@@ -53,7 +53,8 @@ it('resolves the search runner from the container when handling the job', functi
 
     $received = (object) ['command' => null];
 
-    app()->instance(SearchExecutorPort::class, new class($received) implements SearchExecutorPort {
+    app()->instance(SearchExecutorPort::class, new class($received) implements SearchExecutorPort
+    {
         public function __construct(private readonly object $received) {}
 
         public function handle(SearchAcrossProviders $command): AggregatedResult
@@ -110,7 +111,8 @@ it('resolves the search runner from the container when handling the job', functi
 it('dispatches a failed lifecycle event before rethrowing search job failures', function (): void {
     Event::fake([NexusJobStarted::class, NexusJobCompleted::class, NexusJobFailed::class]);
 
-    app()->instance(SearchExecutorPort::class, new class implements SearchExecutorPort {
+    app()->instance(SearchExecutorPort::class, new class implements SearchExecutorPort
+    {
         public function handle(SearchAcrossProviders $command): AggregatedResult
         {
             throw new RuntimeException('search failed');
