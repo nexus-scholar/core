@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
-use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -125,61 +123,6 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
         }
 
         return $collected;
-    }
-
-    /**
-     * Single-page async fetch. Supports up to ~1000 results per S2 bulk page.
-     * For maxResults > 1000, use the synchronous search() instead.
-     */
-    public function searchAsync(SearchQuery $query): PromiseInterface
-    {
-        $params = [
-            'query' => $this->toBulkQuery($query->term->value),
-            'fields' => self::FIELDS,
-        ];
-
-        if ($query->yearRange !== null) {
-            $from = $query->yearRange->from;
-            $to = $query->yearRange->to;
-
-            if ($from !== null && $to !== null) {
-                $params['year'] = "{$from}-{$to}";
-            } elseif ($from !== null) {
-                $params['year'] = "{$from}-";
-            } elseif ($to !== null) {
-                $params['year'] = "-{$to}";
-            }
-        }
-
-        $headers = [];
-
-        if ($this->config->apiKey !== null) {
-            $headers['x-api-key'] = $this->config->apiKey;
-        }
-
-        return $this->requestAsync(
-            "{$this->config->baseUrl}/graph/v1/paper/search/bulk",
-            $params,
-            $headers
-        )->then(function (HttpResponse $response) use ($query) {
-            if (! $response->ok()) {
-                return [];
-            }
-
-            $items = $this->extractItems($response->body);
-            $maxResults = $query->maxResults;
-            $collected = [];
-
-            foreach ($items as $raw) {
-                if (count($collected) >= $maxResults) {
-                    break;
-                }
-
-                $collected[] = $this->normalize($raw, $query);
-            }
-
-            return $collected;
-        });
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

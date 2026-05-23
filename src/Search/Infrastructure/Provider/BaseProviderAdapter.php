@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Port\AcademicProviderPort;
 use Nexus\Search\Domain\Port\HttpClientPort;
@@ -127,97 +126,6 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
      * OpenAlex uses 'results', arXiv uses entries from XML, etc.
      */
     abstract protected function extractItems(array $body): array;
-
-    /**
-     * Default implementation of searchAsync.
-     * Most adapters follow a simple request -> extract -> normalize pattern.
-     * Complex adapters (like PubMed) MUST override this.
-     */
-    public function searchAsync(SearchQuery $query): PromiseInterface
-    {
-        $params = $this->paginationParams($query);
-
-        return $this->requestAsync($this->config->baseUrl, $params)
-            ->then(function (HttpResponse $response) use ($query) {
-                if (! $response->ok()) {
-                    return [];
-                }
-
-                $items = $this->extractItems($response->body);
-
-                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
-            });
-    }
-
-    /**
-     * Async version of request.
-     * Delegates to a private helper for recursive retries without changing signature.
-     */
-    final protected function requestAsync(
-        string $url,
-        array $query = [],
-        array $headers = [],
-    ): PromiseInterface {
-        return $this->doRequestAsync($url, $query, $headers, 0, 1.0);
-    }
-
-    private function doRequestAsync(
-        string $url,
-        array $query,
-        array $headers,
-        int $attempt,
-        float $backoff
-    ): PromiseInterface {
-        if (! $this->rateLimiter->tryConsume()) {
-            $this->rateLimiter->waitForToken();
-        }
-
-        return $this->http->getAsync($url, $query, $headers, $this->config->timeoutSeconds)->then(
-            function (HttpResponse $response) use ($url, $query, $headers, $attempt, $backoff) {
-                if ($response->ok() && ! $response->rateLimited() && ! $response->serverError()) {
-                    return $response;
-                }
-
-                if ($response->statusCode >= 400 && $response->statusCode < 500 && ! $response->rateLimited()) {
-                    return $response;
-                }
-
-                $attempt++;
-                if ($attempt >= $this->config->maxRetries) {
-                    throw new ProviderUnavailable(
-                        $this->alias(),
-                        "HTTP {$response->statusCode} after {$attempt} async attempt(s)."
-                    );
-                }
-
-                $this->logger?->warning("Provider {$this->alias()} async retry {$attempt}", [
-                    'status' => $response->statusCode,
-                    'url' => $url,
-                ]);
-
-                $jitter = (random_int(0, 1000) / 1000.0);
-                ($this->sleeper ?? static fn (float $s) => usleep((int) ($s * 1_000_000)))($backoff + $jitter);
-
-                return $this->doRequestAsync($url, $query, $headers, $attempt, $backoff * 2);
-            },
-            function (\Throwable $e) use ($url, $query, $headers, $attempt, $backoff) {
-                $attempt++;
-                if ($attempt >= $this->config->maxRetries) {
-                    throw $e instanceof ProviderUnavailable ? $e : new ProviderUnavailable($this->alias(), $e->getMessage());
-                }
-
-                $this->logger?->warning("Provider {$this->alias()} async connection retry {$attempt}", [
-                    'error' => $e->getMessage(),
-                    'url' => $url,
-                ]);
-
-                $jitter = (random_int(0, 1000) / 1000.0);
-                ($this->sleeper ?? static fn (float $s) => usleep((int) ($s * 1_000_000)))($backoff + $jitter);
-
-                return $this->doRequestAsync($url, $query, $headers, $attempt, $backoff * 2);
-            }
-        );
-    }
 
     // ── Shared utilities ─────────────────────────────────────────────────────
 

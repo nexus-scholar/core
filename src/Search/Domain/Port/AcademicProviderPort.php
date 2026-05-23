@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Domain\Port;
 
-use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -33,12 +32,6 @@ interface AcademicProviderPort
      * @throws ProviderUnavailable on HTTP 5xx or connection failure after retries
      */
     public function search(SearchQuery $query): array;
-
-    /**
-     * Asynchronous search matching the query.
-     * Returns a promise that resolves to ScholarlyWork[].
-     */
-    public function searchAsync(SearchQuery $query): PromiseInterface;
 
     /**
      * Fetch a single work by known external identifier.

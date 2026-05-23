@@ -7,6 +7,7 @@ namespace Nexus\Dissemination\Application\UseCase;
 use DateTimeImmutable;
 use Nexus\Dissemination\Application\Dto\FullTextResult;
 use Nexus\Dissemination\Domain\FullTextArtifactType;
+use Nexus\Dissemination\Domain\Port\DownloadFileResult;
 use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
@@ -15,6 +16,8 @@ use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
+use Nexus\Dissemination\Domain\Port\StreamingFileStoragePort;
+use Nexus\Dissemination\Domain\Port\StreamingPdfDownloaderPort;
 use Nexus\Shared\Application\CorpusLockPolicy;
 use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\CorpusOperation;
@@ -76,6 +79,20 @@ final readonly class RetrieveFullTextHandler
 
                 if ($this->isInFailedAttemptCooldown($workId, $url, $command)) {
                     continue;
+                }
+
+                if ($this->shouldStreamPdf($candidate)) {
+                    $result = $this->retrieveStreamedPdf(
+                        $url,
+                        $command,
+                        $workId,
+                        $source->alias(),
+                        $candidate,
+                        $metadata,
+                    );
+                    $this->repository->save($workId, $url, $result, $this->elapsedMs($startTime));
+
+                    return $result;
                 }
 
                 $downloadResult = $this->downloadWithRetry($url, $command);
@@ -169,6 +186,74 @@ final readonly class RetrieveFullTextHandler
         throw $lastError ?? new RuntimeException('Failed to download full-text artifact.');
     }
 
+    private function downloadFileWithRetry(string $url, RetrieveFullText $command): DownloadFileResult
+    {
+        if (! $this->downloader instanceof StreamingPdfDownloaderPort) {
+            throw new RuntimeException('PDF downloader does not support streaming downloads.');
+        }
+
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $command->maxDownloadAttempts; $attempt++) {
+            try {
+                return $this->downloader->downloadToFile($url);
+            } catch (Throwable $error) {
+                $lastError = $error;
+            }
+        }
+
+        throw $lastError ?? new RuntimeException('Failed to download full-text artifact.');
+    }
+
+    private function shouldStreamPdf(FullTextSourceCandidate $candidate): bool
+    {
+        return $candidate->artifactType === FullTextArtifactType::PDF
+            && $this->downloader instanceof StreamingPdfDownloaderPort
+            && $this->storage instanceof StreamingFileStoragePort;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function retrieveStreamedPdf(
+        string $url,
+        RetrieveFullText $command,
+        WorkId $workId,
+        string $sourceAlias,
+        FullTextSourceCandidate $candidate,
+        array $metadata,
+    ): FullTextResult {
+        $downloadFile = $this->downloadFileWithRetry($url, $command);
+        $storage = $this->storage;
+
+        if (! $storage instanceof StreamingFileStoragePort) {
+            throw new RuntimeException('File storage does not support streaming writes.');
+        }
+
+        try {
+            $this->assertValidPdfFile($downloadFile, $command->maxBytes);
+
+            $fullPath = $this->storagePathFor($command, $workId, $sourceAlias, $candidate->artifactType);
+            $storedPath = $storage->storeFile($fullPath, $downloadFile->path);
+
+            $metadata['download_mode'] = 'stream';
+            if ($downloadFile->sizeBytes !== null) {
+                $metadata['download_size_bytes'] = $downloadFile->sizeBytes;
+            }
+
+            return FullTextResult::success(
+                $storedPath,
+                $sourceAlias,
+                $downloadFile->statusCode,
+                $metadata,
+            );
+        } finally {
+            if (is_file($downloadFile->path)) {
+                unlink($downloadFile->path);
+            }
+        }
+    }
+
     private function elapsedMs(float|int $startNs): int
     {
         return (int) round((hrtime(true) - $startNs) / 1_000_000);
@@ -253,6 +338,45 @@ final readonly class RetrieveFullTextHandler
             throw new RuntimeException(
                 sprintf('Downloaded content is not a PDF: unexpected content type "%s".', $downloadResult->contentType),
                 $downloadResult->statusCode,
+            );
+        }
+    }
+
+    private function assertValidPdfFile(DownloadFileResult $downloadFile, int $maxBytes): void
+    {
+        $size = $downloadFile->sizeBytes ?? filesize($downloadFile->path);
+        if ($size !== false && $size > $maxBytes) {
+            throw new RuntimeException(
+                sprintf('Downloaded PDF exceeds size limit of %d bytes.', $maxBytes),
+                $downloadFile->statusCode,
+            );
+        }
+
+        $handle = fopen($downloadFile->path, 'rb');
+        if ($handle === false) {
+            throw new RuntimeException('Downloaded PDF could not be opened for validation.', $downloadFile->statusCode);
+        }
+
+        try {
+            $signature = fread($handle, 5);
+        } finally {
+            fclose($handle);
+        }
+
+        if ($signature !== '%PDF-') {
+            throw new RuntimeException('Downloaded content is not a PDF: missing %PDF signature.', $downloadFile->statusCode);
+        }
+
+        if ($downloadFile->contentType === null || $downloadFile->contentType === '') {
+            return;
+        }
+
+        $mediaType = strtolower(trim(strtok($downloadFile->contentType, ';') ?: $downloadFile->contentType));
+
+        if (! in_array($mediaType, ['application/pdf', 'application/x-pdf', 'application/octet-stream'], true)) {
+            throw new RuntimeException(
+                sprintf('Downloaded content is not a PDF: unexpected content type "%s".', $downloadFile->contentType),
+                $downloadFile->statusCode,
             );
         }
     }

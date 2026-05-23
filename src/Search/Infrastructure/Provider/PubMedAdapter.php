@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nexus\Search\Infrastructure\Provider;
 
 use Closure;
-use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\RateLimiterPort;
 use Nexus\Search\Domain\SearchQuery;
@@ -126,59 +125,6 @@ final class PubMedAdapter extends BaseProviderAdapter
         }
 
         return $collected;
-    }
-
-    public function searchAsync(SearchQuery $query): PromiseInterface
-    {
-        $esearchParams = [
-            'db' => 'pubmed',
-            'term' => $this->buildSearchTerm($query),
-            'retmode' => 'xml',
-            'retmax' => min($query->maxResults, 10000),
-            'usehistory' => 'y',
-        ];
-
-        if ($this->config->apiKey !== null) {
-            $esearchParams['api_key'] = $this->config->apiKey;
-        }
-
-        return $this->requestAsync("{$this->config->baseUrl}/esearch.fcgi", $esearchParams)
-            ->then(function ($esearchResponse) use ($query) {
-                if (! $esearchResponse->ok() || $esearchResponse->rawBody === '') {
-                    return [];
-                }
-
-                $esearchResult = $this->parser->parseEsearchResponse($esearchResponse->rawBody);
-
-                if ($esearchResult === null || $esearchResult['count'] === 0) {
-                    return [];
-                }
-
-                $batchSize = min($esearchResult['count'], $query->maxResults, 200);
-                $efetchParams = [
-                    'db' => 'pubmed',
-                    'retmode' => 'xml',
-                    'retstart' => 0,
-                    'retmax' => $batchSize,
-                    'query_key' => $esearchResult['queryKey'],
-                    'WebEnv' => $esearchResult['webenv'],
-                ];
-
-                if ($this->config->apiKey !== null) {
-                    $efetchParams['api_key'] = $this->config->apiKey;
-                }
-
-                return $this->requestAsync("{$this->config->baseUrl}/efetch.fcgi", $efetchParams)
-                    ->then(function ($efetchResponse) use ($query) {
-                        if (! $efetchResponse->ok() || $efetchResponse->rawBody === '') {
-                            return [];
-                        }
-
-                        $articles = $this->parser->parseEfetchResponse($efetchResponse->rawBody, $query);
-
-                        return array_slice($articles, 0, $query->maxResults);
-                    });
-            });
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

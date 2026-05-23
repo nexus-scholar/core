@@ -268,7 +268,7 @@ No other blockers exist.
 │  ┌───────────────────────────────────────────────────────────────┐   │
 │  │  nexus-scholar/core                                           │   │
 │  │                                                               │   │
-│  │  ✅ Search Module        — 7 providers, async fan-out         │   │
+│  │  ✅ Search Module        — 7 providers, provider selection    │   │
 │  │  ✅ Deduplication        — Union-Find, namespace policies     │   │
 │  │  🔲 Persistence Layer    — 15 migrations (build next)         │   │
 │  │  🔲 Citation Network     — CitationGraph, SnowballRound       │   │

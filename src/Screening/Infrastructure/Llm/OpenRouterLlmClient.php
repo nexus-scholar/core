@@ -12,6 +12,9 @@ use Nexus\Screening\Application\Port\LlmClientPort;
 
 final readonly class OpenRouterLlmClient implements LlmClientPort
 {
+    /** @var \Closure(int): void */
+    private \Closure $sleeper;
+
     public function __construct(
         private ClientInterface $http,
         private string $apiKey,
@@ -19,16 +22,41 @@ final readonly class OpenRouterLlmClient implements LlmClientPort
         private int $timeoutSeconds = 45,
         private ?string $referer = null,
         private ?string $appName = 'Nexus Scholar',
+        private int $maxRetries = 1,
+        private int $initialRetryDelayMs = 500,
+        ?\Closure $sleeper = null,
     ) {
         if (trim($apiKey) === '') {
             throw new LlmClientException('OpenRouter API key is required.', 'openrouter');
         }
+
+        $this->sleeper = $sleeper ?? static function (int $milliseconds): void {
+            usleep($milliseconds * 1000);
+        };
     }
 
     public function completeJson(LlmRequest $request): LlmResponse
     {
         $startedAt = hrtime(true);
+        $attempts = max(1, $this->maxRetries);
 
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            try {
+                return $this->completeJsonOnce($request, $startedAt);
+            } catch (LlmClientException $error) {
+                if ($attempt >= $attempts || ! $this->isRetryable($error)) {
+                    throw $error;
+                }
+
+                ($this->sleeper)($this->retryDelayMs($attempt));
+            }
+        }
+
+        throw new LlmClientException('OpenRouter request failed.', 'openrouter', $request->model);
+    }
+
+    private function completeJsonOnce(LlmRequest $request, float|int $startedAt): LlmResponse
+    {
         try {
             $response = $this->http->request(
                 'POST',
@@ -49,9 +77,9 @@ final readonly class OpenRouterLlmClient implements LlmClientPort
             );
         }
 
-        $rawBody = (string) $response->getBody();
-        $body = $this->decodeBody($rawBody, $request);
         $statusCode = $response->getStatusCode();
+        $rawBody = (string) $response->getBody();
+        $body = $this->decodeBody($rawBody, $request, $statusCode);
 
         if ($statusCode < 200 || $statusCode >= 300 || isset($body['error'])) {
             throw new LlmClientException(
@@ -72,6 +100,27 @@ final readonly class OpenRouterLlmClient implements LlmClientPort
             usage: is_array($body['usage'] ?? null) ? $body['usage'] : [],
             latencyMs: (int) round((hrtime(true) - $startedAt) / 1_000_000),
         );
+    }
+
+    private function isRetryable(LlmClientException $error): bool
+    {
+        if ($error->statusCode === null) {
+            return true;
+        }
+
+        return $error->statusCode === 408
+            || $error->statusCode === 429
+            || ($error->statusCode >= 500 && $error->statusCode < 600);
+    }
+
+    private function retryDelayMs(int $attempt): int
+    {
+        $base = max(0, $this->initialRetryDelayMs);
+        if ($base === 0) {
+            return 0;
+        }
+
+        return $base * (2 ** max(0, $attempt - 1));
     }
 
     /**
@@ -122,16 +171,16 @@ final readonly class OpenRouterLlmClient implements LlmClientPort
     /**
      * @return array<string, mixed>
      */
-    private function decodeBody(string $rawBody, LlmRequest $request): array
+    private function decodeBody(string $rawBody, LlmRequest $request, int $statusCode): array
     {
         if (trim($rawBody) === '') {
-            throw new LlmClientException('OpenRouter returned an empty response body.', 'openrouter', $request->model);
+            throw new LlmClientException('OpenRouter returned an empty response body.', 'openrouter', $request->model, $statusCode);
         }
 
         $decoded = json_decode($rawBody, true);
 
         if (! is_array($decoded)) {
-            throw new LlmClientException('OpenRouter returned a non-JSON response body.', 'openrouter', $request->model);
+            throw new LlmClientException('OpenRouter returned a non-JSON response body.', 'openrouter', $request->model, $statusCode);
         }
 
         return $decoded;

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
-use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -49,22 +47,6 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
         $items = $this->extractItems($response->body);
 
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
-    }
-
-    public function searchAsync(SearchQuery $query): PromiseInterface
-    {
-        $params = $this->prepareSearchParams($query);
-
-        return $this->requestAsync("{$this->config->baseUrl}/works", $params)
-            ->then(function (HttpResponse $response) use ($query) {
-                if (! $response->ok()) {
-                    return [];
-                }
-
-                $items = $this->extractItems($response->body);
-
-                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
-            });
     }
 
     private function prepareSearchParams(SearchQuery $query): array

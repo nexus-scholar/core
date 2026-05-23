@@ -10,6 +10,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
+use Psr\Http\Message\ResponseInterface;
 
 final class GuzzleHttpClient implements HttpClientPort
 {
@@ -24,10 +25,10 @@ final class GuzzleHttpClient implements HttpClientPort
     public static function create(int $timeoutSeconds = 30): self
     {
         $caPath = CaBundle::getSystemCaRootBundlePath();
-        
+
         $client = new Client([
             'timeout' => $timeoutSeconds,
-            'verify'  => $caPath !== '' ? $caPath : true,
+            'verify' => $caPath !== '' ? $caPath : true,
         ]);
 
         return new self($client);
@@ -39,32 +40,15 @@ final class GuzzleHttpClient implements HttpClientPort
 
         try {
             $guzzleResponse = $this->guzzle->get($url, $options);
-            
+
             return $this->mapResponse($guzzleResponse);
         } catch (GuzzleException $e) {
             throw new ProviderUnavailable(
                 providerAlias: 'http',
-                reason:        $e->getMessage(),
-                previous:      $e,
+                reason: $e->getMessage(),
+                previous: $e,
             );
         }
-    }
-
-    public function getAsync(string $url, array $query = [], array $headers = [], ?int $timeoutSeconds = null): \GuzzleHttp\Promise\PromiseInterface
-    {
-        $options = $this->prepareOptions($query, $headers, $timeoutSeconds);
-
-        return $this->guzzle->getAsync($url, $options)
-            ->then(
-                fn ($response) => $this->mapResponse($response),
-                function (GuzzleException $e) {
-                    throw new ProviderUnavailable(
-                        providerAlias: 'http',
-                        reason:        $e->getMessage(),
-                        previous:      $e,
-                    );
-                }
-            );
     }
 
     private function prepareOptions(array $query, array $headers, ?int $timeoutSeconds): array
@@ -86,9 +70,9 @@ final class GuzzleHttpClient implements HttpClientPort
         return $options;
     }
 
-    private function mapResponse(\Psr\Http\Message\ResponseInterface $guzzleResponse): HttpResponse
+    private function mapResponse(ResponseInterface $guzzleResponse): HttpResponse
     {
-        $rawBody    = (string) $guzzleResponse->getBody();
+        $rawBody = (string) $guzzleResponse->getBody();
         $statusCode = $guzzleResponse->getStatusCode();
 
         // Attempt JSON decode; fall back to empty array for non-JSON bodies
@@ -110,9 +94,9 @@ final class GuzzleHttpClient implements HttpClientPort
 
         return new HttpResponse(
             statusCode: $statusCode,
-            body:       $body ?? [],
-            rawBody:    $rawBody,
-            headers:    $responseHeaders,
+            body: $body ?? [],
+            rawBody: $rawBody,
+            headers: $responseHeaders,
         );
     }
 }

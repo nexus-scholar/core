@@ -143,6 +143,8 @@ NEXUS_LLM_SCREENING_MODEL=openai/gpt-4.1-mini
 NEXUS_LLM_SCREENING_COUNCIL_MODELS=openai/gpt-4.1-mini,google/gemini-2.5-flash,mistralai/mistral-small-2603
 NEXUS_LLM_SCREENING_TEMPERATURE=0
 NEXUS_LLM_SCREENING_MAX_TOKENS=600
+NEXUS_LLM_SCREENING_MAX_RETRIES=2
+NEXUS_LLM_SCREENING_RETRY_INITIAL_DELAY_MS=500
 ```
 
 Rationale:
@@ -167,6 +169,8 @@ Council screening should be configurable:
         'temperature' => env('NEXUS_LLM_SCREENING_TEMPERATURE', 0),
         'max_tokens' => env('NEXUS_LLM_SCREENING_MAX_TOKENS', 600),
         'timeout' => env('NEXUS_LLM_SCREENING_TIMEOUT', 45),
+        'max_retries' => env('NEXUS_LLM_SCREENING_MAX_RETRIES', 2),
+        'retry_initial_delay_ms' => env('NEXUS_LLM_SCREENING_RETRY_INITIAL_DELAY_MS', 500),
         'store_prompts' => env('NEXUS_LLM_SCREENING_STORE_PROMPTS', false),
         'store_raw_responses' => env('NEXUS_LLM_SCREENING_STORE_RAW_RESPONSES', false),
 
