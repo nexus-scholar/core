@@ -7,6 +7,7 @@ namespace Nexus\Shared\Domain;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
 use Nexus\Shared\ValueObject\WorkId;
+use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 
 /**
@@ -18,47 +19,47 @@ use Nexus\Shared\ValueObject\WorkIdSet;
 final class ScholarlyWork
 {
     private function __construct(
-        private WorkIdSet          $ids,
-        private string             $title,
-        private AuthorList         $authors,
-        private ?int               $year,
-        private ?Venue             $venue,
-        private ?string            $abstract,
-        private ?int               $citedByCount,
-        private bool               $isRetracted,
-        private string             $sourceProvider,
+        private WorkIdSet $ids,
+        private string $title,
+        private AuthorList $authors,
+        private ?int $year,
+        private ?Venue $venue,
+        private ?string $abstract,
+        private ?int $citedByCount,
+        private bool $isRetracted,
+        private string $sourceProvider,
         private \DateTimeImmutable $retrievedAt,
-        private ?array             $rawData,
+        private ?array $rawData,
     ) {}
 
     public static function reconstitute(
-        WorkIdSet   $ids,
-        string      $title,
-        string      $sourceProvider,
-        ?int        $year         = null,
-        ?AuthorList $authors      = null,
-        ?Venue      $venue        = null,
-        ?string     $abstract     = null,
-        ?int        $citedByCount = null,
-        bool        $isRetracted  = false,
-        ?array      $rawData      = null,
+        WorkIdSet $ids,
+        string $title,
+        string $sourceProvider,
+        ?int $year = null,
+        ?AuthorList $authors = null,
+        ?Venue $venue = null,
+        ?string $abstract = null,
+        ?int $citedByCount = null,
+        bool $isRetracted = false,
+        ?array $rawData = null,
     ): self {
         if (trim($title) === '') {
             throw new \InvalidArgumentException('ScholarlyWork title must not be empty.');
         }
 
         return new self(
-            ids:            $ids,
-            title:          $title,
-            authors:        $authors ?? AuthorList::empty(),
-            year:           $year,
-            venue:          $venue,
-            abstract:       $abstract,
-            citedByCount:   $citedByCount,
-            isRetracted:    $isRetracted,
+            ids: $ids,
+            title: $title,
+            authors: $authors ?? AuthorList::empty(),
+            year: $year,
+            venue: $venue,
+            abstract: $abstract,
+            citedByCount: $citedByCount,
+            isRetracted: $isRetracted,
             sourceProvider: $sourceProvider,
-            retrievedAt:    new \DateTimeImmutable(),
-            rawData:        $rawData,  // null unless explicitly passed
+            retrievedAt: new \DateTimeImmutable,
+            rawData: $rawData,  // null unless explicitly passed
         );
     }
 
@@ -143,10 +144,10 @@ final class ScholarlyWork
     public function mergeWith(ScholarlyWork $other): self
     {
         $merged = clone $this;
-        $merged->ids      = $this->ids->merge($other->ids);
-        $merged->authors  = $this->authors->isEmpty() ? $other->authors : $this->authors;
-        $merged->year     = $this->year     ?? $other->year;
-        $merged->venue    = $this->venue    ?? $other->venue;
+        $merged->ids = $this->ids->merge($other->ids);
+        $merged->authors = $this->authors->isEmpty() ? $other->authors : $this->authors;
+        $merged->year = $this->year ?? $other->year;
+        $merged->venue = $this->venue ?? $other->venue;
         $merged->abstract = $this->abstract ?? $other->abstract;
         $merged->citedByCount = max($this->citedByCount ?? 0, $other->citedByCount ?? 0);
         if ($merged->citedByCount === 0 && $this->citedByCount === null && $other->citedByCount === null) {
@@ -199,7 +200,7 @@ final class ScholarlyWork
     {
         $score = 0;
 
-        if ($this->ids->findByNamespace(\Nexus\Shared\ValueObject\WorkIdNamespace::DOI) !== null) {
+        if ($this->ids->findByNamespace(WorkIdNamespace::DOI) !== null) {
             $score += 2;
         }
 

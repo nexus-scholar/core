@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nexus\Shared\Domain;
 
+use Nexus\Shared\ValueObject\WorkId;
+
 /**
  * Aggregate root for a set of scholarly works retrieved by a search.
  * addWork() merges instead of duplicating when isSameWorkAs() returns true.
@@ -70,7 +72,7 @@ final class CorpusSlice
         $new = new self(CorpusSliceId::generate());
         $new->works = $this->works;
         $new->addWork($work);
-        
+
         return $new;
     }
 
@@ -85,7 +87,7 @@ final class CorpusSlice
         return false;
     }
 
-    public function findById(\Nexus\Shared\ValueObject\WorkId $id): ?ScholarlyWork
+    public function findById(WorkId $id): ?ScholarlyWork
     {
         $target = $id->toString();
 
