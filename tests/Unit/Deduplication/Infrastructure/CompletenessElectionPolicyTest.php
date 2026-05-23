@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Deduplication\Infrastructure;
 
 use Nexus\Deduplication\Infrastructure\CompletenessElectionPolicy;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -80,6 +80,6 @@ it('uses_earlier_retrieval_time_as_second_tie_breaker', function (): void {
 });
 
 it('throws_exception_on_empty_member_list', function (): void {
-    $policy = new CompletenessElectionPolicy();
-    expect(fn() => $policy->elect([]))->toThrow(\InvalidArgumentException::class);
+    $policy = new CompletenessElectionPolicy;
+    expect(fn () => $policy->elect([]))->toThrow(\InvalidArgumentException::class);
 });

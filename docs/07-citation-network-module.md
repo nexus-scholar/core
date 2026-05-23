@@ -22,7 +22,8 @@ Aggregate root containing:
 - optional metrics snapshot
 
 Invariant:
-- an edge cannot be recorded unless the relevant nodes exist in the graph
+- an edge cannot be recorded unless the citing work exists in the graph
+- the cited work may be external and not yet loaded as a graph node, preserving outbound reference evidence without forcing every cited reference into the project corpus
 
 ### CitationLink
 Directed edge from citing work to cited work.

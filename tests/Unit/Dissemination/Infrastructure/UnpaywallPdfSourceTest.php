@@ -6,7 +6,7 @@ use Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig;
 use Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient;
 use Nexus\Dissemination\Infrastructure\PdfSource\UnpaywallPdfSource;
 use Nexus\Search\Domain\Port\HttpResponse;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -27,7 +27,7 @@ function unpaywallSource(FakeHttpClient $http, ?SpyRateLimiter $limiter = null, 
     return new UnpaywallPdfSource(
         new OaHttpClient(
             $http,
-            $limiter ?? new SpyRateLimiter(),
+            $limiter ?? new SpyRateLimiter,
             FullTextSourceConfig::fromArray(
                 'unpaywall',
                 'https://api.unpaywall.org/v2',
@@ -50,7 +50,7 @@ it('resolves a DOI to the best Unpaywall PDF URL and preserves OA metadata', fun
             'url_for_landing_page' => 'https://repository.example/paper',
         ],
     ]));
-    $limiter = new SpyRateLimiter();
+    $limiter = new SpyRateLimiter;
 
     $candidate = unpaywallSource($http, $limiter)->resolveCandidate(unpaywallWork());
 
@@ -116,4 +116,3 @@ it('rejects missing Unpaywall email without making HTTP calls', function (): voi
         ->and($source->resolveCandidate(unpaywallWork()))->toBeNull()
         ->and($http->calls)->toBe([]);
 });
-

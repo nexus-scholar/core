@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
 use Nexus\CitationNetwork\Domain\Exception\WorkNotInGraph;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -40,6 +40,19 @@ it('throws when recording an edge from a work that is not in the graph', functio
     $target = new WorkId(WorkIdNamespace::DOI, '10.1000/target');
 
     expect(fn () => $graph->recordCitation($missing, $target))->toThrow(WorkNotInGraph::class);
+});
+
+it('allows citations to external works that are not graph nodes', function (): void {
+    $source = citationGraphDomainTestWork(new WorkId(WorkIdNamespace::DOI, '10.1000/source'), 'Source');
+    $externalTarget = new WorkId(WorkIdNamespace::DOI, '10.1000/external-target');
+    $graph = CitationGraph::create(CitationGraphType::CITATION, 'project-1');
+
+    $graph->addWork($source);
+    $graph->recordCitation($source->primaryId(), $externalTarget);
+
+    expect($graph->edgeCount())->toBe(1)
+        ->and($graph->allEdges()[0]->cited->equals($externalTarget))->toBeTrue()
+        ->and($graph->hasWork($externalTarget))->toBeFalse();
 });
 
 it('deduplicates edges by namespace and normalized value', function (): void {

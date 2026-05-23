@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
 use Nexus\Shared\ValueObject\WorkId;
@@ -39,7 +39,7 @@ it('computes citation network metrics through graph packages', function (): void
     $graph->recordCitation($workA->primaryId(), $workB->primaryId());
     $graph->recordCitation($workC->primaryId(), $workB->primaryId());
 
-    $metrics = (new MbsoftNetworkMetricsCalculator())->compute($graph);
+    $metrics = (new MbsoftNetworkMetricsCalculator)->compute($graph);
     $a = $workA->primaryId();
     $b = $workB->primaryId();
     $c = $workC->primaryId();
@@ -70,7 +70,7 @@ it('finds directed shortest citation paths through graph packages', function ():
     $graph->recordCitation($workA->primaryId(), $workB->primaryId());
     $graph->recordCitation($workB->primaryId(), $workC->primaryId());
 
-    $calculator = new MbsoftNetworkMetricsCalculator();
+    $calculator = new MbsoftNetworkMetricsCalculator;
     $path = $calculator->shortestPath($graph, $workA->primaryId(), $workC->primaryId());
 
     expect($path)->not->toBeNull()

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftCitationGraphMapper;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
 use Nexus\Shared\ValueObject\WorkId;
@@ -35,7 +35,7 @@ it('maps citation graphs to directed mbsoft graphs with attributes and weights',
     $graph->addWork($target);
     $graph->recordCitation($source->primaryId(), $target->primaryId(), 2.5);
 
-    $mapped = (new MbsoftCitationGraphMapper())->toGraph($graph);
+    $mapped = (new MbsoftCitationGraphMapper)->toGraph($graph);
     $sourceId = $source->primaryId()->toString();
     $targetId = $target->primaryId()->toString();
 
@@ -58,7 +58,7 @@ it('maps non-citation graph types to undirected mbsoft graphs', function (): voi
     $graph->addWork($right);
     $graph->recordCitation($left->primaryId(), $right->primaryId(), 3.0);
 
-    $mapped = (new MbsoftCitationGraphMapper())->toGraph($graph);
+    $mapped = (new MbsoftCitationGraphMapper)->toGraph($graph);
     $leftId = $left->primaryId()->toString();
     $rightId = $right->primaryId()->toString();
 
@@ -76,7 +76,7 @@ it('keeps externally referenced works as explicit external nodes', function (): 
     $graph->addWork($source);
     $graph->recordCitation($source->primaryId(), $externalId);
 
-    $mapped = (new MbsoftCitationGraphMapper())->toGraph($graph);
+    $mapped = (new MbsoftCitationGraphMapper)->toGraph($graph);
 
     expect($mapped->hasNode($externalId->toString()))->toBeTrue()
         ->and($mapped->nodeAttrs($externalId->toString())['external'])->toBeTrue()

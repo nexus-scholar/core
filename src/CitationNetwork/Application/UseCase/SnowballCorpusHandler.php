@@ -7,10 +7,10 @@ namespace Nexus\CitationNetwork\Application\UseCase;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderCollection;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
-use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\Port\DeduplicationPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\CorpusOperation;
 use Throwable;
 

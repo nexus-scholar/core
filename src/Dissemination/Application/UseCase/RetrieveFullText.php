@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Dissemination\Application\UseCase;
 
 use InvalidArgumentException;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final readonly class RetrieveFullText
 {

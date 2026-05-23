@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\OrcidId;
@@ -30,8 +30,8 @@ final class PubMedXmlParser
             return null;
         }
 
-        $count    = (int) ((string) ($root->Count ?? '0'));
-        $webenv   = (string) ($root->WebEnv ?? '');
+        $count = (int) ((string) ($root->Count ?? '0'));
+        $webenv = (string) ($root->WebEnv ?? '');
         $queryKey = (string) ($root->QueryKey ?? '');
 
         $ids = [];
@@ -42,9 +42,9 @@ final class PubMedXmlParser
         }
 
         return [
-            'count'    => $count,
-            'ids'      => $ids,
-            'webenv'   => $webenv,
+            'count' => $count,
+            'ids' => $ids,
+            'webenv' => $webenv,
             'queryKey' => $queryKey,
         ];
     }
@@ -77,7 +77,7 @@ final class PubMedXmlParser
     private function normalizeXmlArticle(\SimpleXMLElement $node, SearchQuery $query): ?ScholarlyWork
     {
         $medlineCitation = $node->MedlineCitation ?? null;
-        $article         = $medlineCitation?->Article ?? null;
+        $article = $medlineCitation?->Article ?? null;
 
         if ($article === null) {
             return null;
@@ -88,7 +88,7 @@ final class PubMedXmlParser
             return null;
         }
 
-        $ids  = WorkIdSet::empty();
+        $ids = WorkIdSet::empty();
         $pmid = (string) ($medlineCitation->PMID ?? '');
         if ($pmid !== '') {
             $ids = $ids->add(new WorkId(WorkIdNamespace::PUBMED, $pmid));
@@ -100,10 +100,10 @@ final class PubMedXmlParser
         }
 
         $abstract = $this->extractAbstract($article);
-        $authors  = $this->extractAuthors($article);
-        $year     = $this->extractYear($article);
+        $authors = $this->extractAuthors($article);
+        $year = $this->extractYear($article);
 
-        $venue     = null;
+        $venue = null;
         $venueName = (string) ($article->Journal?->Title ?? '');
         if ($venueName !== '') {
             $issn = (string) ($article->Journal?->ISSN ?? '');
@@ -115,14 +115,14 @@ final class PubMedXmlParser
         }
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $title,
+            ids: $ids,
+            title: $title,
             sourceProvider: 'pubmed',
-            year:           $year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            abstract:       $abstract,
-            rawData:        $query->includeRawData ? $this->xmlNodeToArray($node) : null,
+            year: $year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            abstract: $abstract,
+            rawData: $query->includeRawData ? $this->xmlNodeToArray($node) : null,
         );
     }
 
@@ -131,7 +131,9 @@ final class PubMedXmlParser
         foreach ($article->ELocationID ?? [] as $eloc) {
             if ((string) ($eloc['EIdType'] ?? '') === 'doi') {
                 $doiText = (string) $eloc;
-                if ($doiText !== '') return $doiText;
+                if ($doiText !== '') {
+                    return $doiText;
+                }
             }
         }
 
@@ -140,7 +142,9 @@ final class PubMedXmlParser
             foreach ($articleIds->ArticleId as $aid) {
                 if ((string) ($aid['IdType'] ?? '') === 'doi') {
                     $doiText = (string) $aid;
-                    if ($doiText !== '') return $doiText;
+                    if ($doiText !== '') {
+                        return $doiText;
+                    }
                 }
             }
         }
@@ -151,13 +155,18 @@ final class PubMedXmlParser
     private function extractAbstract(\SimpleXMLElement $article): ?string
     {
         $abstractElem = $article->Abstract ?? null;
-        if ($abstractElem === null) return null;
+        if ($abstractElem === null) {
+            return null;
+        }
         $parts = [];
         foreach ($abstractElem->AbstractText ?? [] as $text) {
             $content = (string) $text;
-            if ($content !== '') $parts[] = $content;
+            if ($content !== '') {
+                $parts[] = $content;
+            }
         }
         $full = implode(' ', $parts);
+
         return $full !== '' ? $full : null;
     }
 
@@ -167,12 +176,16 @@ final class PubMedXmlParser
     private function extractAuthors(\SimpleXMLElement $article): array
     {
         $authorList = $article->AuthorList ?? null;
-        if ($authorList === null) return [];
+        if ($authorList === null) {
+            return [];
+        }
         $authors = [];
         foreach ($authorList->Author as $au) {
             $last = (string) ($au->LastName ?? '');
             $fore = (string) ($au->ForeName ?? '');
-            if ($last === '') continue;
+            if ($last === '') {
+                continue;
+            }
             $orcid = null;
             foreach ($au->Identifier ?? [] as $idNode) {
                 $source = (string) ($idNode['Source'] ?? '');
@@ -183,34 +196,46 @@ final class PubMedXmlParser
                             $orcidText = explode('orcid.org/', $orcidText)[1] ?? '';
                         }
                         if ($orcidText !== '') {
-                            try { $orcid = new OrcidId($orcidText); } catch (\InvalidArgumentException) {}
+                            try {
+                                $orcid = new OrcidId($orcidText);
+                            } catch (\InvalidArgumentException) {
+                            }
                         }
                     }
                 }
             }
             $authors[] = new Author(familyName: $last, givenName: $fore !== '' ? $fore : null, orcid: $orcid);
         }
+
         return $authors;
     }
 
     private function extractYear(\SimpleXMLElement $article): ?int
     {
         $pubDate = $article->Journal?->JournalIssue?->PubDate ?? null;
-        if ($pubDate === null) return null;
+        if ($pubDate === null) {
+            return null;
+        }
         $yearText = (string) ($pubDate->Year ?? '');
-        if ($yearText !== '') return (int) $yearText;
+        if ($yearText !== '') {
+            return (int) $yearText;
+        }
         $medlineDate = (string) ($pubDate->MedlineDate ?? '');
         if ($medlineDate !== '' && preg_match('/\d{4}/', $medlineDate, $matches)) {
             return (int) $matches[0];
         }
+
         return null;
     }
 
     private function xmlNodeToArray(\SimpleXMLElement $node): array
     {
         $json = json_encode($node);
-        if ($json === false) return [];
+        if ($json === false) {
+            return [];
+        }
         $result = json_decode($json, true);
+
         return is_array($result) ? $result : [];
     }
 }

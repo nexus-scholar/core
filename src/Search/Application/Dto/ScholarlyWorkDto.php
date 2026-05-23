@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Application\Dto;
 
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
+use Nexus\Shared\ValueObject\OrcidId;
 use Nexus\Shared\ValueObject\Venue;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
@@ -55,7 +56,7 @@ final class ScholarlyWorkDto
         $authors = array_map(fn (array $au) => new Author(
             familyName: $au['family'],
             givenName: $au['given'],
-            orcid: isset($au['orcid']) ? new \Nexus\Shared\ValueObject\OrcidId($au['orcid']) : null
+            orcid: isset($au['orcid']) ? new OrcidId($au['orcid']) : null
         ), $data['authors']);
 
         $venue = $data['venue'] ? new Venue(

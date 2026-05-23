@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nexus\Dissemination\Infrastructure\PdfSource;
 
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 final class WorkIdentifierExtractor
@@ -108,19 +108,19 @@ final class WorkIdentifierExtractor
         }
 
         if (preg_match('/PMC\s*([0-9]+)/i', $candidate, $matches) === 1) {
-            return 'PMC' . $matches[1];
+            return 'PMC'.$matches[1];
         }
 
         if (ctype_digit($candidate)) {
-            return 'PMC' . $candidate;
+            return 'PMC'.$candidate;
         }
 
         return null;
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param list<list<string>> $paths
+     * @param  array<string, mixed>  $data
+     * @param  list<list<string>>  $paths
      */
     private static function firstString(array $data, array $paths): mixed
     {
@@ -136,8 +136,8 @@ final class WorkIdentifierExtractor
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param list<string> $path
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $path
      */
     private static function valueAt(array $data, array $path): mixed
     {
@@ -154,4 +154,3 @@ final class WorkIdentifierExtractor
         return $value;
     }
 }
-

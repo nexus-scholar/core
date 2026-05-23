@@ -6,7 +6,7 @@ namespace Nexus\Dissemination\Infrastructure\PdfSource;
 
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
 use Nexus\Dissemination\Domain\Port\FullTextSourceCandidate;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final readonly class UnpaywallPdfSource implements FullTextCandidateSourcePort
 {
@@ -28,7 +28,7 @@ final readonly class UnpaywallPdfSource implements FullTextCandidateSourcePort
 
         $config = $this->client->config();
         $response = $this->client->get(
-            rtrim($config->baseUrl, '/') . '/' . rawurlencode($doi),
+            rtrim($config->baseUrl, '/').'/'.rawurlencode($doi),
             ['email' => $config->email],
             ['Accept' => 'application/json'],
         );
@@ -74,7 +74,7 @@ final readonly class UnpaywallPdfSource implements FullTextCandidateSourcePort
     }
 
     /**
-     * @param array<string, mixed> $body
+     * @param  array<string, mixed>  $body
      * @return list<array<string, mixed>>
      */
     private function pdfLocations(array $body): array
@@ -97,8 +97,8 @@ final readonly class UnpaywallPdfSource implements FullTextCandidateSourcePort
     }
 
     /**
-     * @param array<string, mixed> $body
-     * @param array<string, mixed> $location
+     * @param  array<string, mixed>  $body
+     * @param  array<string, mixed>  $location
      * @return array<string, mixed>
      */
     private function metadata(string $doi, array $body, array $location): array
@@ -133,4 +133,3 @@ final readonly class UnpaywallPdfSource implements FullTextCandidateSourcePort
         return in_array($scheme, ['http', 'https'], true) ? $url : null;
     }
 }
-

@@ -7,7 +7,7 @@ use Nexus\Dissemination\Infrastructure\PdfSource\EuropePmcFullTextSource;
 use Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig;
 use Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient;
 use Nexus\Search\Domain\Port\HttpResponse;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -33,7 +33,7 @@ function europePmcSource(
     return new EuropePmcFullTextSource(
         new OaHttpClient(
             $http,
-            $limiter ?? new SpyRateLimiter(),
+            $limiter ?? new SpyRateLimiter,
             FullTextSourceConfig::fromArray(
                 'europe_pmc',
                 'https://www.ebi.ac.uk/europepmc/webservices/rest',
@@ -66,7 +66,7 @@ it('resolves Europe PMC open PDF links from a core search response', function ()
             ]],
         ],
     ]));
-    $limiter = new SpyRateLimiter();
+    $limiter = new SpyRateLimiter;
 
     $candidate = europePmcSource($http, $limiter)->resolveCandidate(europePmcWork());
 
@@ -128,4 +128,3 @@ it('skips Europe PMC results without open full-text links or XML signals', funct
 
     expect($source->resolveCandidate(europePmcWork()))->toBeNull();
 });
-

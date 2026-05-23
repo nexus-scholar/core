@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -26,7 +26,7 @@ it('builds direct citation graphs from provider reference ids', function (): voi
     $workB = citationBuilderTestWork('10.1000/b', 'B', [new WorkId(WorkIdNamespace::OPENALEX, 'W-B')]);
     $workC = citationBuilderTestWork('10.1000/c', 'C');
 
-    $graph = (new CitationGraphBuilder())->buildDirectCitationGraph(
+    $graph = (new CitationGraphBuilder)->buildDirectCitationGraph(
         'project-1',
         [$workA, $workB, $workC],
         [
@@ -55,7 +55,7 @@ it('builds co-citation graphs with inverted indexes from reference lists', funct
     $workB = citationBuilderTestWork('10.1000/b', 'B');
     $workC = citationBuilderTestWork('10.1000/c', 'C');
 
-    $graph = (new CitationGraphBuilder())->buildCoCitationGraph(
+    $graph = (new CitationGraphBuilder)->buildCoCitationGraph(
         'project-1',
         [$workA, $workB, $workC],
         [
@@ -76,7 +76,7 @@ it('builds co-citation graphs from provider cited-by lists', function (): void {
     $workB = citationBuilderTestWork('10.1000/b', 'B');
     $workC = citationBuilderTestWork('10.1000/c', 'C');
 
-    $graph = (new CitationGraphBuilder())->buildCoCitationGraph(
+    $graph = (new CitationGraphBuilder)->buildCoCitationGraph(
         'project-1',
         [$workA, $workB, $workC],
         citingWorkIdsByCitedWorkId: [
@@ -96,7 +96,7 @@ it('builds bibliographic coupling graphs with inverted indexes', function (): vo
     $workB = citationBuilderTestWork('10.1000/b', 'B');
     $workC = citationBuilderTestWork('10.1000/c', 'C');
 
-    $graph = (new CitationGraphBuilder())->buildBibliographicCouplingGraph(
+    $graph = (new CitationGraphBuilder)->buildBibliographicCouplingGraph(
         'project-1',
         [$workA, $workB, $workC],
         [

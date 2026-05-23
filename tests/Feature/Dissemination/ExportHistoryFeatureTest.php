@@ -24,8 +24,8 @@ use Nexus\Laravel\Model\ScholarlyWorkModel;
 use Nexus\Laravel\Model\SearchQueryModel;
 use Nexus\Laravel\Model\WorkExternalIdModel;
 use Nexus\Laravel\Model\WorkProviderModel;
-use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Domain\CorpusSlice;
 use Nexus\Shared\Port\ProjectLockLifecyclePort;
 use Tests\Support\PersistenceFactory;
 

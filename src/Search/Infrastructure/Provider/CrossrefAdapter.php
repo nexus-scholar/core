@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\OrcidId;
@@ -32,7 +35,7 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
     {
         $params = array_merge(
             [
-                'query'  => $query->term->value,
+                'query' => $query->term->value,
                 'mailto' => $this->config->mailTo ?? '',
             ],
             $this->paginationParams($query),
@@ -65,11 +68,11 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
     }
 
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    public function searchAsync(SearchQuery $query): PromiseInterface
     {
         $params = array_merge(
             [
-                'query'  => $query->term->value,
+                'query' => $query->term->value,
                 'mailto' => $this->config->mailTo ?? '',
             ],
             $this->paginationParams($query),
@@ -92,7 +95,7 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
         }
 
         return $this->requestAsync("{$this->config->baseUrl}/works", $params)
-            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+            ->then(function (HttpResponse $response) use ($query) {
                 if (! $response->ok()) {
                     return [];
                 }
@@ -125,7 +128,7 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
         }
 
         return $this->normalize($item, new SearchQuery(
-            term: new \Nexus\Search\Domain\SearchTerm('fetch'),
+            term: new SearchTerm('fetch'),
         ));
     }
 
@@ -204,7 +207,7 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
 
         // Crossref title is an array — use first element
         $titleRaw = $raw['title'][0] ?? null;
-        $title    = ($titleRaw !== null && trim($titleRaw) !== '') ? $titleRaw : 'Unknown Title';
+        $title = ($titleRaw !== null && trim($titleRaw) !== '') ? $titleRaw : 'Unknown Title';
 
         // Year from date-parts
         $year = null;
@@ -227,8 +230,8 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
                 continue;
             }
 
-            $given  = $authorRaw['given'] ?? null;
-            $orcid  = null;
+            $given = $authorRaw['given'] ?? null;
+            $orcid = null;
             $orcidRaw = $authorRaw['ORCID'] ?? null;
 
             if ($orcidRaw !== null) {
@@ -245,17 +248,17 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
         }
 
         // Venue
-        $venue     = null;
+        $venue = null;
         $venueName = $raw['container-title'][0] ?? null;
 
         if ($venueName !== null && trim($venueName) !== '') {
-            $issn     = $raw['ISSN'][0] ?? null;
-            $typeRaw  = $raw['type'] ?? null;
-            $typeMap  = [
-                'journal-article'       => 'journal',
-                'proceedings-article'   => 'conference',
-                'book-chapter'          => 'book',
-                'posted-content'        => 'repository',
+            $issn = $raw['ISSN'][0] ?? null;
+            $typeRaw = $raw['type'] ?? null;
+            $typeMap = [
+                'journal-article' => 'journal',
+                'proceedings-article' => 'conference',
+                'book-chapter' => 'book',
+                'posted-content' => 'repository',
             ];
             $type = $typeMap[$typeRaw] ?? null;
 
@@ -265,21 +268,21 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
         $rawData = $query->includeRawData ? $raw : null;
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $title,
+            ids: $ids,
+            title: $title,
             sourceProvider: $this->alias(),
-            year:           $year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            citedByCount:   $cited,
-            rawData:        $rawData,
+            year: $year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            citedByCount: $cited,
+            rawData: $rawData,
         );
     }
 
     protected function paginationParams(SearchQuery $query): array
     {
         return [
-            'rows'   => $query->maxResults,
+            'rows' => $query->maxResults,
             'offset' => $query->offset,
         ];
     }

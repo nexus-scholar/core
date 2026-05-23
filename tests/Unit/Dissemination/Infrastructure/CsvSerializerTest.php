@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 use Nexus\Dissemination\Infrastructure\Serializer\CsvSerializer;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 use Tests\Support\PersistenceFactory;
 
 it('serializes_a_corpus_to_csv', function (): void {
     $work = PersistenceFactory::makeWork();
     $corpus = CorpusSlice::fromWorks($work);
 
-    $serializer = new CsvSerializer();
+    $serializer = new CsvSerializer;
     $output = $serializer->serialize($corpus);
 
     $lines = preg_split("/\r\n|\n|\r/", trim($output));
@@ -35,4 +35,3 @@ it('serializes_a_corpus_to_csv', function (): void {
     expect($row[4])->toBe('Test Journal');
     expect($row[5])->toBe('doi:10.1234/test');
 });
-

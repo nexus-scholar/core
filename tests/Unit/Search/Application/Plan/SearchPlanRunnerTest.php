@@ -5,15 +5,16 @@ declare(strict_types=1);
 use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Application\Plan\SearchPlan;
 use Nexus\Search\Application\Plan\SearchPlanItem;
-use Nexus\Search\Application\Plan\SearchPlanRunOptions;
 use Nexus\Search\Application\Plan\SearchPlanRunner;
+use Nexus\Search\Application\Plan\SearchPlanRunOptions;
 use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\UseCase\SearchAcrossProviders;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 
 it('runs selected plan items through the reusable executor with overrides', function (): void {
     $calls = [];
-    $executor = new class($calls) implements SearchExecutorPort {
+    $executor = new class($calls) implements SearchExecutorPort
+    {
         public function __construct(private array &$calls) {}
 
         public function handle(SearchAcrossProviders $command): AggregatedResult
@@ -44,7 +45,8 @@ it('runs selected plan items through the reusable executor with overrides', func
 });
 
 it('can continue after an item failure and report the failed item', function (): void {
-    $executor = new class implements SearchExecutorPort {
+    $executor = new class implements SearchExecutorPort
+    {
         public function handle(SearchAcrossProviders $command): AggregatedResult
         {
             if ($command->query->term->value === 'bad query') {
@@ -70,7 +72,8 @@ it('can continue after an item failure and report the failed item', function ():
 });
 
 it('stops on first failure when configured to fail fast', function (): void {
-    $executor = new class implements SearchExecutorPort {
+    $executor = new class implements SearchExecutorPort
+    {
         public function handle(SearchAcrossProviders $command): AggregatedResult
         {
             throw new RuntimeException('stop now');

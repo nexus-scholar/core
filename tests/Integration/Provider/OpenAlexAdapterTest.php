@@ -7,34 +7,18 @@ namespace Tests\Integration\Provider;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
-use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
 use Nexus\Search\Infrastructure\Provider\OpenAlexAdapter;
 use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
 use Nexus\Search\Infrastructure\RateLimit\NullRateLimiter;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
-use VCR\VCR;
-
-beforeEach(function () {
-    VCR::configure()
-        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
-        ->setMode(VCR::MODE_NONE)
-        ->enableLibraryHooks(['curl', 'stream_wrapper']);
-    VCR::turnOn();
-});
-
-afterEach(function () {
-    VCR::eject();
-    VCR::turnOff();
-});
+use Tests\Support\CassetteHttpClient;
 
 it('searches using works endpoint', function () {
-    VCR::insertCassette('openalex_search.yml');
-
     $config = ProviderConfigRegistry::defaults(mailTo: 'test@example.com')['openalex'];
     $adapter = new OpenAlexAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('openalex_search.yml'),
         rateLimiter: new NullRateLimiter,
     );
 
@@ -60,12 +44,10 @@ it('searches using works endpoint', function () {
 });
 
 it('fetches a paper by OpenAlex ID', function () {
-    VCR::insertCassette('openalex_fetch_by_id.yml');
-
     $config = ProviderConfigRegistry::defaults(mailTo: 'test@example.com')['openalex'];
     $adapter = new OpenAlexAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('openalex_fetch_by_id.yml'),
         rateLimiter: new NullRateLimiter,
     );
 

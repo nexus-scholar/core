@@ -6,8 +6,8 @@ namespace Nexus\Search\Application\Port;
 
 use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Application\Aggregator\ProviderStat;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Throwable;
 
 interface SearchRunRecorderPort

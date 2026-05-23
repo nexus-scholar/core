@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Dissemination\Infrastructure\PdfSource;
 
 use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final class OpenAlexPdfSource implements FullTextSourcePort
 {
@@ -35,7 +35,7 @@ final class OpenAlexPdfSource implements FullTextSourcePort
     }
 
     /**
-     * @param array<string, mixed> $raw
+     * @param  array<string, mixed>  $raw
      */
     private function firstPdfUrl(array $raw): ?string
     {

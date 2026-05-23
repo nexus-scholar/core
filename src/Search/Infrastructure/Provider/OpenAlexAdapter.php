@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\OrcidId;
@@ -49,12 +51,12 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
     }
 
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    public function searchAsync(SearchQuery $query): PromiseInterface
     {
         $params = $this->prepareSearchParams($query);
 
         return $this->requestAsync("{$this->config->baseUrl}/works", $params)
-            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+            ->then(function (HttpResponse $response) use ($query) {
                 if (! $response->ok()) {
                     return [];
                 }
@@ -77,7 +79,7 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
 
         if ($query->yearRange !== null) {
             $from = $query->yearRange->from;
-            $to   = $query->yearRange->to;
+            $to = $query->yearRange->to;
 
             if ($from !== null && $to !== null) {
                 $params['filter'] = "publication_year:{$from}-{$to}";
@@ -94,11 +96,11 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
     public function fetchById(WorkId $id): ?ScholarlyWork
     {
         $identifier = match ($id->namespace) {
-            WorkIdNamespace::DOI      => "https://doi.org/{$id->value}",
+            WorkIdNamespace::DOI => "https://doi.org/{$id->value}",
             WorkIdNamespace::OPENALEX => $id->value,
-            WorkIdNamespace::PUBMED   => "pmid:{$id->value}",
-            WorkIdNamespace::ARXIV    => "arxiv:{$id->value}",
-            default                   => null,
+            WorkIdNamespace::PUBMED => "pmid:{$id->value}",
+            WorkIdNamespace::ARXIV => "arxiv:{$id->value}",
+            default => null,
         };
 
         if ($identifier === null) {
@@ -115,7 +117,7 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
         }
 
         return $this->normalize($response->body, new SearchQuery(
-            term: new \Nexus\Search\Domain\SearchTerm('fetch'),
+            term: new SearchTerm('fetch'),
         ));
     }
 
@@ -189,9 +191,9 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
             $ids = $ids->add(new WorkId(WorkIdNamespace::ARXIV, $raw['ids']['arxiv']));
         }
 
-        $title   = $this->extractString($raw, 'display_name', 'title') ?? 'Unknown Title';
-        $year    = $this->extractInt($raw, 'publication_year');
-        $cited   = $this->extractInt($raw, 'cited_by_count');
+        $title = $this->extractString($raw, 'display_name', 'title') ?? 'Unknown Title';
+        $year = $this->extractInt($raw, 'publication_year');
+        $cited = $this->extractInt($raw, 'cited_by_count');
         $retracted = (bool) ($raw['is_retracted'] ?? false);
 
         $abstract = null;
@@ -221,12 +223,12 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
                 continue;
             }
 
-            $parts  = explode(' ', $displayName, 2);
-            $given  = count($parts) === 2 ? $parts[0] : null;
+            $parts = explode(' ', $displayName, 2);
+            $given = count($parts) === 2 ? $parts[0] : null;
             $family = count($parts) === 2 ? $parts[1] : $parts[0];
 
             $orcidRaw = $authorship['author']['orcid'] ?? null;
-            $orcid    = null;
+            $orcid = null;
 
             if ($orcidRaw !== null) {
                 $orcidValue = preg_replace('/^https?:\/\/orcid\.org\//', '', $orcidRaw);
@@ -240,35 +242,35 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
 
             $authors[] = new Author(
                 familyName: $family,
-                givenName:  $given,
-                orcid:      $orcid,
+                givenName: $given,
+                orcid: $orcid,
             );
         }
 
         $rawData = $query->includeRawData ? $raw : null;
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $title,
+            ids: $ids,
+            title: $title,
             sourceProvider: $this->alias(),
-            year:           $year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            abstract:       $abstract,
-            citedByCount:   $cited,
-            isRetracted:    $retracted,
-            rawData:        $rawData,
+            year: $year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            abstract: $abstract,
+            citedByCount: $cited,
+            isRetracted: $retracted,
+            rawData: $rawData,
         );
     }
 
     protected function paginationParams(SearchQuery $query): array
     {
         $perPage = min($query->maxResults, 200);
-        $page    = (int) floor($query->offset / $perPage) + 1;
+        $page = (int) floor($query->offset / $perPage) + 1;
 
         return [
             'per-page' => $perPage,
-            'page'     => $page,
+            'page' => $page,
         ];
     }
 
@@ -414,7 +416,7 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
     }
 
     /**
-     * @param list<string> $ids
+     * @param  list<string>  $ids
      * @return list<ScholarlyWork>
      */
     private function fetchWorksByOpenAlexIds(array $ids, int $limit): array

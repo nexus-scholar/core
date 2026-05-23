@@ -6,8 +6,8 @@ namespace Nexus\Dissemination\Infrastructure\Serializer;
 
 use Nexus\Dissemination\Domain\BibliographyFormat;
 use Nexus\Dissemination\Domain\Port\BibliographySerializerPort;
-use Nexus\Search\Domain\CorpusSlice;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 final class BibTexSerializer implements BibliographySerializerPort
@@ -29,7 +29,7 @@ final class BibTexSerializer implements BibliographySerializerPort
 
     private function serializeWork(ScholarlyWork $work): string
     {
-        $id = $work->primaryId()?->toString() ?? 'work_' . spl_object_hash($work);
+        $id = $work->primaryId()?->toString() ?? 'work_'.spl_object_hash($work);
         $type = $work->isPreprint() ? 'misc' : 'article';
 
         $authors = array_map(fn ($a) => $a->fullName(), $work->authors()->all());

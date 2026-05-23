@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use Nexus\Search\Domain\ScholarlyWork;
+use GuzzleHttp\Promise\PromiseInterface;
+use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Domain\SearchTerm;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\Author;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
@@ -54,13 +57,13 @@ final class DoajAdapter extends BaseProviderAdapter
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
     }
 
-    public function searchAsync(SearchQuery $query): \GuzzleHttp\Promise\PromiseInterface
+    public function searchAsync(SearchQuery $query): PromiseInterface
     {
         $url = $this->buildSearchUrl($query);
         $params = $this->paginationParams($query);
 
         return $this->requestAsync($url, $params)
-            ->then(function (\Nexus\Search\Domain\Port\HttpResponse $response) use ($query) {
+            ->then(function (HttpResponse $response) use ($query) {
                 if (! $response->ok()) {
                     return [];
                 }
@@ -78,11 +81,11 @@ final class DoajAdapter extends BaseProviderAdapter
         // Year range via Lucene syntax
         if ($query->yearRange !== null) {
             $from = $query->yearRange->from ?? 1000;
-            $to   = $query->yearRange->to   ?? 3000;
+            $to = $query->yearRange->to ?? 3000;
             $searchText = "({$searchText}) AND bibjson.year:[{$from} TO {$to}]";
         }
 
-        return "{$this->config->baseUrl}/v1/search/articles/" . rawurlencode($searchText);
+        return "{$this->config->baseUrl}/v1/search/articles/".rawurlencode($searchText);
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork
@@ -91,7 +94,7 @@ final class DoajAdapter extends BaseProviderAdapter
             return null;
         }
 
-        $url = "{$this->config->baseUrl}/v1/search/articles/" . rawurlencode("\"{$id->value}\"");
+        $url = "{$this->config->baseUrl}/v1/search/articles/".rawurlencode("\"{$id->value}\"");
 
         $response = $this->request($url, ['page' => 1, 'pageSize' => 1]);
 
@@ -106,7 +109,7 @@ final class DoajAdapter extends BaseProviderAdapter
         }
 
         return $this->normalize($items[0], new SearchQuery(
-            term: new \Nexus\Search\Domain\SearchTerm('fetch'),
+            term: new SearchTerm('fetch'),
         ));
     }
 
@@ -122,7 +125,7 @@ final class DoajAdapter extends BaseProviderAdapter
 
         foreach ($identifiers as $ident) {
             $type = $ident['type'] ?? null;
-            $val  = $ident['id']   ?? null;
+            $val = $ident['id'] ?? null;
 
             if ($type === 'doi' && is_string($val) && $val !== '') {
                 $ids = $ids->add(new WorkId(WorkIdNamespace::DOI, $val));
@@ -142,7 +145,7 @@ final class DoajAdapter extends BaseProviderAdapter
         }
 
         $yearVal = $extractor->get('year');
-        $year    = ($yearVal !== null && is_numeric($yearVal)) ? (int) $yearVal : null;
+        $year = ($yearVal !== null && is_numeric($yearVal)) ? (int) $yearVal : null;
 
         $abstract = $extractor->getString('abstract');
         $abstract = $abstract !== '' ? $abstract : null;
@@ -157,12 +160,12 @@ final class DoajAdapter extends BaseProviderAdapter
                 continue;
             }
 
-            $parsed    = $this->parseAuthorName(trim($name));
+            $parsed = $this->parseAuthorName(trim($name));
             $authors[] = new Author(familyName: $parsed['family'], givenName: $parsed['given']);
         }
 
         // Venue from journal title
-        $venue     = null;
+        $venue = null;
         $venueName = $extractor->getString('journal.title');
 
         if ($venueName !== '') {
@@ -181,14 +184,14 @@ final class DoajAdapter extends BaseProviderAdapter
         $rawData = $query->includeRawData ? $raw : null;
 
         return ScholarlyWork::reconstitute(
-            ids:            $ids,
-            title:          $title,
+            ids: $ids,
+            title: $title,
             sourceProvider: $this->alias(),
-            year:           $year,
-            authors:        AuthorList::fromArray($authors),
-            venue:          $venue,
-            abstract:       $abstract,
-            rawData:        $rawData,
+            year: $year,
+            authors: AuthorList::fromArray($authors),
+            venue: $venue,
+            abstract: $abstract,
+            rawData: $rawData,
         );
     }
 
@@ -196,10 +199,10 @@ final class DoajAdapter extends BaseProviderAdapter
     {
         // DOAJ uses 1-indexed pages, pageSize max 100
         $pageSize = min($query->maxResults, 100);
-        $page     = (int) floor($query->offset / max($pageSize, 1)) + 1;
+        $page = (int) floor($query->offset / max($pageSize, 1)) + 1;
 
         return [
-            'page'     => $page,
+            'page' => $page,
             'pageSize' => $pageSize,
         ];
     }
@@ -217,6 +220,7 @@ final class DoajAdapter extends BaseProviderAdapter
     {
         // Replace special characters with their escaped equivalent
         $pattern = '/([+\-&|!(){}\[\]\^"~*?:\/\\\])/';
+
         return preg_replace($pattern, '\\\$1', $term) ?? $term;
     }
 }

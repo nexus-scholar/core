@@ -13,8 +13,8 @@ use Nexus\Laravel\Event\NexusJobCompleted;
 use Nexus\Laravel\Event\NexusJobFailed;
 use Nexus\Laravel\Event\NexusJobStarted;
 use Nexus\Laravel\Job\DeduplicateCorpusJob;
-use Nexus\Search\Domain\CorpusSlice;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -48,7 +48,8 @@ it('resolves the deduplication handler from the container when handling the job'
 
     $received = (object) ['works' => null];
 
-    $policy = new class($received) implements DeduplicationPolicyPort {
+    $policy = new class($received) implements DeduplicationPolicyPort
+    {
         public function __construct(private readonly object $received) {}
 
         public function name(): string
@@ -75,7 +76,8 @@ it('resolves the deduplication handler from the container when handling the job'
         }
     };
 
-    $election = new class implements RepresentativeElectionPort {
+    $election = new class implements RepresentativeElectionPort
+    {
         public function elect(array $members): ScholarlyWork
         {
             return $members[0];

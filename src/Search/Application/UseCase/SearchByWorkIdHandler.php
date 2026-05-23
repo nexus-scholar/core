@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nexus\Search\Application\UseCase;
 
 use Nexus\Search\Domain\Port\AcademicProviderPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 /**
  * Tries each provider that supports the ID namespace in registration order.

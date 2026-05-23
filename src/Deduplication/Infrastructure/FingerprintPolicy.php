@@ -7,7 +7,7 @@ namespace Nexus\Deduplication\Infrastructure;
 use Nexus\Deduplication\Domain\Duplicate;
 use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 /**
  * Detects duplicates by content fingerprint.
@@ -31,7 +31,7 @@ final class FingerprintPolicy implements DeduplicationPolicyPort
     public function detect(array $works): array
     {
         /** @var array<string, ScholarlyWork> */
-        $index      = [];
+        $index = [];
         $duplicates = [];
 
         foreach ($works as $work) {
@@ -43,7 +43,7 @@ final class FingerprintPolicy implements DeduplicationPolicyPort
 
             if (isset($index[$fp])) {
                 $primaryWork = $index[$fp];
-                $primaryId   = $primaryWork->primaryId();
+                $primaryId = $primaryWork->primaryId();
                 $secondaryId = $work->primaryId();
 
                 if ($primaryId === null || $secondaryId === null) {
@@ -51,10 +51,10 @@ final class FingerprintPolicy implements DeduplicationPolicyPort
                 }
 
                 $duplicates[] = new Duplicate(
-                    primaryId:   $primaryId,
+                    primaryId: $primaryId,
                     secondaryId: $secondaryId,
-                    reason:      DuplicateReason::FINGERPRINT,
-                    confidence:  0.90,
+                    reason: DuplicateReason::FINGERPRINT,
+                    confidence: 0.90,
                 );
             } else {
                 $index[$fp] = $work;
@@ -66,8 +66,8 @@ final class FingerprintPolicy implements DeduplicationPolicyPort
 
     private function fingerprint(ScholarlyWork $work): ?string
     {
-        $title  = $this->normalizer->normalize($work->title());
-        $title  = mb_substr($title, 0, 50, 'UTF-8');
+        $title = $this->normalizer->normalize($work->title());
+        $title = mb_substr($title, 0, 50, 'UTF-8');
 
         $firstAuthorFamily = '';
         $firstAuthor = $work->authors()->first();
@@ -82,6 +82,6 @@ final class FingerprintPolicy implements DeduplicationPolicyPort
             return null;
         }
 
-        return md5($title . ':' . $firstAuthorFamily . ':' . ($year ?? ''));
+        return md5($title.':'.$firstAuthorFamily.':'.($year ?? ''));
     }
 }

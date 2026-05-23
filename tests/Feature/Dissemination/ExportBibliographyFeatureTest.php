@@ -8,14 +8,15 @@ use Nexus\Dissemination\Domain\BibliographyFormat;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\SerializerCollection;
 use Nexus\Dissemination\Infrastructure\Serializer\CsvSerializer;
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 use Tests\Support\PersistenceFactory;
 
 it('exports_bibliography_to_storage', function (): void {
     $work = PersistenceFactory::makeWork();
     $corpus = CorpusSlice::fromWorks($work);
 
-    $storage = new class implements FileStoragePort {
+    $storage = new class implements FileStoragePort
+    {
         public array $stored = [];
 
         public function store(string $filename, string $content): string
@@ -42,12 +43,12 @@ it('exports_bibliography_to_storage', function (): void {
 
         public function url(string $path): ?string
         {
-            return $this->exists($path) ? 'memory://' . $path : null;
+            return $this->exists($path) ? 'memory://'.$path : null;
         }
     };
 
     $handler = new ExportBibliographyHandler(
-        new SerializerCollection(new CsvSerializer()),
+        new SerializerCollection(new CsvSerializer),
         $storage
     );
 
@@ -63,4 +64,3 @@ it('exports_bibliography_to_storage', function (): void {
     expect($storage->exists('exports/works.csv'))->toBeTrue();
     expect($storage->get('exports/works.csv'))->toContain('A Test Work');
 });
-

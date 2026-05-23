@@ -8,8 +8,8 @@ use Nexus\CitationNetwork\Application\Builder\CitationGraphBuilder;
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
 use Nexus\CitationNetwork\Domain\Port\CitationGraphRepositoryPort;
-use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Shared\Application\CorpusLockPolicy;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\CorpusOperation;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 

@@ -23,7 +23,7 @@ A structured request with:
 The old package had a `Query` model but the cache key omitted important dimensions, so the redesign makes `SearchQuery` responsible for its own cache identity. [Code Review](old-nexus-review/nexus-php-code-review.md)
 
 ### ScholarlyWork
-In the Search context, `ScholarlyWork` represents a discovered work and may include:
+`ScholarlyWork` is canonical in `Nexus\Shared\Domain` because it is used by search, deduplication, citation-network, dissemination, and persistence workflows. In search results, it represents a discovered work and may include:
 - IDs
 - title
 - authors
@@ -40,7 +40,7 @@ In the Search context, `ScholarlyWork` represents a discovered work and may incl
 The old package’s `Document` constructor included fields such as `provider`, `providerId`, `externalIds`, `abstract`, `authors`, `venue`, `url`, `language`, `citedByCount`, `queryId`, `queryText`, `retrievedAt`, `clusterId`, and `rawData`. Some of those belong to other contexts or persistence concerns, so the redesign strips cross-context leakage from the domain model. [cite:6]
 
 ### CorpusSlice
-An aggregate representing the set of works resulting from one search step.
+`CorpusSlice` is canonical in `Nexus\Shared\Domain`. It represents the set of works resulting from one search step or shared corpus workflow.
 
 ## Ports
 
@@ -94,7 +94,7 @@ Test the Search module in layers:
 
 - value-object tests for query rules
 - mocked provider tests for orchestration
-- VCR-backed integration tests for each adapter
+- cassette-backed integration tests for each adapter through a test-only `HttpClientPort`
 - Laravel feature tests only in the Laravel layer
 
 Never use real provider HTTP in CI.

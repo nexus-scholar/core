@@ -7,7 +7,7 @@ namespace Nexus\Search\Application\UseCase;
 use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\Port\SearchRunRecorderPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\Exception\ProjectLockedException;
 use Nexus\Shared\Port\ProjectLockPort;
 use Nexus\Shared\ValueObject\WorkIdNamespace;

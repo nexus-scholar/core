@@ -7,7 +7,7 @@ namespace Nexus\Deduplication\Infrastructure;
 use Nexus\Deduplication\Domain\Duplicate;
 use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 
 /**
@@ -18,10 +18,10 @@ use Nexus\Shared\ValueObject\WorkIdNamespace;
 final class NamespaceMatchPolicy implements DeduplicationPolicyPort
 {
     private static array $reasonMap = [
-        'arxiv'    => DuplicateReason::ARXIV_MATCH,
+        'arxiv' => DuplicateReason::ARXIV_MATCH,
         'openalex' => DuplicateReason::OPENALEX_MATCH,
-        's2'       => DuplicateReason::S2_MATCH,
-        'pubmed'   => DuplicateReason::PUBMED_MATCH,
+        's2' => DuplicateReason::S2_MATCH,
+        'pubmed' => DuplicateReason::PUBMED_MATCH,
     ];
 
     public function __construct(
@@ -30,13 +30,13 @@ final class NamespaceMatchPolicy implements DeduplicationPolicyPort
 
     public function name(): string
     {
-        return $this->namespace->value . '_match';
+        return $this->namespace->value.'_match';
     }
 
     public function detect(array $works): array
     {
         /** @var array<string, ScholarlyWork> */
-        $index      = [];
+        $index = [];
         $duplicates = [];
 
         foreach ($works as $work) {
@@ -50,7 +50,7 @@ final class NamespaceMatchPolicy implements DeduplicationPolicyPort
 
             if (isset($index[$key])) {
                 $primaryWork = $index[$key];
-                $primaryId   = $primaryWork->primaryId();
+                $primaryId = $primaryWork->primaryId();
                 $secondaryId = $work->primaryId();
 
                 if ($primaryId === null || $secondaryId === null) {
@@ -61,10 +61,10 @@ final class NamespaceMatchPolicy implements DeduplicationPolicyPort
                     ?? DuplicateReason::FINGERPRINT;
 
                 $duplicates[] = new Duplicate(
-                    primaryId:   $primaryId,
+                    primaryId: $primaryId,
                     secondaryId: $secondaryId,
-                    reason:      $reason,
-                    confidence:  1.0,
+                    reason: $reason,
+                    confidence: 1.0,
                 );
             } else {
                 $index[$key] = $work;

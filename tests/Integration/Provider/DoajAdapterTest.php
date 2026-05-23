@@ -7,34 +7,18 @@ namespace Tests\Integration\Provider;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Search\Domain\YearRange;
-use Nexus\Search\Infrastructure\Http\GuzzleHttpClient;
 use Nexus\Search\Infrastructure\Provider\DoajAdapter;
 use Nexus\Search\Infrastructure\Provider\ProviderConfigRegistry;
 use Nexus\Search\Infrastructure\RateLimit\NullRateLimiter;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
-use VCR\VCR;
-
-beforeEach(function () {
-    VCR::configure()
-        ->setCassettePath(__DIR__.'/../../Fixture/vcr_cassettes')
-        ->setMode(VCR::MODE_NONE)
-        ->enableLibraryHooks(['curl', 'stream_wrapper']);
-    VCR::turnOn();
-});
-
-afterEach(function () {
-    VCR::eject();
-    VCR::turnOff();
-});
+use Tests\Support\CassetteHttpClient;
 
 it('searches doaj with lucene year syntax', function () {
-    VCR::insertCassette('doaj_search.yml');
-
     $config = ProviderConfigRegistry::defaults()['doaj'];
     $adapter = new DoajAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('doaj_search.yml'),
         rateLimiter: new NullRateLimiter,
     );
 
@@ -56,12 +40,10 @@ it('searches doaj with lucene year syntax', function () {
 });
 
 it('fetches a paper from doaj by DOI', function () {
-    VCR::insertCassette('doaj_fetch_by_id.yml');
-
     $config = ProviderConfigRegistry::defaults()['doaj'];
     $adapter = new DoajAdapter(
         config: $config,
-        http: GuzzleHttpClient::create(),
+        http: new CassetteHttpClient('doaj_fetch_by_id.yml'),
         rateLimiter: new NullRateLimiter,
     );
 

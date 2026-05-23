@@ -7,7 +7,7 @@ use Nexus\Dissemination\Infrastructure\PdfSource\FullTextSourceConfig;
 use Nexus\Dissemination\Infrastructure\PdfSource\OaHttpClient;
 use Nexus\Dissemination\Infrastructure\PdfSource\PmcOaiFullTextSource;
 use Nexus\Search\Domain\Port\HttpResponse;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
@@ -80,4 +80,3 @@ it('does not expose a PMC XML candidate for OAI errors or missing PMCID', functi
         ->and($source->supports(pmcWork(null)))->toBeFalse()
         ->and($source->resolveCandidate(pmcWork(null)))->toBeNull();
 });
-

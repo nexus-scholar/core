@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nexus\CitationNetwork\Application\UseCase;
 
-use Nexus\Search\Domain\CorpusSlice;
+use Nexus\Shared\Domain\CorpusSlice;
 
 final readonly class SnowballCorpusResult
 {
     /**
-     * @param list<SnowballRoundResult> $rounds
-     * @param list<SnowballProviderStat> $providerStats
+     * @param  list<SnowballRoundResult>  $rounds
+     * @param  list<SnowballProviderStat>  $providerStats
      */
     public function __construct(
         public string $projectId,
@@ -20,8 +20,7 @@ final readonly class SnowballCorpusResult
         public CorpusSlice $newCorpus,
         public array $rounds,
         public array $providerStats,
-    ) {
-    }
+    ) {}
 
     public function totalDiscoveredCount(): int
     {

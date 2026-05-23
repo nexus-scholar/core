@@ -7,12 +7,12 @@ namespace Tests\Unit\Deduplication\Infrastructure;
 use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Infrastructure\TitleFuzzyPolicy;
 use Nexus\Deduplication\Infrastructure\TitleNormalizer;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 
-$normalizer = new TitleNormalizer();
+$normalizer = new TitleNormalizer;
 
 it('returns_empty_when_less_than_two_works', function () use ($normalizer): void {
     $policy = new TitleFuzzyPolicy($normalizer);
@@ -120,33 +120,33 @@ it('stress_tests_with_large_number_of_works', function () use ($normalizer): voi
     for ($i = 0; $i < 1000; $i++) {
         $works[] = ScholarlyWork::reconstitute(
             ids: new WorkIdSet(new WorkId(WorkIdNamespace::DOI, "10.1000/$i")),
-            title: "A very standard academic paper title number " . random_int(1, 100000),
+            title: 'A very standard academic paper title number '.random_int(1, 100000),
             sourceProvider: 'test'
         );
     }
-    
+
     // Add two works that should be detected as duplicates
     $works[] = ScholarlyWork::reconstitute(
-        ids: new WorkIdSet(new WorkId(WorkIdNamespace::DOI, "10.1000/dup1")),
-        title: "Specific Focus on Artificial Intelligence in Healthcare",
+        ids: new WorkIdSet(new WorkId(WorkIdNamespace::DOI, '10.1000/dup1')),
+        title: 'Specific Focus on Artificial Intelligence in Healthcare',
         sourceProvider: 'test'
     );
     $works[] = ScholarlyWork::reconstitute(
-        ids: new WorkIdSet(new WorkId(WorkIdNamespace::DOI, "10.1000/dup2")),
-        title: "Specific Focus on Artificial Inteliggence in Healthcare", // typo
+        ids: new WorkIdSet(new WorkId(WorkIdNamespace::DOI, '10.1000/dup2')),
+        title: 'Specific Focus on Artificial Inteliggence in Healthcare', // typo
         sourceProvider: 'test'
     );
 
     $start = hrtime(true);
     $duplicates = $policy->detect($works);
     $end = hrtime(true);
-    
+
     $elapsedMs = ($end - $start) / 1000000;
-    
+
     // Should detect at least our intentional duplicate
     expect(count($duplicates))->toBeGreaterThanOrEqual(1);
-    
+
     // Performance expectation: 1000 items should be processed well under 1000ms
     // because it avoids n^2 levenshtein distance calculations.
-    expect($elapsedMs)->toBeLessThan(1000); 
+    expect($elapsedMs)->toBeLessThan(1000);
 });
