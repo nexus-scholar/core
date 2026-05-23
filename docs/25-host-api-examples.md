@@ -64,6 +64,6 @@ $workArtifacts = app(FullTextFetchReaderPort::class)
 
 ## Boundary Notes
 
-The canonical shared scholarly work model is now `Nexus\Shared\Domain\ScholarlyWork` with `Nexus\Shared\Domain\CorpusSlice`. Deprecated aliases remain under `Nexus\Search\Domain` for `^0.1` compatibility, but new host code should import the Shared classes.
+The canonical shared scholarly work model is `Nexus\Shared\Domain\ScholarlyWork` with `Nexus\Shared\Domain\CorpusSlice`. Host code should import the Shared classes directly; the old Search-domain work and corpus classes are not retained.
 
 Provider integration tests are fixture-backed. CI must not call live provider networks by default; live provider checks and cassette re-recording are explicit future maintenance tasks.

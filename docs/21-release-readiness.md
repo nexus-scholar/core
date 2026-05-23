@@ -18,7 +18,7 @@ Ready for pre-1.0 Laravel consumers:
 - Immutable locked corpus snapshots back final/citable corpus membership after lock.
 - Host read APIs expose export history, job lifecycle, and full-text fetch audit records without direct SQL reads.
 - Provider integration tests are fixture-backed through a test-only HTTP port and are guarded against live-capable clients in CI.
-- Shared work/corpus models are canonical under `Nexus\Shared\Domain`; deprecated Search aliases remain for pre-1.0 compatibility.
+- Shared work/corpus models are canonical under `Nexus\Shared\Domain`; old Search-domain work/corpus classes are removed instead of retained as aliases.
 - A clean Laravel consumer smoke passes when installing `nexus-scholar/core:^0.1`.
 - `v0.1.0` release notes and a pre-1.0 versioning policy are documented.
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-it('keeps shared work and corpus models out of search namespace imports in other source contexts', function (): void {
+it('keeps shared work and corpus models out of search namespace imports', function (): void {
     $root = dirname(__DIR__, 3).DIRECTORY_SEPARATOR.'src';
     $violations = [];
 
@@ -15,19 +15,24 @@ it('keeps shared work and corpus models out of search namespace imports in other
 
         $relativePath = str_replace($root.DIRECTORY_SEPARATOR, '', $file->getPathname());
 
-        if (str_starts_with($relativePath, 'Search'.DIRECTORY_SEPARATOR)) {
-            continue;
-        }
-
         $contents = file_get_contents($file->getPathname()) ?: '';
 
         if (str_contains($contents, 'Nexus\\Search\\Domain\\ScholarlyWork')
-            || str_contains($contents, 'Nexus\\Search\\Domain\\CorpusSlice')) {
+            || str_contains($contents, 'Nexus\\Search\\Domain\\CorpusSlice')
+            || str_contains($contents, 'Nexus\\Search\\Domain\\CorpusSliceId')) {
             $violations[] = $relativePath;
         }
     }
 
     expect($violations)->toBe([]);
+});
+
+it('does not ship search namespace aliases for shared work and corpus models', function (): void {
+    $root = dirname(__DIR__, 3).DIRECTORY_SEPARATOR.'src'.DIRECTORY_SEPARATOR.'Search'.DIRECTORY_SEPARATOR.'Domain';
+
+    expect(file_exists($root.DIRECTORY_SEPARATOR.'ScholarlyWork.php'))->toBeFalse()
+        ->and(file_exists($root.DIRECTORY_SEPARATOR.'CorpusSlice.php'))->toBeFalse()
+        ->and(file_exists($root.DIRECTORY_SEPARATOR.'CorpusSliceId.php'))->toBeFalse();
 });
 
 it('keeps unsafe corpus construction out of production code', function (): void {
