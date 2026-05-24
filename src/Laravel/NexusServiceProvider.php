@@ -105,6 +105,8 @@ use Nexus\Search\Application\Plan\SearchPlanParserPort;
 use Nexus\Search\Application\Plan\SearchPlanRunner;
 use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\Port\SearchRunRecorderPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchExecutorPort;
+use Nexus\Search\Application\ProviderExecution\SequentialProviderSearchExecutor;
 use Nexus\Search\Application\UseCase\PersistentSearchRunner;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Domain\Port\AcademicProviderPort;
@@ -367,6 +369,12 @@ final class NexusServiceProvider extends ServiceProvider
         });
 
         // Search Aggregator
+        $this->app->singleton(ProviderSearchExecutorPort::class, function ($app) {
+            $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
+
+            return new SequentialProviderSearchExecutor($logger);
+        });
+
         $this->app->singleton(SearchAggregatorPort::class, function ($app) {
             $configs = $app->make('nexus.provider_configs');
             $http = $app->make(HttpClientPort::class);
@@ -378,6 +386,7 @@ final class NexusServiceProvider extends ServiceProvider
                 $app->make(DeduplicationPort::class),
                 $app->make(SearchCachePort::class),
                 $logger,
+                providerExecutor: $app->make(ProviderSearchExecutorPort::class),
             );
         });
 

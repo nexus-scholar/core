@@ -170,6 +170,6 @@ Tagging/publishing remains a separate release task after a clean consumer instal
 
 Priority order:
 
-1. Add a package-owned provider executor if concurrent search fan-out is needed again.
+1. Add a concrete concurrent `ProviderSearchExecutorPort` implementation if provider fan-out latency becomes a measured bottleneck.
 2. Extend streaming full-text storage to XML/text artifacts if large non-PDF payloads become common.
 3. Repeat Packagist/package archive review before the next tag.

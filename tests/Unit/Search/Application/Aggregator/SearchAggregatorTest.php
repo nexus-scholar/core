@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Search\Application\Aggregator;
 
-use GuzzleHttp\Promise\FulfilledPromise;
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Promise\RejectedPromise;
 use Nexus\Search\Application\Aggregator\SearchAggregator;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchExecutionResult;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchExecutorPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchResult;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Exception\UnknownProviderAlias;
 use Nexus\Search\Domain\Port\AcademicProviderPort;
@@ -60,11 +60,6 @@ it('aggregates results from multiple providers and deduplicates them', function 
         {
             return [$this->work];
         }
-
-        public function searchAsync(SearchQuery $query): PromiseInterface
-        {
-            return new FulfilledPromise($this->search($query));
-        }
     };
 
     $adapter2 = new class($work2) implements AcademicProviderPort
@@ -90,11 +85,6 @@ it('aggregates results from multiple providers and deduplicates them', function 
         {
             return [$this->work];
         }
-
-        public function searchAsync(SearchQuery $query): PromiseInterface
-        {
-            return new FulfilledPromise($this->search($query));
-        }
     };
 
     $adapter3 = new class implements AcademicProviderPort
@@ -117,11 +107,6 @@ it('aggregates results from multiple providers and deduplicates them', function 
         public function search(SearchQuery $query): array
         {
             throw new ProviderUnavailable('provider_error', 'Simulated failure');
-        }
-
-        public function searchAsync(SearchQuery $query): PromiseInterface
-        {
-            return new RejectedPromise(new ProviderUnavailable('provider_error', 'Simulated failure'));
         }
     };
 
@@ -197,11 +182,6 @@ it('returns empty corpus when all providers fail', function () {
         {
             throw new ProviderUnavailable('dead', 'All down');
         }
-
-        public function searchAsync(SearchQuery $query): PromiseInterface
-        {
-            return new RejectedPromise(new ProviderUnavailable('dead', 'All down'));
-        }
     };
 
     $dedup = new class implements DeduplicationPort
@@ -270,11 +250,6 @@ it('uses only provider aliases selected on the query', function (): void {
                     title: "Paper {$this->providerAlias}",
                     sourceProvider: $this->providerAlias,
                 )];
-            }
-
-            public function searchAsync(SearchQuery $query): PromiseInterface
-            {
-                return new FulfilledPromise($this->search($query));
             }
         };
     };
@@ -354,11 +329,6 @@ it('fails clearly before execution when a selected provider alias is unknown', f
 
             return [];
         }
-
-        public function searchAsync(SearchQuery $query): PromiseInterface
-        {
-            return new FulfilledPromise($this->search($query));
-        }
     };
 
     $dedup = new class implements DeduplicationPort
@@ -401,4 +371,98 @@ it('fails clearly before execution when a selected provider alias is unknown', f
 
     expect($calls->count)->toBe(0)
         ->and($cache->gets)->toBe(0);
+});
+
+it('delegates selected provider execution to the configured executor', function (): void {
+    $calls = (object) ['providers' => [], 'query' => null];
+
+    $work = ScholarlyWork::reconstitute(
+        ids: new WorkIdSet(new WorkId(WorkIdNamespace::DOI, '10.1234/delegated')),
+        title: 'Delegated Search',
+        sourceProvider: 'provider_2',
+    );
+
+    $makeAdapter = static function (string $alias): AcademicProviderPort {
+        return new class($alias) implements AcademicProviderPort
+        {
+            public function __construct(private readonly string $providerAlias) {}
+
+            public function alias(): string
+            {
+                return $this->providerAlias;
+            }
+
+            public function supports(WorkIdNamespace $ns): bool
+            {
+                return true;
+            }
+
+            public function fetchById(WorkId $id): ?ScholarlyWork
+            {
+                return null;
+            }
+
+            public function search(SearchQuery $query): array
+            {
+                throw new \RuntimeException('SearchAggregator must delegate provider search to the executor.');
+            }
+        };
+    };
+
+    $executor = new class($calls, $work) implements ProviderSearchExecutorPort
+    {
+        public function __construct(private readonly object $calls, private readonly ScholarlyWork $work) {}
+
+        public function execute(SearchQuery $query, array $providers): ProviderSearchExecutionResult
+        {
+            $this->calls->query = $query;
+            $this->calls->providers = array_map(
+                static fn (AcademicProviderPort $provider): string => $provider->alias(),
+                $providers,
+            );
+
+            return new ProviderSearchExecutionResult([
+                ProviderSearchResult::success('provider_2', [$this->work], 12),
+            ]);
+        }
+    };
+
+    $dedup = new class implements DeduplicationPort
+    {
+        public function deduplicate(CorpusSlice $corpus): CorpusSlice
+        {
+            return $corpus;
+        }
+    };
+
+    $cache = new class implements SearchCachePort
+    {
+        public function get(string $key): ?array
+        {
+            return null;
+        }
+
+        public function put(string $key, array $works, int $ttlSeconds = 3600): void {}
+
+        public function has(string $key): bool
+        {
+            return false;
+        }
+
+        public function invalidateAll(): void {}
+    };
+
+    $query = new SearchQuery(new SearchTerm('delegated'), providerAliases: ['provider_2']);
+
+    $result = (new SearchAggregator(
+        new AdapterCollection($makeAdapter('provider_1'), $makeAdapter('provider_2')),
+        $dedup,
+        $cache,
+        providerExecutor: $executor,
+    ))->aggregate($query);
+
+    expect($calls->query)->toBe($query)
+        ->and($calls->providers)->toBe(['provider_2'])
+        ->and($result->totalRaw)->toBe(1)
+        ->and($result->providerStats[0]->alias)->toBe('provider_2');
 });
