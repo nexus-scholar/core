@@ -6,6 +6,9 @@ namespace Nexus\Search\Infrastructure\Provider;
 
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
+use Nexus\Search\Application\ProviderExecution\CallbackProviderSearchTask;
+use Nexus\Search\Application\ProviderExecution\ConcurrentSearchProviderPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchTask;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -17,7 +20,7 @@ use Nexus\Shared\ValueObject\WorkId;
 use Nexus\Shared\ValueObject\WorkIdNamespace;
 use Nexus\Shared\ValueObject\WorkIdSet;
 
-final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingProviderPort
+final class OpenAlexAdapter extends BaseProviderAdapter implements ConcurrentSearchProviderPort, SnowballingProviderPort
 {
     public function alias(): string
     {
@@ -47,6 +50,27 @@ final class OpenAlexAdapter extends BaseProviderAdapter implements SnowballingPr
         $items = $this->extractItems($response->body);
 
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+    }
+
+    public function beginSearch(SearchQuery $query): ?ProviderSearchTask
+    {
+        $url = "{$this->config->baseUrl}/works";
+        $params = $this->prepareSearchParams($query);
+        $pending = $this->beginRequest($url, $params);
+
+        if ($pending === null) {
+            return null;
+        }
+
+        return new CallbackProviderSearchTask($this->alias(), function () use ($pending, $url, $params, $query): array {
+            $response = $this->waitForPendingRequest($pending, $url, $params);
+
+            if (! $response->ok()) {
+                return [];
+            }
+
+            return array_map(fn (array $raw) => $this->normalize($raw, $query), $this->extractItems($response->body));
+        });
     }
 
     private function prepareSearchParams(SearchQuery $query): array

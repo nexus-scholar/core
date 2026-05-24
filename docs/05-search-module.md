@@ -75,7 +75,20 @@ All provider adapters must:
 
 The search application contract is synchronous and library-neutral. Provider execution is delegated to `ProviderSearchExecutorPort`; the default `SequentialProviderSearchExecutor` preserves current behavior while keeping fan-out strategy out of `SearchAggregator`.
 
-If concurrent provider fan-out is added, it must be implemented behind this package-owned executor boundary. Do not expose Guzzle promises, raw async clients, or provider-specific concurrency primitives through domain or application contracts.
+Optional concurrent provider fan-out is implemented by `ConcurrentProviderSearchExecutor`. It starts providers that implement `ConcurrentSearchProviderPort` in bounded batches, then awaits package-owned `ProviderSearchTask` objects. Providers that cannot begin async work return `null` and are executed synchronously as a fallback.
+
+Laravel host configuration:
+
+```php
+'search' => [
+    'execution' => [
+        'mode' => env('NEXUS_SEARCH_EXECUTION_MODE', 'sequential'), // sequential|concurrent
+        'concurrency' => env('NEXUS_SEARCH_CONCURRENCY', 3),
+    ],
+],
+```
+
+Guzzle promises remain hidden inside `Search\Infrastructure\Http\GuzzleHttpClient`. Domain and application contracts must not expose Guzzle promises, raw async clients, or provider-specific concurrency primitives.
 
 ## Caching Rules
 

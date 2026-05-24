@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Nexus\Search\Infrastructure\Provider;
 
 use Closure;
+use Nexus\Search\Application\ProviderExecution\CallbackProviderSearchTask;
+use Nexus\Search\Application\ProviderExecution\ConcurrentSearchProviderPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchTask;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\RateLimiterPort;
 use Nexus\Search\Domain\SearchQuery;
@@ -21,7 +24,7 @@ use Psr\Log\LoggerInterface;
  *   1. esearch.fcgi → get PMIDs + WebEnv/QueryKey for history server
  *   2. efetch.fcgi  → fetch full article metadata in XML
  */
-final class PubMedAdapter extends BaseProviderAdapter
+final class PubMedAdapter extends BaseProviderAdapter implements ConcurrentSearchProviderPort
 {
     private PubMedXmlParser $parser;
 
@@ -50,17 +53,7 @@ final class PubMedAdapter extends BaseProviderAdapter
     public function search(SearchQuery $query): array
     {
         // Step 1: esearch — get PMIDs and history server params
-        $esearchParams = [
-            'db' => 'pubmed',
-            'term' => $this->buildSearchTerm($query),
-            'retmode' => 'xml',
-            'retmax' => min($query->maxResults, 10000),
-            'usehistory' => 'y',
-        ];
-
-        if ($this->config->apiKey !== null) {
-            $esearchParams['api_key'] = $this->config->apiKey;
-        }
+        $esearchParams = $this->esearchParams($query);
 
         $esearchResponse = $this->request(
             "{$this->config->baseUrl}/esearch.fcgi",
@@ -77,7 +70,105 @@ final class PubMedAdapter extends BaseProviderAdapter
             return [];
         }
 
-        // Step 2: efetch — retrieve full article metadata in batches
+        return $this->fetchArticles($esearchResult, $query);
+    }
+
+    public function beginSearch(SearchQuery $query): ?ProviderSearchTask
+    {
+        $url = "{$this->config->baseUrl}/esearch.fcgi";
+        $params = $this->esearchParams($query);
+        $pending = $this->beginRequest($url, $params);
+
+        if ($pending === null) {
+            return null;
+        }
+
+        return new CallbackProviderSearchTask($this->alias(), function () use ($pending, $url, $params, $query): array {
+            $esearchResponse = $this->waitForPendingRequest($pending, $url, $params);
+
+            if (! $esearchResponse->ok() || $esearchResponse->rawBody === '') {
+                return [];
+            }
+
+            $esearchResult = $this->parser->parseEsearchResponse($esearchResponse->rawBody);
+
+            if ($esearchResult === null || $esearchResult['count'] === 0) {
+                return [];
+            }
+
+            return $this->fetchArticles($esearchResult, $query);
+        });
+    }
+
+    public function fetchById(WorkId $id): ?ScholarlyWork
+    {
+        $identifier = match ($id->namespace) {
+            WorkIdNamespace::PUBMED => $id->value,
+            WorkIdNamespace::DOI => null,
+            default => null,
+        };
+
+        if ($identifier === null) {
+            return null;
+        }
+
+        $params = [
+            'db' => 'pubmed',
+            'id' => $identifier,
+            'retmode' => 'xml',
+        ];
+
+        if ($this->config->apiKey !== null) {
+            $params['api_key'] = $this->config->apiKey;
+        }
+
+        $response = $this->request("{$this->config->baseUrl}/efetch.fcgi", $params);
+
+        if (! $response->ok() || $response->rawBody === '') {
+            return null;
+        }
+
+        $query = new SearchQuery(term: new SearchTerm('fetch'));
+        $results = $this->parser->parseEfetchResponse($response->rawBody, $query);
+
+        return $results[0] ?? null;
+    }
+
+    private function buildSearchTerm(SearchQuery $query): string
+    {
+        $term = $query->term->value;
+        if ($query->yearRange !== null) {
+            $from = $query->yearRange->from ?? 1000;
+            $to = $query->yearRange->to ?? 3000;
+            $term = "({$term}) AND {$from}:{$to}[Date - Publication]";
+        }
+
+        return $term;
+    }
+
+    private function esearchParams(SearchQuery $query): array
+    {
+        $params = [
+            'db' => 'pubmed',
+            'term' => $this->buildSearchTerm($query),
+            'retmode' => 'xml',
+            'retmax' => min($query->maxResults, 10000),
+            'usehistory' => 'y',
+        ];
+
+        if ($this->config->apiKey !== null) {
+            $params['api_key'] = $this->config->apiKey;
+        }
+
+        return $params;
+    }
+
+    /**
+     * @param  array{count: int, ids: list<string>, webenv: string, queryKey: string}  $esearchResult
+     * @return list<ScholarlyWork>
+     */
+    private function fetchArticles(array $esearchResult, SearchQuery $query): array
+    {
         $batchSize = 200;
         $collected = [];
 
@@ -125,52 +216,6 @@ final class PubMedAdapter extends BaseProviderAdapter
         }
 
         return $collected;
-    }
-
-    public function fetchById(WorkId $id): ?ScholarlyWork
-    {
-        $identifier = match ($id->namespace) {
-            WorkIdNamespace::PUBMED => $id->value,
-            WorkIdNamespace::DOI => null,
-            default => null,
-        };
-
-        if ($identifier === null) {
-            return null;
-        }
-
-        $params = [
-            'db' => 'pubmed',
-            'id' => $identifier,
-            'retmode' => 'xml',
-        ];
-
-        if ($this->config->apiKey !== null) {
-            $params['api_key'] = $this->config->apiKey;
-        }
-
-        $response = $this->request("{$this->config->baseUrl}/efetch.fcgi", $params);
-
-        if (! $response->ok() || $response->rawBody === '') {
-            return null;
-        }
-
-        $query = new SearchQuery(term: new SearchTerm('fetch'));
-        $results = $this->parser->parseEfetchResponse($response->rawBody, $query);
-
-        return $results[0] ?? null;
-    }
-
-    private function buildSearchTerm(SearchQuery $query): string
-    {
-        $term = $query->term->value;
-        if ($query->yearRange !== null) {
-            $from = $query->yearRange->from ?? 1000;
-            $to = $query->yearRange->to ?? 3000;
-            $term = "({$term}) AND {$from}:{$to}[Date - Publication]";
-        }
-
-        return $term;
     }
 
     protected function normalize(array $raw, SearchQuery $query): ScholarlyWork

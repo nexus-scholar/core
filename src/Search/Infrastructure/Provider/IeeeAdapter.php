@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use Nexus\Search\Application\ProviderExecution\CallbackProviderSearchTask;
+use Nexus\Search\Application\ProviderExecution\ConcurrentSearchProviderPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchTask;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
@@ -30,7 +33,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
  *  - Article number is the IEEE-specific provider ID.
  *  - DOI is a direct field on each article.
  */
-final class IeeeAdapter extends BaseProviderAdapter
+final class IeeeAdapter extends BaseProviderAdapter implements ConcurrentSearchProviderPort
 {
     public function alias(): string
     {
@@ -43,6 +46,42 @@ final class IeeeAdapter extends BaseProviderAdapter
     }
 
     public function search(SearchQuery $query): array
+    {
+        $params = $this->prepareSearchParams($query);
+
+        $response = $this->request("{$this->config->baseUrl}/search/articles", $params);
+
+        if (! $response->ok()) {
+            return [];
+        }
+
+        $items = $this->extractItems($response->body);
+
+        return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+    }
+
+    public function beginSearch(SearchQuery $query): ?ProviderSearchTask
+    {
+        $url = "{$this->config->baseUrl}/search/articles";
+        $params = $this->prepareSearchParams($query);
+        $pending = $this->beginRequest($url, $params);
+
+        if ($pending === null) {
+            return null;
+        }
+
+        return new CallbackProviderSearchTask($this->alias(), function () use ($pending, $url, $params, $query): array {
+            $response = $this->waitForPendingRequest($pending, $url, $params);
+
+            if (! $response->ok()) {
+                return [];
+            }
+
+            return array_map(fn (array $raw) => $this->normalize($raw, $query), $this->extractItems($response->body));
+        });
+    }
+
+    private function prepareSearchParams(SearchQuery $query): array
     {
         if ($this->config->apiKey === null) {
             throw new ProviderUnavailable(
@@ -63,7 +102,6 @@ final class IeeeAdapter extends BaseProviderAdapter
             $this->paginationParams($query),
         );
 
-        // Year range
         if ($query->yearRange !== null) {
             if ($query->yearRange->from !== null) {
                 $params['start_year'] = $query->yearRange->from;
@@ -74,15 +112,7 @@ final class IeeeAdapter extends BaseProviderAdapter
             }
         }
 
-        $response = $this->request("{$this->config->baseUrl}/search/articles", $params);
-
-        if (! $response->ok()) {
-            return [];
-        }
-
-        $items = $this->extractItems($response->body);
-
-        return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+        return $params;
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

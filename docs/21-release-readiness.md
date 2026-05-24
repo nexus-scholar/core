@@ -154,6 +154,7 @@ Never commit real credentials. Provider availability should be controlled throug
 - host-facing usage examples for resolving handlers/readers,
 - provider integration tests isolated from live networks,
 - first boundary hardening by moving shared work/corpus models to `Nexus\Shared\Domain`.
+- optional package-owned concurrent provider search execution, with Guzzle promises confined to infrastructure.
 
 Tagging/publishing remains a separate release task after a clean consumer install smoke.
 
@@ -170,6 +171,6 @@ Tagging/publishing remains a separate release task after a clean consumer instal
 
 Priority order:
 
-1. Add a concrete concurrent `ProviderSearchExecutorPort` implementation if provider fan-out latency becomes a measured bottleneck.
+1. Measure provider fan-out latency from a real host workload and decide whether to make concurrent execution the recommended default.
 2. Extend streaming full-text storage to XML/text artifacts if large non-PDF payloads become common.
 3. Repeat Packagist/package archive review before the next tag.

@@ -13,6 +13,13 @@ return [
 
     'mail_to' => env('NEXUS_MAIL_TO', 'admin@example.com'),
 
+    'search' => [
+        'execution' => [
+            'mode' => env('NEXUS_SEARCH_EXECUTION_MODE', 'sequential'),
+            'concurrency' => env('NEXUS_SEARCH_CONCURRENCY', 3),
+        ],
+    ],
+
     'providers' => [
         'openalex' => [
             'enabled' => env('NEXUS_OPENALEX_ENABLED', true),
