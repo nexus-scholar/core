@@ -71,9 +71,9 @@ All provider adapters must:
 - surface provider failures as meaningful exceptions or result envelopes
 - be testable through recorded fixtures
 
-## Parallelization
+## Provider Execution
 
-The search use case should be designed so providers may be called concurrently where appropriate. The original package conceptually fanned out across providers, but parallel orchestration should be explicit in the redesign to reduce latency.
+The search application contract is synchronous and library-neutral. Provider concurrency is still a valid optimization, but it should be added behind a package-owned executor abstraction rather than exposing Guzzle promises from domain or application ports.
 
 ## Caching Rules
 

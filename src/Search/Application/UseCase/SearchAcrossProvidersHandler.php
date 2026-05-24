@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Nexus\Search\Application\UseCase;
 
 use Nexus\Search\Application\Aggregator\AggregatedResult;
-use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
+use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Shared\Exception\ProjectLockedException;
 use Nexus\Shared\Port\ProjectLockPort;
 
 /**
- * Orchestrates a concurrent search across all active academic providers.
- * Delegates to the SearchAggregator for parallel execution and deduplication.
+ * Orchestrates search across active academic providers.
+ * Delegates provider execution and deduplication to the SearchAggregator.
  */
 final class SearchAcrossProvidersHandler implements SearchExecutorPort
 {

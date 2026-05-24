@@ -114,3 +114,39 @@ it('does not keep runtime logs under package storage', function (): void {
 
     expect($logs)->toBe([]);
 });
+
+it('keeps guzzle promises out of search domain and application contracts', function (): void {
+    $root = dirname(__DIR__, 3).DIRECTORY_SEPARATOR.'src'.DIRECTORY_SEPARATOR.'Search';
+    $paths = [
+        $root.DIRECTORY_SEPARATOR.'Domain',
+        $root.DIRECTORY_SEPARATOR.'Application',
+    ];
+    $blockedPatterns = [
+        'GuzzleHttp\\Promise',
+        'PromiseInterface',
+        'Utils::settle',
+        'searchAsync(',
+        'getAsync(',
+    ];
+    $violations = [];
+
+    foreach ($paths as $path) {
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
+
+        foreach ($files as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $contents = file_get_contents($file->getPathname()) ?: '';
+
+            foreach ($blockedPatterns as $pattern) {
+                if (str_contains($contents, $pattern)) {
+                    $violations[] = str_replace(dirname(__DIR__, 3).DIRECTORY_SEPARATOR, '', $file->getPathname()).' contains '.$pattern;
+                }
+            }
+        }
+    }
+
+    expect($violations)->toBe([]);
+});

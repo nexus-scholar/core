@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Nexus\Dissemination\Application\Dto\FullTextResult;
 use Nexus\Dissemination\Application\UseCase\RetrieveFullText;
 use Nexus\Dissemination\Application\UseCase\RetrieveFullTextHandler;
+use Nexus\Dissemination\Domain\Port\DownloadFileResult;
 use Nexus\Dissemination\Domain\Port\DownloadResult;
 use Nexus\Dissemination\Domain\Port\FileStoragePort;
 use Nexus\Dissemination\Domain\Port\FullTextCandidateSourcePort;
@@ -13,6 +14,8 @@ use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
 use Nexus\Dissemination\Domain\Port\FullTextSourcePort;
 use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
 use Nexus\Dissemination\Domain\Port\PdfFetchRepositoryPort;
+use Nexus\Dissemination\Domain\Port\StreamingFileStoragePort;
+use Nexus\Dissemination\Domain\Port\StreamingPdfDownloaderPort;
 use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 use Tests\Support\PersistenceFactory;
@@ -1185,4 +1188,122 @@ it('rejects invalid XML artifacts and continues to the next source', function ()
         ->and($repository->saved[0]['result']->status->value)->toBe('failure')
         ->and($repository->saved[0]['result']->errorMessage)->toContain('not valid XML')
         ->and($repository->saved[1]['result'])->toBe($result);
+});
+
+it('stores streamed pdf downloads without buffering through string storage', function (): void {
+    $work = PersistenceFactory::makeWork();
+
+    $source = new class implements FullTextSourcePort
+    {
+        public function resolve(ScholarlyWork $work): ?string
+        {
+            return 'https://example.org/streamed.pdf';
+        }
+
+        public function alias(): string
+        {
+            return 'streamed';
+        }
+
+        public function supports(ScholarlyWork $work): bool
+        {
+            return true;
+        }
+    };
+
+    $storage = new class implements FileStoragePort, StreamingFileStoragePort
+    {
+        public array $storedFiles = [];
+
+        public bool $stringStoreCalled = false;
+
+        public function store(string $filename, string $content): string
+        {
+            $this->stringStoreCalled = true;
+
+            throw new RuntimeException('Buffered storage should not be used for streamed PDFs.');
+        }
+
+        public function storeFile(string $filename, string $sourcePath): string
+        {
+            $this->storedFiles[$filename] = (string) file_get_contents($sourcePath);
+
+            return $filename;
+        }
+
+        public function get(string $path): string
+        {
+            return $this->storedFiles[$path] ?? '';
+        }
+
+        public function delete(string $path): void {}
+
+        public function exists(string $path): bool
+        {
+            return array_key_exists($path, $this->storedFiles);
+        }
+
+        public function url(string $path): ?string
+        {
+            return null;
+        }
+    };
+
+    $downloader = new class implements PdfDownloaderPort, StreamingPdfDownloaderPort
+    {
+        public bool $bufferedDownloadCalled = false;
+
+        public function download(string $url): DownloadResult
+        {
+            $this->bufferedDownloadCalled = true;
+
+            throw new RuntimeException('Buffered download should not be used for streamed PDFs.');
+        }
+
+        public function downloadToFile(string $url): DownloadFileResult
+        {
+            $path = tempnam(sys_get_temp_dir(), 'nexus_pdf_');
+            if ($path === false) {
+                throw new RuntimeException('Could not create temporary test PDF.');
+            }
+
+            file_put_contents($path, '%PDF-1.7 streamed-content');
+
+            return new DownloadFileResult($path, 200, 'application/pdf', filesize($path) ?: null);
+        }
+    };
+
+    $repository = new class implements PdfFetchRepositoryPort
+    {
+        public array $saved = [];
+
+        public function save(WorkId $workId, string $sourceUrl, FullTextResult $result, int $durationMs): void
+        {
+            $this->saved[] = compact('workId', 'sourceUrl', 'result', 'durationMs');
+        }
+
+        public function findSuccessfulPath(WorkId $workId): ?string
+        {
+            return null;
+        }
+
+        public function hasRecentFailure(WorkId $workId, string $sourceUrl, DateTimeImmutable $since): bool
+        {
+            return false;
+        }
+    };
+
+    $result = (new RetrieveFullTextHandler(
+        new FullTextSourceCollection($source),
+        $storage,
+        $downloader,
+        $repository,
+    ))->handle(new RetrieveFullText($work, 'pdfs'));
+
+    expect($result->status->value)->toBe('success')
+        ->and($result->metadata['download_mode'] ?? null)->toBe('stream')
+        ->and($storage->stringStoreCalled)->toBeFalse()
+        ->and($downloader->bufferedDownloadCalled)->toBeFalse()
+        ->and($storage->storedFiles[$result->filePath])->toBe('%PDF-1.7 streamed-content')
+        ->and($repository->saved)->toHaveCount(1);
 });

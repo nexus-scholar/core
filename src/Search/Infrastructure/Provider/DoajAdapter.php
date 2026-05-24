@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use GuzzleHttp\Promise\PromiseInterface;
-use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -55,23 +53,6 @@ final class DoajAdapter extends BaseProviderAdapter
         $items = $this->extractItems($response->body);
 
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
-    }
-
-    public function searchAsync(SearchQuery $query): PromiseInterface
-    {
-        $url = $this->buildSearchUrl($query);
-        $params = $this->paginationParams($query);
-
-        return $this->requestAsync($url, $params)
-            ->then(function (HttpResponse $response) use ($query) {
-                if (! $response->ok()) {
-                    return [];
-                }
-
-                $items = $this->extractItems($response->body);
-
-                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
-            });
     }
 
     private function buildSearchUrl(SearchQuery $query): string

@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Domain\Port;
 
+use Nexus\Search\Domain\Exception\ProviderUnavailable;
+
 final class HttpResponse
 {
     public function __construct(
-        public readonly int    $statusCode,
-        public readonly array  $body,
-        public readonly string $rawBody  = '',
-        public readonly array  $headers  = [],
+        public readonly int $statusCode,
+        public readonly array $body,
+        public readonly string $rawBody = '',
+        public readonly array $headers = [],
     ) {}
 
     public function ok(): bool
@@ -52,25 +54,15 @@ interface HttpClientPort
     /**
      * Perform a GET request and return a parsed response.
      *
-     * @param  array<string,mixed>  $query    URL query parameters
-     * @param  array<string,string> $headers  HTTP headers
-     * @throws \Nexus\Search\Domain\Exception\ProviderUnavailable On connection failure after retries
+     * @param  array<string,mixed>  $query  URL query parameters
+     * @param  array<string,string>  $headers  HTTP headers
+     *
+     * @throws ProviderUnavailable On connection failure after retries
      */
     public function get(
         string $url,
-        array  $query   = [],
-        array  $headers = [],
-        ?int   $timeoutSeconds = null,
+        array $query = [],
+        array $headers = [],
+        ?int $timeoutSeconds = null,
     ): HttpResponse;
-
-    /**
-     * Perform an asynchronous GET request.
-     * Returns a promise that resolves to an HttpResponse.
-     */
-    public function getAsync(
-        string $url,
-        array  $query   = [],
-        array  $headers = [],
-        ?int   $timeoutSeconds = null,
-    ): \GuzzleHttp\Promise\PromiseInterface;
 }

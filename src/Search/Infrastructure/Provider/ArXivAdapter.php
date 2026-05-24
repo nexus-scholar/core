@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use GuzzleHttp\Promise\PromiseInterface;
-use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -56,28 +54,6 @@ final class ArXivAdapter extends BaseProviderAdapter
             array_map(fn (array $entry) => $this->normalize($entry, $query), $entries),
             $query,
         );
-    }
-
-    public function searchAsync(SearchQuery $query): PromiseInterface
-    {
-        $params = array_merge(
-            ['search_query' => $this->searchQuery($query)],
-            $this->paginationParams($query),
-        );
-
-        return $this->requestAsync('http://export.arxiv.org/api/query', $params)
-            ->then(function (HttpResponse $response) use ($query) {
-                if (! $response->ok()) {
-                    return [];
-                }
-
-                $entries = $this->parseAtomXml($response->rawBody);
-
-                return $this->filterByYearRange(
-                    array_map(fn (array $entry) => $this->normalize($entry, $query), $entries),
-                    $query,
-                );
-            });
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

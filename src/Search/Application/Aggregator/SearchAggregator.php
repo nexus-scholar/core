@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Application\Aggregator;
 
-use GuzzleHttp\Promise\Utils;
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
 use Nexus\Search\Domain\Port\AdapterCollection;
 use Nexus\Search\Domain\Port\DeduplicationPort;
@@ -67,54 +66,22 @@ final class SearchAggregator implements SearchAggregatorPort
             );
         }
 
-        // 2. Execute parallel search
-        $promises = [];
-        foreach ($activeAdapters as $adapter) {
-            $alias = $adapter->alias();
-            $providerStart = hrtime(true);
-
-            $promises[$alias] = $adapter->searchAsync($query)->then(
-                function ($works) use ($providerStart) {
-                    return [
-                        'success' => true,
-                        'works' => $works,
-                        'ms' => $this->elapsedMs($providerStart),
-                    ];
-                },
-                function (Throwable $e) use ($providerStart) {
-                    return [
-                        'success' => false,
-                        'error' => $e->getMessage(),
-                        'ms' => $this->elapsedMs($providerStart),
-                    ];
-                }
-            );
-        }
-
-        $settled = Utils::settle($promises)->wait();
-
+        // 2. Execute provider search. Concurrency is an infrastructure concern;
+        // the application contract stays synchronous and library-neutral.
         $allWorks = [];
         $stats = [];
 
         foreach ($activeAdapters as $adapter) {
             $alias = $adapter->alias();
-            $result = $settled[$alias]['value'] ?? null; // Since we catch in the promise, state is always fulfilled
+            $providerStart = hrtime(true);
 
-            if ($result === null) {
-                // Should theoretically not happen unless settle is misused
-                $stats[] = new ProviderStat($alias, 0, $this->elapsedMs($startTime), 'Unknown error settling promise');
-
-                continue;
-            }
-
-            if ($result['success']) {
-                $works = $result['works'];
+            try {
+                $works = $adapter->search($query);
                 array_push($allWorks, ...$works);
-                $stats[] = new ProviderStat($alias, count($works), $result['ms']);
-            } else {
-                $error = $result['error'];
-                $stats[] = new ProviderStat($alias, 0, $result['ms'], $error);
-                $this->logger?->warning("Aggregator skipped {$alias}", ['reason' => $error]);
+                $stats[] = new ProviderStat($alias, count($works), $this->elapsedMs($providerStart));
+            } catch (Throwable $e) {
+                $stats[] = new ProviderStat($alias, 0, $this->elapsedMs($providerStart), $e->getMessage());
+                $this->logger?->warning("Aggregator skipped {$alias}", ['reason' => $e->getMessage()]);
             }
         }
 

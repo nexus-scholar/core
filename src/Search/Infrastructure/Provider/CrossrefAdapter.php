@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
-use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
-use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -66,44 +64,6 @@ final class CrossrefAdapter extends BaseProviderAdapter implements SnowballingPr
         $items = $this->extractItems($response->body);
 
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
-    }
-
-    public function searchAsync(SearchQuery $query): PromiseInterface
-    {
-        $params = array_merge(
-            [
-                'query' => $query->term->value,
-                'mailto' => $this->config->mailTo ?? '',
-            ],
-            $this->paginationParams($query),
-        );
-
-        if ($query->yearRange !== null) {
-            $filters = [];
-
-            if ($query->yearRange->from !== null) {
-                $filters[] = "from-pub-date:{$query->yearRange->from}";
-            }
-
-            if ($query->yearRange->to !== null) {
-                $filters[] = "until-pub-date:{$query->yearRange->to}";
-            }
-
-            if ($filters !== []) {
-                $params['filter'] = implode(',', $filters);
-            }
-        }
-
-        return $this->requestAsync("{$this->config->baseUrl}/works", $params)
-            ->then(function (HttpResponse $response) use ($query) {
-                if (! $response->ok()) {
-                    return [];
-                }
-
-                $items = $this->extractItems($response->body);
-
-                return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
-            });
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

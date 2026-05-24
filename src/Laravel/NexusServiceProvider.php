@@ -283,6 +283,8 @@ final class NexusServiceProvider extends ServiceProvider
                 timeoutSeconds: (int) ($config['timeout'] ?? 45),
                 referer: isset($openRouter['referer']) ? (string) $openRouter['referer'] : null,
                 appName: isset($openRouter['app_name']) ? (string) $openRouter['app_name'] : 'Nexus Scholar',
+                maxRetries: max(1, (int) ($config['max_retries'] ?? 2)),
+                initialRetryDelayMs: max(0, (int) ($config['retry_initial_delay_ms'] ?? 500)),
             );
         });
         $this->app->singleton(ScreenWorkHandler::class, function ($app) {
