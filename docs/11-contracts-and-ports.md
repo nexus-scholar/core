@@ -50,7 +50,18 @@ Responsibilities:
 - isolate execution strategy from `SearchAggregator`
 - keep optional concurrent fan-out behind a package-owned contract
 
-The default implementation is sequential. Future concurrent implementations must not leak Guzzle promises or other client-specific async types through this port.
+Implementations:
+- `SequentialProviderSearchExecutor`: default, preserves current provider execution order.
+- `ConcurrentProviderSearchExecutor`: optional bounded fan-out for providers that implement `ConcurrentSearchProviderPort`.
+
+The concurrent executor sees only package-owned `ProviderSearchTask` objects. Guzzle promises and async HTTP details are confined to infrastructure.
+
+Laravel configuration:
+
+```text
+NEXUS_SEARCH_EXECUTION_MODE=sequential|concurrent
+NEXUS_SEARCH_CONCURRENCY=3
+```
 
 ## Deduplication Ports
 

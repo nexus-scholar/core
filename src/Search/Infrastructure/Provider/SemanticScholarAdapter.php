@@ -6,6 +6,9 @@ namespace Nexus\Search\Infrastructure\Provider;
 
 use Nexus\CitationNetwork\Domain\Port\SnowballingProviderPort;
 use Nexus\CitationNetwork\Domain\SnowballDirection;
+use Nexus\Search\Application\ProviderExecution\CallbackProviderSearchTask;
+use Nexus\Search\Application\ProviderExecution\ConcurrentSearchProviderPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchTask;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
@@ -27,7 +30,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
  * Learned from old package: S2 bulk endpoint requires translating boolean
  * operators and uses a continuation "token" instead of offset pagination.
  */
-final class SemanticScholarAdapter extends BaseProviderAdapter implements SnowballingProviderPort
+final class SemanticScholarAdapter extends BaseProviderAdapter implements ConcurrentSearchProviderPort, SnowballingProviderPort
 {
     private const FIELDS = 'paperId,externalIds,title,abstract,year,venue,authors,citationCount,isOpenAccess';
 
@@ -48,30 +51,8 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
 
     public function search(SearchQuery $query): array
     {
-        $params = [
-            'query' => $this->toBulkQuery($query->term->value),
-            'fields' => self::FIELDS,
-        ];
-
-        // Year range filter (S2 bulk supports "2020-2024" syntax)
-        if ($query->yearRange !== null) {
-            $from = $query->yearRange->from;
-            $to = $query->yearRange->to;
-
-            if ($from !== null && $to !== null) {
-                $params['year'] = "{$from}-{$to}";
-            } elseif ($from !== null) {
-                $params['year'] = "{$from}-";
-            } elseif ($to !== null) {
-                $params['year'] = "-{$to}";
-            }
-        }
-
-        $headers = [];
-
-        if ($this->config->apiKey !== null) {
-            $headers['x-api-key'] = $this->config->apiKey;
-        }
+        $params = $this->prepareSearchParams($query);
+        $headers = $this->requestHeaders();
 
         // Bulk endpoint with continuation-token pagination
         $collected = [];
@@ -123,6 +104,93 @@ final class SemanticScholarAdapter extends BaseProviderAdapter implements Snowba
         }
 
         return $collected;
+    }
+
+    public function beginSearch(SearchQuery $query): ?ProviderSearchTask
+    {
+        $url = "{$this->config->baseUrl}/graph/v1/paper/search/bulk";
+        $params = $this->prepareSearchParams($query);
+        $headers = $this->requestHeaders();
+        $pending = $this->beginRequest($url, $params, $headers);
+
+        if ($pending === null) {
+            return null;
+        }
+
+        return new CallbackProviderSearchTask($this->alias(), function () use ($pending, $url, $params, $headers, $query): array {
+            $collected = [];
+            $maxResults = $query->maxResults;
+
+            try {
+                $response = $this->waitForPendingRequest($pending, $url, $params, $headers);
+
+                if (! $response->ok()) {
+                    return [];
+                }
+
+                foreach ($this->extractItems($response->body) as $raw) {
+                    if (count($collected) >= $maxResults) {
+                        return $collected;
+                    }
+
+                    $collected[] = $this->normalize($raw, $query);
+                }
+
+                $token = $response->body['token'] ?? null;
+                while ($token !== null && count($collected) < $maxResults) {
+                    $requestParams = $params;
+                    $requestParams['token'] = $token;
+                    $response = $this->request($url, $requestParams, $headers);
+
+                    if (! $response->ok()) {
+                        break;
+                    }
+
+                    $items = $this->extractItems($response->body);
+
+                    if ($items === []) {
+                        break;
+                    }
+
+                    foreach ($items as $raw) {
+                        if (count($collected) >= $maxResults) {
+                            break 2;
+                        }
+
+                        $collected[] = $this->normalize($raw, $query);
+                    }
+
+                    $token = $response->body['token'] ?? null;
+                }
+            } catch (ProviderUnavailable) {
+                return $collected;
+            }
+
+            return $collected;
+        });
+    }
+
+    private function prepareSearchParams(SearchQuery $query): array
+    {
+        $params = [
+            'query' => $this->toBulkQuery($query->term->value),
+            'fields' => self::FIELDS,
+        ];
+
+        if ($query->yearRange !== null) {
+            $from = $query->yearRange->from;
+            $to = $query->yearRange->to;
+
+            if ($from !== null && $to !== null) {
+                $params['year'] = "{$from}-{$to}";
+            } elseif ($from !== null) {
+                $params['year'] = "{$from}-";
+            } elseif ($to !== null) {
+                $params['year'] = "-{$to}";
+            }
+        }
+
+        return $params;
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

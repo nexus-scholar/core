@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use Nexus\Search\Application\ProviderExecution\CallbackProviderSearchTask;
+use Nexus\Search\Application\ProviderExecution\ConcurrentSearchProviderPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchTask;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -23,7 +26,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
  *  - Rate: 3 req/sec.
  *  - Does NOT support snowballing (no citation data).
  */
-final class ArXivAdapter extends BaseProviderAdapter
+final class ArXivAdapter extends BaseProviderAdapter implements ConcurrentSearchProviderPort
 {
     public function alias(): string
     {
@@ -54,6 +57,33 @@ final class ArXivAdapter extends BaseProviderAdapter
             array_map(fn (array $entry) => $this->normalize($entry, $query), $entries),
             $query,
         );
+    }
+
+    public function beginSearch(SearchQuery $query): ?ProviderSearchTask
+    {
+        $url = 'http://export.arxiv.org/api/query';
+        $params = array_merge(
+            ['search_query' => $this->searchQuery($query)],
+            $this->paginationParams($query),
+        );
+        $pending = $this->beginRequest($url, $params);
+
+        if ($pending === null) {
+            return null;
+        }
+
+        return new CallbackProviderSearchTask($this->alias(), function () use ($pending, $url, $params, $query): array {
+            $response = $this->waitForPendingRequest($pending, $url, $params);
+
+            if (! $response->ok()) {
+                return [];
+            }
+
+            return $this->filterByYearRange(
+                array_map(fn (array $entry) => $this->normalize($entry, $query), $this->parseAtomXml($response->rawBody)),
+                $query,
+            );
+        });
     }
 
     public function fetchById(WorkId $id): ?ScholarlyWork

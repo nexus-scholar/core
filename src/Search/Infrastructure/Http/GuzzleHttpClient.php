@@ -7,12 +7,14 @@ namespace Nexus\Search\Infrastructure\Http;
 use Composer\CaBundle\CaBundle;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Promise\PromiseInterface;
 use Nexus\Search\Domain\Exception\ProviderUnavailable;
 use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
 use Psr\Http\Message\ResponseInterface;
+use Throwable;
 
-final class GuzzleHttpClient implements HttpClientPort
+final class GuzzleHttpClient implements AsyncHttpClientPort, HttpClientPort
 {
     public function __construct(
         private readonly Client $guzzle,
@@ -49,6 +51,20 @@ final class GuzzleHttpClient implements HttpClientPort
                 previous: $e,
             );
         }
+    }
+
+    public function getAsync(
+        string $url,
+        array $query = [],
+        array $headers = [],
+        ?int $timeoutSeconds = null,
+    ): PendingHttpResponse {
+        $options = $this->prepareOptions($query, $headers, $timeoutSeconds);
+
+        return new GuzzlePendingHttpResponse(
+            $this->guzzle->getAsync($url, $options),
+            fn (ResponseInterface $response): HttpResponse => $this->mapResponse($response),
+        );
     }
 
     private function prepareOptions(array $query, array $headers, ?int $timeoutSeconds): array
@@ -98,5 +114,44 @@ final class GuzzleHttpClient implements HttpClientPort
             rawBody: $rawBody,
             headers: $responseHeaders,
         );
+    }
+}
+
+final readonly class GuzzlePendingHttpResponse implements PendingHttpResponse
+{
+    /**
+     * @param  \Closure(ResponseInterface): HttpResponse  $mapper
+     */
+    public function __construct(
+        private PromiseInterface $promise,
+        private \Closure $mapper,
+    ) {}
+
+    public function wait(): HttpResponse
+    {
+        try {
+            $response = $this->promise->wait();
+        } catch (GuzzleException $e) {
+            throw new ProviderUnavailable(
+                providerAlias: 'http',
+                reason: $e->getMessage(),
+                previous: $e,
+            );
+        } catch (Throwable $e) {
+            throw new ProviderUnavailable(
+                providerAlias: 'http',
+                reason: $e->getMessage(),
+                previous: $e,
+            );
+        }
+
+        if (! $response instanceof ResponseInterface) {
+            throw new ProviderUnavailable(
+                providerAlias: 'http',
+                reason: 'HTTP client returned an invalid async response.',
+            );
+        }
+
+        return ($this->mapper)($response);
     }
 }

@@ -10,6 +10,8 @@ use Nexus\Search\Domain\Port\HttpClientPort;
 use Nexus\Search\Domain\Port\HttpResponse;
 use Nexus\Search\Domain\Port\RateLimiterPort;
 use Nexus\Search\Domain\SearchQuery;
+use Nexus\Search\Infrastructure\Http\AsyncHttpClientPort;
+use Nexus\Search\Infrastructure\Http\PendingHttpResponse;
 use Nexus\Shared\Domain\ScholarlyWork;
 use Psr\Log\LoggerInterface;
 
@@ -108,6 +110,114 @@ abstract class BaseProviderAdapter implements AcademicProviderPort
 
             return $response;
         }
+    }
+
+    /**
+     * Start an HTTP request without waiting for the response.
+     *
+     * Returns null when the configured HTTP client cannot perform async work,
+     * allowing the caller to fall back to the synchronous search path.
+     */
+    final protected function beginRequest(
+        string $url,
+        array $query = [],
+        array $headers = [],
+    ): ?PendingHttpResponse {
+        if (! $this->http instanceof AsyncHttpClientPort) {
+            return null;
+        }
+
+        $this->rateLimiter->waitForToken();
+
+        return $this->http->getAsync($url, $query, $headers, $this->config->timeoutSeconds);
+    }
+
+    final protected function waitForPendingRequest(
+        PendingHttpResponse $pending,
+        string $url,
+        array $query = [],
+        array $headers = [],
+    ): HttpResponse {
+        $attempt = 0;
+        $backoff = 1;
+
+        while (true) {
+            try {
+                $response = $pending->wait();
+            } catch (ProviderUnavailable $e) {
+                $attempt++;
+
+                $this->logger?->warning("Provider {$this->alias()} unavailable: {$e->getMessage()}", [
+                    'url' => $url,
+                    'attempt' => $attempt,
+                ]);
+
+                if ($attempt >= $this->config->maxRetries) {
+                    $this->logger?->error("Provider {$this->alias()} failed permanently after {$attempt} attempts.", [
+                        'url' => $url,
+                        'exception' => $e,
+                    ]);
+                    throw $e;
+                }
+
+                $pending = $this->retryPendingRequest($url, $query, $headers, $backoff);
+                $backoff *= 2;
+
+                continue;
+            }
+
+            if ($response->statusCode === 401
+                || $response->statusCode === 403
+                || $response->statusCode === 404) {
+                return $response;
+            }
+
+            if ($response->rateLimited() || $response->serverError()) {
+                $attempt++;
+
+                $this->logger?->warning("Provider {$this->alias()} rate limited or server error", [
+                    'status' => $response->statusCode,
+                    'url' => $url,
+                    'attempt' => $attempt,
+                ]);
+
+                if ($attempt >= $this->config->maxRetries) {
+                    $this->logger?->error("Provider {$this->alias()} failed permanently after {$attempt} attempts with status {$response->statusCode}.");
+                    throw new ProviderUnavailable(
+                        $this->alias(),
+                        "HTTP {$response->statusCode} after {$attempt} attempt(s)."
+                    );
+                }
+
+                $pending = $this->retryPendingRequest($url, $query, $headers, $backoff);
+                $backoff *= 2;
+
+                continue;
+            }
+
+            return $response;
+        }
+    }
+
+    private function retryPendingRequest(
+        string $url,
+        array $query,
+        array $headers,
+        int $backoff,
+    ): PendingHttpResponse {
+        $jitter = (random_int(0, 1000) / 1000.0);
+        ($this->sleeper ?? static fn (float $s) => usleep((int) ($s * 1_000_000)))($backoff + $jitter);
+
+        $pending = $this->beginRequest($url, $query, $headers);
+
+        if ($pending === null) {
+            throw new ProviderUnavailable(
+                $this->alias(),
+                'Async retry requested but the HTTP client no longer supports async requests.'
+            );
+        }
+
+        return $pending;
     }
 
     /**

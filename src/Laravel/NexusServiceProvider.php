@@ -105,6 +105,7 @@ use Nexus\Search\Application\Plan\SearchPlanParserPort;
 use Nexus\Search\Application\Plan\SearchPlanRunner;
 use Nexus\Search\Application\Port\SearchExecutorPort;
 use Nexus\Search\Application\Port\SearchRunRecorderPort;
+use Nexus\Search\Application\ProviderExecution\ConcurrentProviderSearchExecutor;
 use Nexus\Search\Application\ProviderExecution\ProviderSearchExecutorPort;
 use Nexus\Search\Application\ProviderExecution\SequentialProviderSearchExecutor;
 use Nexus\Search\Application\UseCase\PersistentSearchRunner;
@@ -371,6 +372,16 @@ final class NexusServiceProvider extends ServiceProvider
         // Search Aggregator
         $this->app->singleton(ProviderSearchExecutorPort::class, function ($app) {
             $logger = $app->bound(LoggerInterface::class) ? $app->make(LoggerInterface::class) : null;
+            $config = $app['config']->get('nexus.search.execution', []);
+            $config = is_array($config) ? $config : [];
+            $mode = strtolower((string) ($config['mode'] ?? 'sequential'));
+
+            if ($mode === 'concurrent') {
+                return new ConcurrentProviderSearchExecutor(
+                    $logger,
+                    $this->configInt($config['concurrency'] ?? 3, 1, 20),
+                );
+            }
 
             return new SequentialProviderSearchExecutor($logger);
         });
@@ -693,6 +704,17 @@ final class NexusServiceProvider extends ServiceProvider
         }
 
         return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $default;
+    }
+
+    private function configInt(mixed $value, int $min, int $max): int
+    {
+        $int = filter_var($value, FILTER_VALIDATE_INT);
+
+        if (! is_int($int)) {
+            return $min;
+        }
+
+        return max($min, min($max, $int));
     }
 
     private function fullTextRateLimiterFor(

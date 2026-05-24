@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nexus\Search\Infrastructure\Provider;
 
+use Nexus\Search\Application\ProviderExecution\CallbackProviderSearchTask;
+use Nexus\Search\Application\ProviderExecution\ConcurrentSearchProviderPort;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchTask;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Search\Domain\SearchTerm;
 use Nexus\Shared\Domain\ScholarlyWork;
@@ -27,7 +30,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
  *  - DOI is found in bibjson.identifier[] with type "doi".
  *  - Author names may be in "Family, Given" or "Given Family" format.
  */
-final class DoajAdapter extends BaseProviderAdapter
+final class DoajAdapter extends BaseProviderAdapter implements ConcurrentSearchProviderPort
 {
     public function alias(): string
     {
@@ -53,6 +56,27 @@ final class DoajAdapter extends BaseProviderAdapter
         $items = $this->extractItems($response->body);
 
         return array_map(fn (array $raw) => $this->normalize($raw, $query), $items);
+    }
+
+    public function beginSearch(SearchQuery $query): ?ProviderSearchTask
+    {
+        $url = $this->buildSearchUrl($query);
+        $params = $this->paginationParams($query);
+        $pending = $this->beginRequest($url, $params);
+
+        if ($pending === null) {
+            return null;
+        }
+
+        return new CallbackProviderSearchTask($this->alias(), function () use ($pending, $url, $params, $query): array {
+            $response = $this->waitForPendingRequest($pending, $url, $params);
+
+            if (! $response->ok()) {
+                return [];
+            }
+
+            return array_map(fn (array $raw) => $this->normalize($raw, $query), $this->extractItems($response->body));
+        });
     }
 
     private function buildSearchUrl(SearchQuery $query): string

@@ -46,6 +46,7 @@ use Nexus\Screening\Application\UseCase\ScreenWorkHandler;
 use Nexus\Screening\Domain\CouncilDecisionAggregator;
 use Nexus\Screening\Infrastructure\Llm\DisabledLlmClient;
 use Nexus\Screening\Infrastructure\Prompt\DefaultScreeningPromptRenderer;
+use Nexus\Search\Application\ProviderExecution\ConcurrentProviderSearchExecutor;
 use Nexus\Search\Application\ProviderExecution\ProviderSearchExecutorPort;
 use Nexus\Search\Application\ProviderExecution\SequentialProviderSearchExecutor;
 use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
@@ -123,6 +124,17 @@ it('binds the default sql-backed job lifecycle recorder', function (): void {
 
 it('binds the package-owned provider search executor', function (): void {
     expect(app(ProviderSearchExecutorPort::class))->toBeInstanceOf(SequentialProviderSearchExecutor::class);
+});
+
+it('binds the concurrent provider search executor when configured', function (): void {
+    app()->forgetInstance(ProviderSearchExecutorPort::class);
+    config()->set('nexus.search.execution.mode', 'concurrent');
+    config()->set('nexus.search.execution.concurrency', 4);
+
+    expect(app(ProviderSearchExecutorPort::class))->toBeInstanceOf(ConcurrentProviderSearchExecutor::class);
+
+    config()->set('nexus.search.execution.mode', 'sequential');
+    app()->forgetInstance(ProviderSearchExecutorPort::class);
 });
 
 it('binds host read-side APIs', function (): void {
