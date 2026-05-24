@@ -7,12 +7,10 @@ namespace Nexus\Deduplication\Application;
 use Nexus\Deduplication\Domain\DedupCluster;
 use Nexus\Deduplication\Domain\DedupClusterCollection;
 use Nexus\Deduplication\Domain\Duplicate;
-use Nexus\Deduplication\Domain\DuplicateReason;
 use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
 use Nexus\Deduplication\Domain\Port\RepresentativeElectionPort;
 use Nexus\Deduplication\Infrastructure\UnionFind;
 use Nexus\Shared\Application\CorpusLockPolicy;
-use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\CorpusOperation;
 
 /**
@@ -70,7 +68,8 @@ final class DeduplicateCorpusHandler
 
         // Run policies
         $policyStats = [];
-        $duplicatesByPair = []; // "primaryKey|secondaryKey" => true  (deduplication guard)
+        $evidenceByPair = []; // canonical "primaryKey|secondaryKey" => Duplicate
+        $evidenceGraph = []; // primaryKey => [secondaryKey => Duplicate]
 
         foreach ($policies as $policy) {
             $found = $policy->detect($works);
@@ -79,20 +78,21 @@ final class DeduplicateCorpusHandler
             foreach ($found as $duplicate) {
                 $primaryKey = $duplicate->primaryId->toString();
                 $secondaryKey = $duplicate->secondaryId->toString();
-                $pairKey = $primaryKey.'|'.$secondaryKey;
-                $pairKeyRev = $secondaryKey.'|'.$primaryKey;
-
-                // Skip already-paired works (from higher-priority policies)
-                if (isset($duplicatesByPair[$pairKey]) || isset($duplicatesByPair[$pairKeyRev])) {
-                    continue;
-                }
-
                 if (! isset($keyMap[$primaryKey]) || ! isset($keyMap[$secondaryKey])) {
                     continue;
                 }
 
+                $pairKey = $this->pairKey($primaryKey, $secondaryKey);
+
+                // Skip already-paired works (from higher-priority policies)
+                if (isset($evidenceByPair[$pairKey])) {
+                    continue;
+                }
+
                 $uf->union($primaryKey, $secondaryKey);
-                $duplicatesByPair[$pairKey] = true;
+                $evidenceByPair[$pairKey] = $duplicate;
+                $evidenceGraph[$primaryKey][$secondaryKey] = $duplicate;
+                $evidenceGraph[$secondaryKey][$primaryKey] = $duplicate;
                 $count++;
             }
 
@@ -116,14 +116,12 @@ final class DeduplicateCorpusHandler
 
             $cluster = DedupCluster::startWith($keyMap[$seedKey], $command->projectId);
 
-            // Re-absorb with evidence for each non-seed member
-            foreach (array_slice($memberKeys, 1) as $memberKey) {
+            // Re-absorb members by walking the stored pair evidence that created the group.
+            foreach ($this->evidenceForGroup($memberKeys, $evidenceGraph) as [$memberKey, $evidence]) {
                 if (! isset($keyMap[$memberKey])) {
                     continue;
                 }
 
-                // Find the Duplicate evidence for this pair (best-effort)
-                $evidence = $this->findEvidence($keyMap[$seedKey], $keyMap[$memberKey], $policies, $works);
                 $cluster->absorb($keyMap[$memberKey], $evidence);
             }
 
@@ -146,37 +144,6 @@ final class DeduplicateCorpusHandler
     }
 
     /**
-     * Try to recover the Duplicate evidence for a pair from already-run policies.
-     * Falls back to a synthetic fingerprint Duplicate if not found.
-     */
-    private function findEvidence(
-        ScholarlyWork $primary,
-        ScholarlyWork $secondary,
-        array $policies,
-        array $works,
-    ): Duplicate {
-        foreach ($policies as $policy) {
-            $found = $policy->detect([$primary, $secondary]);
-
-            foreach ($found as $dup) {
-                if (($dup->primaryId->equals($primary->primaryId() ?? $dup->primaryId))
-                    || ($dup->secondaryId->equals($secondary->primaryId() ?? $dup->secondaryId))
-                ) {
-                    return $dup;
-                }
-            }
-        }
-
-        // Synthetic fallback
-        return new Duplicate(
-            primaryId: $primary->primaryId() ?? $secondary->primaryId(),
-            secondaryId: $secondary->primaryId() ?? $primary->primaryId(),
-            reason: DuplicateReason::FINGERPRINT,
-            confidence: 0.85,
-        );
-    }
-
-    /**
      * @param  string[]  $aliases  empty = all
      * @return DeduplicationPolicyPort[]
      */
@@ -190,5 +157,51 @@ final class DeduplicateCorpusHandler
             $this->policies,
             fn (DeduplicationPolicyPort $p) => in_array($p->name(), $aliases, true),
         ));
+    }
+
+    private function pairKey(string $firstKey, string $secondKey): string
+    {
+        if ($firstKey > $secondKey) {
+            [$firstKey, $secondKey] = [$secondKey, $firstKey];
+        }
+
+        return $firstKey.'|'.$secondKey;
+    }
+
+    /**
+     * @param  string[]  $memberKeys
+     * @param  array<string, array<string, Duplicate>>  $evidenceGraph
+     * @return array<int, array{0: string, 1: Duplicate}>
+     */
+    private function evidenceForGroup(array $memberKeys, array $evidenceGraph): array
+    {
+        if (count($memberKeys) < 2) {
+            return [];
+        }
+
+        $memberLookup = array_fill_keys($memberKeys, true);
+        $absorbed = [$memberKeys[0] => true];
+        $queue = [$memberKeys[0]];
+        $absorptions = [];
+
+        for ($cursor = 0; $cursor < count($queue); $cursor++) {
+            $fromKey = $queue[$cursor];
+
+            foreach ($evidenceGraph[$fromKey] ?? [] as $toKey => $evidence) {
+                if (! isset($memberLookup[$toKey]) || isset($absorbed[$toKey])) {
+                    continue;
+                }
+
+                $absorbed[$toKey] = true;
+                $queue[] = $toKey;
+                $absorptions[] = [$toKey, $evidence];
+            }
+        }
+
+        if (count($absorbed) !== count($memberKeys)) {
+            throw new \LogicException('Cannot assemble dedup cluster because recorded evidence does not connect every member.');
+        }
+
+        return $absorptions;
     }
 }

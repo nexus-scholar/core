@@ -20,7 +20,7 @@ final class UnionFind
     {
         if (! array_key_exists($id, $this->parent)) {
             $this->parent[$id] = $id;
-            $this->rank[$id]   = 0;
+            $this->rank[$id] = 0;
         }
     }
 
@@ -29,6 +29,10 @@ final class UnionFind
      */
     public function find(string $id): string
     {
+        if (! array_key_exists($id, $this->parent)) {
+            throw new \InvalidArgumentException("Unknown UnionFind id: {$id}");
+        }
+
         if ($this->parent[$id] !== $id) {
             $this->parent[$id] = $this->find($this->parent[$id]); // path compression
         }
@@ -67,7 +71,7 @@ final class UnionFind
      * Return all groups as an array of arrays.
      * Each inner array contains the string IDs of a group.
      *
-     * @return array<string, string[]>  root => members[]
+     * @return array<string, string[]> root => members[]
      */
     public function groups(): array
     {
@@ -86,7 +90,7 @@ final class UnionFind
      */
     public function groupOf(string $id): array
     {
-        $root   = $this->find($id);
+        $root = $this->find($id);
         $result = [];
 
         foreach (array_keys($this->parent) as $member) {

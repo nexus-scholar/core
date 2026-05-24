@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Nexus\Deduplication\Infrastructure\UnionFind;
 
 it('groups_transitively_connected_ids', function (): void {
-    $uf = new UnionFind();
+    $uf = new UnionFind;
     $uf->makeSet('a');
     $uf->makeSet('b');
     $uf->makeSet('c');
@@ -16,7 +16,7 @@ it('groups_transitively_connected_ids', function (): void {
 });
 
 it('finds_root_with_path_compression', function (): void {
-    $uf = new UnionFind();
+    $uf = new UnionFind;
     foreach (['a', 'b', 'c', 'd'] as $id) {
         $uf->makeSet($id);
     }
@@ -26,12 +26,12 @@ it('finds_root_with_path_compression', function (): void {
 
     // After find, path compression should flatten the tree
     $rootBefore = $uf->find('d');
-    $rootAfter  = $uf->find('d');
+    $rootAfter = $uf->find('d');
     expect($rootBefore)->toBe($rootAfter);
 });
 
 it('unions_by_rank', function (): void {
-    $uf = new UnionFind();
+    $uf = new UnionFind;
     $uf->makeSet('a');
     $uf->makeSet('b');
     $uf->union('a', 'b');
@@ -39,7 +39,7 @@ it('unions_by_rank', function (): void {
 });
 
 it('returns_correct_groups', function (): void {
-    $uf = new UnionFind();
+    $uf = new UnionFind;
     foreach (['a', 'b', 'c', 'd', 'e'] as $id) {
         $uf->makeSet($id);
     }
@@ -52,7 +52,7 @@ it('returns_correct_groups', function (): void {
 });
 
 it('handles_single_element_clusters', function (): void {
-    $uf = new UnionFind();
+    $uf = new UnionFind;
     $uf->makeSet('solo');
 
     $groups = $uf->groups();
@@ -61,9 +61,17 @@ it('handles_single_element_clusters', function (): void {
 });
 
 it('does_not_connect_disjoint_sets', function (): void {
-    $uf = new UnionFind();
+    $uf = new UnionFind;
     $uf->makeSet('x');
     $uf->makeSet('y');
 
     expect($uf->connected('x', 'y'))->toBeFalse();
+});
+
+it('throws_when_finding_an_unknown_id', function (): void {
+    $uf = new UnionFind;
+    $uf->makeSet('known');
+
+    expect(fn () => $uf->find('missing'))
+        ->toThrow(InvalidArgumentException::class, 'Unknown UnionFind id: missing');
 });

@@ -8,6 +8,7 @@ use Nexus\Deduplication\Domain\DedupCluster;
 use Nexus\Deduplication\Domain\DedupClusterCollection;
 use Nexus\Deduplication\Domain\Duplicate;
 use Nexus\Deduplication\Domain\DuplicateReason;
+use Nexus\Deduplication\Domain\Port\DeduplicationPolicyPort;
 use Nexus\Deduplication\Infrastructure\CompletenessElectionPolicy;
 use Nexus\Deduplication\Infrastructure\DoiMatchPolicy;
 use Nexus\Deduplication\Infrastructure\FingerprintPolicy;
@@ -277,6 +278,78 @@ it('clusters_transitively_via_union_find', function (): void {
     expect($result->uniqueCount)->toBeLessThan(3);
 });
 
+it('preserves direct evidence for transitively absorbed cluster members', function (): void {
+    $a = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([
+            new WorkId(WorkIdNamespace::OPENALEX, 'W-A'),
+            new WorkId(WorkIdNamespace::ARXIV, '2301.11111'),
+        ]),
+        title: 'Alpha title',
+        sourceProvider: 'openalex',
+    );
+    $b = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([
+            new WorkId(WorkIdNamespace::OPENALEX, 'W-B'),
+            new WorkId(WorkIdNamespace::ARXIV, '2301.11111'),
+            new WorkId(WorkIdNamespace::S2, 'S2-CHAIN'),
+        ]),
+        title: 'Bridge title',
+        sourceProvider: 'semantic_scholar',
+    );
+    $c = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([
+            new WorkId(WorkIdNamespace::OPENALEX, 'W-C'),
+            new WorkId(WorkIdNamespace::S2, 'S2-CHAIN'),
+        ]),
+        title: 'Gamma title',
+        sourceProvider: 'semantic_scholar',
+    );
+
+    $result = makeHandler([new NamespaceMatchPolicy(WorkIdNamespace::S2)])
+        ->handle(new DeduplicateCorpus(CorpusSlice::fromWorksUnsafe($a, $b, $c)));
+
+    $cluster = $result->clusters->all()[0];
+    $reasons = array_map(
+        fn (Duplicate $evidence): DuplicateReason => $evidence->reason,
+        $cluster->duplicateEvidence(),
+    );
+
+    expect($cluster->size())->toBe(3);
+    expect($reasons)->toContain(DuplicateReason::ARXIV_MATCH);
+    expect($reasons)->toContain(DuplicateReason::S2_MATCH);
+    expect($reasons)->not->toContain(DuplicateReason::FINGERPRINT);
+});
+
+it('runs each deduplication policy once while assembling clusters', function (): void {
+    $a = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::OPENALEX, 'W-COUNT-A')]),
+        title: 'Count A',
+        sourceProvider: 'fixture',
+    );
+    $b = ScholarlyWork::reconstitute(
+        ids: WorkIdSet::fromArray([new WorkId(WorkIdNamespace::OPENALEX, 'W-COUNT-B')]),
+        title: 'Count B',
+        sourceProvider: 'fixture',
+    );
+    $policy = new CountingDeduplicationPolicy([
+        new Duplicate(
+            primaryId: $a->primaryId(),
+            secondaryId: $b->primaryId(),
+            reason: DuplicateReason::OPENALEX_MATCH,
+            confidence: 1.0,
+        ),
+    ]);
+    $handler = new DeduplicateCorpusHandler(
+        policies: [$policy],
+        electionPolicy: new CompletenessElectionPolicy,
+    );
+
+    $result = $handler->handle(new DeduplicateCorpus(CorpusSlice::fromWorksUnsafe($a, $b)));
+
+    expect($result->uniqueCount)->toBe(1);
+    expect($policy->detectCalls)->toBe(1);
+});
+
 final class DedupTestLocks implements ProjectLockPort
 {
     /**
@@ -295,6 +368,28 @@ final class DedupTestMembership implements ProjectWorkMembershipPort
     public function missingWorkIds(string $projectId, array $workIds): array
     {
         return [];
+    }
+}
+
+final class CountingDeduplicationPolicy implements DeduplicationPolicyPort
+{
+    public int $detectCalls = 0;
+
+    /**
+     * @param  Duplicate[]  $duplicates
+     */
+    public function __construct(private readonly array $duplicates) {}
+
+    public function name(): string
+    {
+        return 'counting';
+    }
+
+    public function detect(array $works): array
+    {
+        $this->detectCalls++;
+
+        return $this->duplicates;
     }
 }
 
