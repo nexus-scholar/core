@@ -43,6 +43,15 @@ Responsibilities:
 
 Do not copy the old “flush an untagged cache namespace” mistake. [Code Review](old-nexus-review/nexus-php-code-review.md)
 
+### ProviderSearchExecutorPort
+Responsibilities:
+- execute a query against a selected immutable provider list
+- return normalized provider results and `ProviderStat` records
+- isolate execution strategy from `SearchAggregator`
+- keep optional concurrent fan-out behind a package-owned contract
+
+The default implementation is sequential. Future concurrent implementations must not leak Guzzle promises or other client-specific async types through this port.
+
 ## Deduplication Ports
 
 ### DeduplicationPolicyPort

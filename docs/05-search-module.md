@@ -73,7 +73,9 @@ All provider adapters must:
 
 ## Provider Execution
 
-The search application contract is synchronous and library-neutral. Provider concurrency is still a valid optimization, but it should be added behind a package-owned executor abstraction rather than exposing Guzzle promises from domain or application ports.
+The search application contract is synchronous and library-neutral. Provider execution is delegated to `ProviderSearchExecutorPort`; the default `SequentialProviderSearchExecutor` preserves current behavior while keeping fan-out strategy out of `SearchAggregator`.
+
+If concurrent provider fan-out is added, it must be implemented behind this package-owned executor boundary. Do not expose Guzzle promises, raw async clients, or provider-specific concurrency primitives through domain or application contracts.
 
 ## Caching Rules
 

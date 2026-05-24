@@ -46,6 +46,8 @@ use Nexus\Screening\Application\UseCase\ScreenWorkHandler;
 use Nexus\Screening\Domain\CouncilDecisionAggregator;
 use Nexus\Screening\Infrastructure\Llm\DisabledLlmClient;
 use Nexus\Screening\Infrastructure\Prompt\DefaultScreeningPromptRenderer;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchExecutorPort;
+use Nexus\Search\Application\ProviderExecution\SequentialProviderSearchExecutor;
 use Nexus\Shared\Port\CorpusSnapshotRepositoryPort;
 use Nexus\Shared\Port\JobLifecycleReaderPort;
 use Nexus\Shared\Port\JobLifecycleRecorderPort;
@@ -117,6 +119,10 @@ it('registers enabled snowballing providers from provider config', function (): 
 
 it('binds the default sql-backed job lifecycle recorder', function (): void {
     expect(app(JobLifecycleRecorderPort::class))->toBeInstanceOf(EloquentJobLifecycleRecorder::class);
+});
+
+it('binds the package-owned provider search executor', function (): void {
+    expect(app(ProviderSearchExecutorPort::class))->toBeInstanceOf(SequentialProviderSearchExecutor::class);
 });
 
 it('binds host read-side APIs', function (): void {

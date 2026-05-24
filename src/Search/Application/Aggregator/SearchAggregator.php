@@ -5,23 +5,29 @@ declare(strict_types=1);
 namespace Nexus\Search\Application\Aggregator;
 
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
+use Nexus\Search\Application\ProviderExecution\ProviderSearchExecutorPort;
+use Nexus\Search\Application\ProviderExecution\SequentialProviderSearchExecutor;
 use Nexus\Search\Domain\Port\AdapterCollection;
 use Nexus\Search\Domain\Port\DeduplicationPort;
 use Nexus\Search\Domain\Port\SearchCachePort;
 use Nexus\Search\Domain\SearchQuery;
 use Nexus\Shared\Domain\CorpusSlice;
 use Psr\Log\LoggerInterface;
-use Throwable;
 
 final class SearchAggregator implements SearchAggregatorPort
 {
+    private readonly ProviderSearchExecutorPort $providerExecutor;
+
     public function __construct(
         private readonly AdapterCollection $adapters,
         private readonly DeduplicationPort $deduplication,
         private readonly SearchCachePort $cache,
-        private readonly ?LoggerInterface $logger = null,
+        ?LoggerInterface $logger = null,
         private readonly int $cacheTtl = 3600,
-    ) {}
+        ?ProviderSearchExecutorPort $providerExecutor = null,
+    ) {
+        $this->providerExecutor = $providerExecutor ?? new SequentialProviderSearchExecutor($logger);
+    }
 
     public function aggregate(SearchQuery $query): AggregatedResult
     {
@@ -66,24 +72,10 @@ final class SearchAggregator implements SearchAggregatorPort
             );
         }
 
-        // 2. Execute provider search. Concurrency is an infrastructure concern;
-        // the application contract stays synchronous and library-neutral.
-        $allWorks = [];
-        $stats = [];
-
-        foreach ($activeAdapters as $adapter) {
-            $alias = $adapter->alias();
-            $providerStart = hrtime(true);
-
-            try {
-                $works = $adapter->search($query);
-                array_push($allWorks, ...$works);
-                $stats[] = new ProviderStat($alias, count($works), $this->elapsedMs($providerStart));
-            } catch (Throwable $e) {
-                $stats[] = new ProviderStat($alias, 0, $this->elapsedMs($providerStart), $e->getMessage());
-                $this->logger?->warning("Aggregator skipped {$alias}", ['reason' => $e->getMessage()]);
-            }
-        }
+        // 2. Execute provider search behind a package-owned executor boundary.
+        $execution = $this->providerExecutor->execute($query, $activeAdapters);
+        $allWorks = $execution->works();
+        $stats = $execution->stats();
 
         if ($allWorks === []) {
             return new AggregatedResult(
