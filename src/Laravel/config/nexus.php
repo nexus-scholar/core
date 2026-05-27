@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'mail_to' => env('NEXUS_MAIL_TO', 'admin@example.com'),
+    'mail_to' => env('NEXUS_MAIL_TO'),
 
     'search' => [
         'execution' => [

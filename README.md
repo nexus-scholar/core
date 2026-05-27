@@ -83,6 +83,7 @@ Start here:
 - [Release Notes v0.1.0](docs/23-release-notes-v0.1.0.md)
 - [Release Notes v0.1.1](docs/24-release-notes-v0.1.1.md)
 - [Host API Examples](docs/25-host-api-examples.md)
+- [Public API Contracts For 1.0](docs/26-public-api-contracts-1.0.md)
 
 ## Testing
 
@@ -98,6 +99,8 @@ Release checks:
 
 ```bash
 composer validate --strict
+composer audit --format=plain --abandoned=ignore
+composer test
 composer analyse
 composer format:check
 composer archive --format=zip --file=tmp/nexus-scholar-core

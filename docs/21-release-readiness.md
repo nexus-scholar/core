@@ -1,12 +1,12 @@
 # Release Readiness
 
-Last updated: 2026-05-23
+Last updated: 2026-05-27
 
 This document defines the release gate for `nexus-scholar/core`. It is intentionally separate from feature roadmaps: a release can ship only when the package can be installed, validated, and reasoned about without local workspace assumptions.
 
 ## Current Status
 
-Ready for pre-1.0 Laravel consumers:
+Ready for the 1.0 stabilization branch:
 
 - Composer metadata validates strictly.
 - Composer scripts exist for tests, static analysis, and formatting checks.
@@ -19,12 +19,13 @@ Ready for pre-1.0 Laravel consumers:
 - Host read APIs expose export history, job lifecycle, and full-text fetch audit records without direct SQL reads.
 - Provider integration tests are fixture-backed through a test-only HTTP port and are guarded against live-capable clients in CI.
 - Shared work/corpus models are canonical under `Nexus\Shared\Domain`; old Search-domain work/corpus classes are removed instead of retained as aliases.
-- A clean Laravel consumer smoke passes when installing `nexus-scholar/core:^0.1`.
-- `v0.1.0` release notes and a pre-1.0 versioning policy are documented.
+- A clean Laravel consumer smoke has passed for the public package line.
+- `v0.1.0`, `v0.1.1`, host API examples, and the 1.0 public API contract are documented.
 
-Not ready for a stable `1.0` tag yet:
+1.0 boundary decision:
 
-- Host-facing HTTP/API surfaces are not part of this package yet.
+- `core` does not own HTTP routes or browser UI. Stable Laravel package handlers, ports, read APIs, migrations, config, and package-owned Artisan commands are the 1.0 surface.
+- Host applications own HTTP/UI/CLI adapters and must keep them thin around `core`.
 
 ## Release Gate
 
@@ -32,6 +33,7 @@ Run these commands before tagging or opening a release PR:
 
 ```powershell
 composer validate --strict
+composer audit --format=plain --abandoned=ignore
 composer test
 composer analyse
 composer format:check
@@ -51,7 +53,7 @@ The archive smoke check should succeed and produce a package zip that excludes:
 Before a release, test installation from a clean Laravel application:
 
 ```powershell
-composer require nexus-scholar/core:^0.1
+composer require nexus-scholar/core:^1.0
 php artisan vendor:publish --tag=nexus-config
 php artisan vendor:publish --tag=nexus-migrations
 php artisan migrate
@@ -65,7 +67,7 @@ Expected package-owned commands:
 
 Host applications may expose additional commands, but they must remain thin wrappers around core use cases.
 
-### Latest Consumer Smoke
+### Last Public Consumer Smoke
 
 Date: 2026-05-22
 
@@ -126,6 +128,73 @@ php -r 'require "vendor/autoload.php"; /* build a two-node citation graph and co
 
 Result: passed with `2:1`, confirming the installed graph packages can satisfy the core citation-network metrics path.
 
+### 1.0 Release Candidate Consumer Smoke
+
+Run this from a clean Laravel host before tagging `1.0.0`:
+
+```powershell
+composer require nexus-scholar/core:^1.0
+php artisan vendor:publish --tag=nexus-config --force
+php artisan vendor:publish --tag=nexus-migrations --force
+php artisan migrate
+php artisan list nexus
+composer audit --format=plain --abandoned=ignore
+```
+
+Expected package-owned commands:
+
+- `nexus:search`
+- `nexus:screen`
+
+`nexus-scholar/nexus-cli` should separately validate host-owned production commands for corpus lock, export, export history, job lifecycle, full-text artifacts, screening adjudication/comparison, and local workflow smoke tests.
+
+#### Local Path-Repository RC Smoke
+
+Date: 2026-05-27
+
+Because the `1.0.0` tag does not exist yet, this smoke mapped the local package checkout to Composer version `1.0.0` with a path repository, then required it through the same `^1.0` constraint a real consumer will use.
+
+Smoke app:
+
+- Source skeleton: prior clean Laravel smoke app copied into `%TEMP%`.
+- Laravel framework: `v13.11.2`.
+- Core package: local `nexus-scholar/core` path repository advertised as `1.0.0`.
+- Graph packages: local `nexus-scholar/graph-core` and `nexus-scholar/graph-algorithms` path repositories advertised as `1.2.0`.
+
+Commands run:
+
+```powershell
+composer require nexus-scholar/core:^1.0 --with-dependencies --no-interaction --no-progress
+php artisan vendor:publish --tag=nexus-config --force
+php artisan vendor:publish --tag=nexus-migrations --force
+php artisan migrate:fresh --force
+php artisan list nexus
+composer audit --format=plain --abandoned=ignore
+```
+
+Result: passed.
+
+Composer installed:
+
+- `nexus-scholar/core` at `1.0.0`.
+- `nexus-scholar/graph-core` at `1.2.0`.
+- `nexus-scholar/graph-algorithms` at `1.2.0`.
+
+Security-sensitive transitive versions in the smoke lock:
+
+- `symfony/http-foundation` at `8.0.13`.
+- `symfony/routing` at `8.0.13`.
+- `symfony/polyfill-intl-idn` at `1.38.1`.
+
+Migration result: `migrate:fresh` passed through `2026_04_28_000010_create_corpus_snapshots_table`.
+
+Package-owned commands discovered:
+
+- `nexus:search`
+- `nexus:screen`
+
+Audit result: passed with no security vulnerability advisories.
+
 ## Required Environment
 
 Minimum useful Laravel values:
@@ -146,14 +215,14 @@ NEXUS_LLM_OPENROUTER_API_KEY=
 
 Never commit real credentials. Provider availability should be controlled through config/env, not code edits.
 
-## 0.2.0 Scope
+## 0.2.x Stabilization Scope
 
-`0.2.0` is defined as the host-read and CI-hardening release:
+The `0.2.x` line is the host-read and CI-hardening release family:
 
 - additive Laravel package read APIs for exports, job progress, and full-text fetch artifacts,
 - host-facing usage examples for resolving handlers/readers,
 - provider integration tests isolated from live networks,
-- first boundary hardening by moving shared work/corpus models to `Nexus\Shared\Domain`.
+- boundary hardening by moving shared work/corpus models to `Nexus\Shared\Domain`,
 - optional package-owned concurrent provider search execution, with Guzzle promises confined to infrastructure.
 
 Tagging/publishing remains a separate release task after a clean consumer install smoke.
@@ -171,6 +240,6 @@ Tagging/publishing remains a separate release task after a clean consumer instal
 
 Priority order:
 
-1. Measure provider fan-out latency from a real host workload and decide whether to make concurrent execution the recommended default.
-2. Extend streaming full-text storage to XML/text artifacts if large non-PDF payloads become common.
-3. Repeat Packagist/package archive review before the next tag.
+1. Run a clean Laravel `^1.0` release-candidate consumer smoke once the tag candidate exists.
+2. Run `nexus-scholar/nexus-cli` against the tag candidate and capture the 1.0 command smoke output.
+3. Repeat Packagist/package archive review before the tag.
