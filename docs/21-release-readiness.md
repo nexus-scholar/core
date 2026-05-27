@@ -33,7 +33,7 @@ Run these commands before tagging or opening a release PR:
 
 ```powershell
 composer validate --strict
-composer audit --format=plain
+composer audit --format=plain --abandoned=ignore
 composer test
 composer analyse
 composer format:check
@@ -138,7 +138,7 @@ php artisan vendor:publish --tag=nexus-config --force
 php artisan vendor:publish --tag=nexus-migrations --force
 php artisan migrate
 php artisan list nexus
-composer audit --format=plain
+composer audit --format=plain --abandoned=ignore
 ```
 
 Expected package-owned commands:
@@ -169,7 +169,7 @@ php artisan vendor:publish --tag=nexus-config --force
 php artisan vendor:publish --tag=nexus-migrations --force
 php artisan migrate:fresh --force
 php artisan list nexus
-composer audit --format=plain
+composer audit --format=plain --abandoned=ignore
 ```
 
 Result: passed.

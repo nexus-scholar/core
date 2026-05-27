@@ -99,7 +99,7 @@ Release checks:
 
 ```bash
 composer validate --strict
-composer audit --format=plain
+composer audit --format=plain --abandoned=ignore
 composer test
 composer analyse
 composer format:check

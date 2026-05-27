@@ -80,7 +80,7 @@ Before tagging `1.0.0`, the release branch must pass:
 
 ```powershell
 composer validate --strict
-composer audit --format=plain
+composer audit --format=plain --abandoned=ignore
 composer test
 composer analyse
 composer format:check

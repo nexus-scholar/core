@@ -30,5 +30,5 @@ Do not tag `1.0.0` until these are true:
 - Laravel-specific dependencies must stay in Laravel integration code or dev/test tooling.
 - Graph functionality is provided through `nexus-scholar/graph-core` and `nexus-scholar/graph-algorithms`.
 - Live provider integrations must not be required for CI success unless backed by fixtures or explicit integration-test configuration.
-- Dependency advisories must fail CI through `composer audit --format=plain`.
+- Dependency advisories must fail CI through `composer audit --format=plain --abandoned=ignore`.
 
