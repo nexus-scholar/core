@@ -2,8 +2,25 @@
 /.env
 /output
 coverage/
+site/
 tmp/
 storage/*.log
 storage/logs/
 .phpunit.result.cache
 test_cmd*.php
+
+# IDE metadata
+.idea/
+.vscode/
+
+# Local AI assistant and LLM workspace files
+.agent-skill.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.cursor/
+.codex/
+.claude/
+.continue/
+.windsurf/
+.aider*

@@ -3,8 +3,12 @@
 /.env.example export-ignore
 /.github export-ignore
 /.idea export-ignore
+/docs/archive export-ignore
 /docs/UI export-ignore
 /docs/old-nexus-review export-ignore
+/mkdocs.yml export-ignore
+/requirements-docs.txt export-ignore
+/site export-ignore
 /AGENTS.md export-ignore
 /DISSEMINATION_IMPLEMENTATION_STATUS.md export-ignore
 /bootstrap/cache export-ignore

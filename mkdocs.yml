@@ -1,0 +1,53 @@
+site_name: Nexus Scholar Core
+site_description: Systematic literature review tooling for PHP and Laravel package consumers.
+docs_dir: docs/v1.0
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: blue
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+
+nav:
+  - Home: README.md
+  - Tutorials:
+      - Overview: tutorials/README.md
+      - Build A Laravel Review CLI: tutorials/build-a-laravel-review-cli-with-core.md
+      - Search Plans And Provider Controls: tutorials/advanced-search-plans-and-provider-controls.md
+      - Screening, Adjudication, And Comparison: tutorials/advanced-screening-adjudication-and-comparison.md
+      - Full-Text Retrieval And Export Audit: tutorials/advanced-full-text-retrieval-and-export-audit.md
+      - Citation Graphs And Snowballing: tutorials/advanced-citation-graphs-and-snowballing.md
+  - Module Reference:
+      - Overview: modules/README.md
+      - Core Architecture: modules/01-core-architecture-and-package-boundary.md
+      - Shared Kernel: modules/02-core-shared-kernel.md
+      - Search And Providers: modules/03-core-search-and-providers.md
+      - Deduplication And Corpus Lock: modules/04-core-deduplication-and-corpus-lock.md
+      - Screening And Adjudication: modules/05-core-screening-and-adjudication.md
+      - Citation Network And Snowballing: modules/06-core-citation-network-and-snowballing.md
+      - Full Text And Dissemination: modules/07-core-full-text-and-dissemination.md
+      - Laravel Integration: modules/08-core-laravel-integration-persistence-jobs-read-apis.md
+  - Release:
+      - State Audit: release-state-audit.md
+      - Documentation Scope: module-documentation-plan.md
+      - Publishing: publishing.md
