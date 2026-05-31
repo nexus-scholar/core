@@ -9,6 +9,15 @@ Nexus Scholar Core is a PHP 8.3+ package for building systematic literature revi
 
 The package is designed as a reusable engine. Domain and application code depend on ports and value objects; Laravel-specific infrastructure lives behind service-provider bindings, migrations, jobs, events, and Eloquent-backed repositories.
 
+## Ecosystem Role
+
+`core` is the public package boundary of Nexus Scholar. It keeps the scholarly workflow logic reusable while host applications own product concerns, local project layout, credentials, and user experience.
+
+- `nexus-scholar/nexus-cli` is the local research-workspace host for command-line review workflows.
+- `nexus-scholar/nexus-web` is the hosted Laravel/Inertia product shell.
+- `nexus-scholar/graph-core` and `nexus-scholar/graph-algorithms` provide the graph foundation used by citation-network features.
+- `nexus-scholar/refmanager` covers bibliographic import/export support around RIS, BibTeX, CSL-JSON, and EndNote XML.
+
 ## What It Provides
 
 - Search orchestration across arXiv, Crossref, DOAJ, IEEE, OpenAlex, PubMed, and Semantic Scholar.
