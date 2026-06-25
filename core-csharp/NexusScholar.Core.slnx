@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NexusScholar.Kernel/NexusScholar.Kernel.csproj" />
+    <Project Path="src/NexusScholar.Protocol/NexusScholar.Protocol.csproj" />
+    <Project Path="src/NexusScholar.Workflow/NexusScholar.Workflow.csproj" />
+    <Project Path="src/NexusScholar.Artifacts/NexusScholar.Artifacts.csproj" />
+    <Project Path="src/NexusScholar.Provenance/NexusScholar.Provenance.csproj" />
+    <Project Path="src/NexusScholar.Bundles/NexusScholar.Bundles.csproj" />
+    <Project Path="src/NexusScholar.Extensibility/NexusScholar.Extensibility.csproj" />
+    <Project Path="src/NexusScholar.AI/NexusScholar.AI.csproj" />
+    <Project Path="src/NexusScholar.Cli/NexusScholar.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NexusScholar.Core.Tests/NexusScholar.Core.Tests.csproj" />
+    <Project Path="tests/NexusScholar.Architecture.Tests/NexusScholar.Architecture.Tests.csproj" />
+    <Project Path="tests/NexusScholar.Conformance.Tests/NexusScholar.Conformance.Tests.csproj" />
+  </Folder>
+</Solution>

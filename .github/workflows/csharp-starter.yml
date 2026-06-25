@@ -1,0 +1,36 @@
+name: CSharp Starter
+
+on:
+  push:
+    branches:
+      - codex/csharp-starter
+    paths:
+      - core-csharp/**
+      - .github/workflows/csharp-starter.yml
+  pull_request:
+    paths:
+      - core-csharp/**
+      - .github/workflows/csharp-starter.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: core-csharp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore NexusScholar.Core.slnx
+      - run: dotnet build NexusScholar.Core.slnx --configuration Release --no-restore
+      - run: dotnet test NexusScholar.Core.slnx --configuration Release --no-build
+      - run: dotnet format NexusScholar.Core.slnx --verify-no-changes --no-restore
+      - run: dotnet run --project src/NexusScholar.Cli --configuration Release --no-build -- sample

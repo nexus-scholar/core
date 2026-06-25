@@ -1,0 +1,16 @@
+bin/
+obj/
+artifacts/
+TestResults/
+.coverage/
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+*.nupkg
+*.snupkg
+.env
+.env.*
+!.env.example
+fixtures/php-golden/generated/

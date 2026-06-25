@@ -1,0 +1,1 @@
+{"schema":"nexus.review-protocol/v1","subject":"segmentation in agriculture","required_decisions":["review-type","scope"],"decisions":{"review-type":"scoping-review","scope":"agricultural image segmentation"}}
