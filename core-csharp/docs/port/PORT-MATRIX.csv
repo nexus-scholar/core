@@ -1,0 +1,16 @@
+area,source,status,csharp_target,fixture_strategy,next_gate
+protocol,blueprint,new-kernel,NexusScholar.Protocol,protocol lifecycle fixtures,3
+workflow,blueprint,new-kernel,NexusScholar.Workflow,template compile snapshots,4
+artifacts,blueprint,new-kernel,NexusScholar.Artifacts,hash and manifest fixtures,5
+provenance,blueprint,new-kernel,NexusScholar.Provenance,event lineage fixtures,5
+bundles,blueprint,new-kernel,NexusScholar.Bundles,round-trip and tamper fixtures,6
+plugins,blueprint,new-kernel,NexusScholar.Extensibility,capability policy fixtures,10
+ai-governance,blueprint,new-kernel,NexusScholar.AI,authority and approval fixtures,11
+scholarly-work,php-reference,pending,NexusScholar.Search,normalized work golden JSON,9
+search,php-reference,pending,NexusScholar.Search,provider fixture differential tests,9
+deduplication,php-reference,pending,NexusScholar.Corpus,cluster and representative fixtures,9
+corpus-lock,php-reference,pending,NexusScholar.Corpus,snapshot membership fixtures,9
+screening,php-reference,pending,NexusScholar.Screening,decision vote and adjudication fixtures,9
+citation-network,php-reference,pending,NexusScholar.Network,graph edge and metric fixtures,9
+full-text,php-reference,pending,NexusScholar.Dissemination,resolution audit fixtures,9
+exports,php-reference,pending,NexusScholar.Reporting,bibliography and graph snapshots,9
