@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../NexusScholar.Kernel/NexusScholar.Kernel.csproj" />
+    <ProjectReference Include="../NexusScholar.Artifacts/NexusScholar.Artifacts.csproj" />
+    <ProjectReference Include="../NexusScholar.Provenance/NexusScholar.Provenance.csproj" />
+  </ItemGroup>
+</Project>
