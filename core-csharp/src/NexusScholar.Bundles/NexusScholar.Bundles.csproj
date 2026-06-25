@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Portable review bundle contracts and verification.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NexusScholar.Artifacts/NexusScholar.Artifacts.csproj" />
+    <ProjectReference Include="../NexusScholar.Protocol/NexusScholar.Protocol.csproj" />
+    <ProjectReference Include="../NexusScholar.Workflow/NexusScholar.Workflow.csproj" />
+    <ProjectReference Include="../NexusScholar.Provenance/NexusScholar.Provenance.csproj" />
+  </ItemGroup>
+</Project>
