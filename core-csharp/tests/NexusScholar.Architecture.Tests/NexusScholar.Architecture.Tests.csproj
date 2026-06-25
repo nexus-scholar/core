@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/NexusScholar.Kernel/NexusScholar.Kernel.csproj" />
+    <ProjectReference Include="../../src/NexusScholar.Artifacts/NexusScholar.Artifacts.csproj" />
+    <ProjectReference Include="../../src/NexusScholar.Protocol/NexusScholar.Protocol.csproj" />
+    <ProjectReference Include="../../src/NexusScholar.Workflow/NexusScholar.Workflow.csproj" />
+    <ProjectReference Include="../../src/NexusScholar.Provenance/NexusScholar.Provenance.csproj" />
+    <ProjectReference Include="../../src/NexusScholar.Bundles/NexusScholar.Bundles.csproj" />
+    <ProjectReference Include="../../src/NexusScholar.Extensibility/NexusScholar.Extensibility.csproj" />
+    <ProjectReference Include="../../src/NexusScholar.AI/NexusScholar.AI.csproj" />
+  </ItemGroup>
+</Project>
