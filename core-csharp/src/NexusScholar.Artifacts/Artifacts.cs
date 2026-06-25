@@ -4,7 +4,9 @@ using NexusScholar.Kernel;
 
 namespace NexusScholar.Artifacts;
 
-public sealed class ArtifactTag;
+public sealed class ArtifactTag
+{
+}
 
 public readonly record struct ContentDigest
 {
