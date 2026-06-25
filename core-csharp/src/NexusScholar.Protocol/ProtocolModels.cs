@@ -3,9 +3,13 @@ using NexusScholar.Kernel;
 
 namespace NexusScholar.Protocol;
 
-public sealed class ProtocolTag;
+public sealed class ProtocolTag
+{
+}
 
-public sealed class ProtocolVersionTag;
+public sealed class ProtocolVersionTag
+{
+}
 
 public enum ProtocolStatus
 {
