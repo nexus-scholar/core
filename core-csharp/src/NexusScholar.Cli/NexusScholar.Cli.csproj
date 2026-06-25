@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NexusScholar.Kernel/NexusScholar.Kernel.csproj" />
+    <ProjectReference Include="../NexusScholar.Protocol/NexusScholar.Protocol.csproj" />
+    <ProjectReference Include="../NexusScholar.Workflow/NexusScholar.Workflow.csproj" />
+    <ProjectReference Include="../NexusScholar.Artifacts/NexusScholar.Artifacts.csproj" />
+    <ProjectReference Include="../NexusScholar.Provenance/NexusScholar.Provenance.csproj" />
+    <ProjectReference Include="../NexusScholar.Bundles/NexusScholar.Bundles.csproj" />
+    <ProjectReference Include="../NexusScholar.Extensibility/NexusScholar.Extensibility.csproj" />
+    <ProjectReference Include="../NexusScholar.AI/NexusScholar.AI.csproj" />
+  </ItemGroup>
+</Project>
