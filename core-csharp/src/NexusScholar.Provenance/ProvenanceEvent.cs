@@ -3,7 +3,9 @@ using NexusScholar.Kernel;
 
 namespace NexusScholar.Provenance;
 
-public sealed class ProvenanceEventTag;
+public sealed class ProvenanceEventTag
+{
+}
 
 public sealed record ResearchEvent(
     EntityId<ProvenanceEventTag> Id,
