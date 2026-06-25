@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Nexus Scholar deterministic kernel.</Description>
+  </PropertyGroup>
+</Project>
