@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Deterministic review workflow compilation.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NexusScholar.Kernel/NexusScholar.Kernel.csproj" />
+    <ProjectReference Include="../NexusScholar.Protocol/NexusScholar.Protocol.csproj" />
+  </ItemGroup>
+</Project>
